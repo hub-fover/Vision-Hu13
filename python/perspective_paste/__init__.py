@@ -12,6 +12,7 @@ from .blending import (
 from .geometry import (
     GeometryError,
     compute_homography,
+    compute_perspective_guide,
     compute_vanishing_points,
     order_quad,
     validate_quad,
@@ -35,6 +36,7 @@ __all__ = [
     "blend_composite",
     "blend_mode",
     "compute_homography",
+    "compute_perspective_guide",
     "compute_vanishing_points",
     "crop_transparent",
     "find_system_fonts",

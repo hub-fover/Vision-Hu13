@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const example = (name) =>
@@ -17,7 +18,9 @@ async function addValidQuad(page) {
   for (const [x, y] of points) {
     await page.mouse.click(box.x + box.width * x, box.y + box.height * y);
   }
-  await expect(page.locator("#export-png")).toBeEnabled({ timeout: 20_000 });
+  // Full-resolution blending deliberately runs in a worker. On Windows CI,
+  // a cold worker can take longer than the interaction timeout under load.
+  await expect(page.locator("#export-png")).toBeEnabled({ timeout: 60_000 });
 }
 
 test("first-load sample, presets, comparison, uploads, and exports stay local", async ({ page }) => {
@@ -35,6 +38,7 @@ test("first-load sample, presets, comparison, uploads, and exports stay local", 
   await expect(page.locator("#empty-message")).toBeHidden();
   await expect(page.locator("#point-status")).toHaveText("透视区域有效");
   await expect(page.locator("#export-png")).toBeEnabled({ timeout: 20_000 });
+  await expect(page.locator("#vanishing-toggle")).toBeChecked();
 
   await page.locator("#font-input").setInputFiles({
     name: "invalid-font.ttf",
@@ -45,6 +49,7 @@ test("first-load sample, presets, comparison, uploads, and exports stay local", 
 
   await page.locator("#background-input").setInputFiles(example("packaging.jpg"));
   await expect(page.locator("#point-status")).toContainText("0/4");
+  await page.locator('[data-asset-tab="text"]').click();
   await page.locator("#asset-input").setInputFiles(example("lab-poster.png"));
   await expect(page.locator('[data-asset-tab="png"]')).toHaveClass(/active/);
   await page.locator("#preset-select").selectOption("poster");
@@ -53,13 +58,21 @@ test("first-load sample, presets, comparison, uploads, and exports stay local", 
   await page.locator("#compare-slider").fill("42");
   await expect(page.locator("#compare-value")).toHaveText("42%");
 
+  let pngWithGuide;
   for (const [button, suffix] of [["#export-png", ".png"], ["#export-jpeg", ".jpg"]]) {
     const downloadPromise = page.waitForEvent("download");
     await page.locator(button).click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(new RegExp(`${suffix.replace(".", "\\.")}$`));
-    await download.path();
+    const path = await download.path();
+    if (suffix === ".png") pngWithGuide = await readFile(path);
   }
+  await page.locator("#vanishing-toggle").uncheck();
+  await expect(page.locator("#vanishing-toggle")).not.toBeChecked();
+  const downloadPromise = page.waitForEvent("download");
+  await page.locator("#export-png").click();
+  const pngWithoutGuide = await readFile(await (await downloadPromise).path());
+  expect(pngWithoutGuide.equals(pngWithGuide)).toBe(true);
   expect(outbound).toEqual([]);
 });
 

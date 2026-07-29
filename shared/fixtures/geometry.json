@@ -119,5 +119,74 @@
       "quad": [[20, 20], [180, 40], [180, 140], [20, 140]],
       "expected": [[980, 140], null]
     }
+  ],
+  "perspectiveGuides": [
+    {
+      "name": "rectangle-at-infinity",
+      "quad": [[20, 20], [180, 20], [180, 140], [20, 140]],
+      "viewport": [200, 200],
+      "directions": [
+        {"family": "u", "status": "parallel", "direction": [1, 0]},
+        {"family": "v", "status": "parallel", "direction": [0, 1]}
+      ],
+      "vanishingLine": {
+        "status": "infinite",
+        "coefficients": [0, 0, 1],
+        "segment": null
+      }
+    },
+    {
+      "name": "parallel-and-onscreen",
+      "quad": [[60, 80], [140, 80], [120, 120], [80, 120]],
+      "viewport": [200, 200],
+      "directions": [
+        {"family": "u", "status": "parallel", "direction": [1, 0]},
+        {"family": "v", "status": "onscreen", "point": [100, 160]}
+      ],
+      "vanishingLine": {
+        "status": "visible",
+        "coefficients": [0, 1, -160],
+        "segment": [[0, 160], [200, 160]]
+      }
+    },
+    {
+      "name": "parallel-and-offscreen-line",
+      "quad": [[60, 60], [140, 60], [130, 100], [70, 100]],
+      "viewport": [200, 200],
+      "directions": [
+        {"family": "u", "status": "parallel", "direction": [1, 0]},
+        {
+          "family": "v",
+          "status": "offscreen",
+          "point": [100, 220],
+          "edgeAnchor": [100, 200]
+        }
+      ],
+      "vanishingLine": {
+        "status": "offscreen",
+        "coefficients": [0, 1, -220],
+        "segment": null
+      }
+    },
+    {
+      "name": "finite-visible-line",
+      "quad": [[60, 70], [140, 90], [120, 140], [80, 120]],
+      "viewport": [200, 200],
+      "directions": [
+        {
+          "family": "u",
+          "status": "offscreen",
+          "point": [-100, 30],
+          "edgeAnchor": [0, 65],
+          "distanceDiagonals": 0.7491662031885848
+        },
+        {"family": "v", "status": "onscreen", "point": [104, 180]}
+      ],
+      "vanishingLine": {
+        "status": "visible",
+        "coefficients": [0.5923904504775181, -0.8056510126494246, 83.40857542723455],
+        "segment": [[0, 103.52941176470588], [131.2, 200]]
+      }
+    }
   ]
 }

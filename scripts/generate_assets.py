@@ -169,9 +169,77 @@ def make_screen_ui() -> Image.Image:
     return canvas
 
 
+def make_court_ad() -> Image.Image:
+    canvas = Image.new("RGBA", (1200, 800))
+    draw = ImageDraw.Draw(canvas, "RGBA")
+    draw.rounded_rectangle(
+        (90, 95, 1110, 705),
+        radius=48,
+        fill=(242, 246, 236, 244),
+        outline=INK + (255,),
+        width=12,
+    )
+    draw.rectangle((90, 95, 1110, 190), fill=BLUE + (255,))
+    draw.text((145, 245), "VISION HU13", font=font(112, True), fill=INK + (255,))
+    draw.text((150, 400), "OWN THE ANGLE", font=font(75, True), fill=BLUE + (255,))
+    draw.line((150, 540, 1010, 540), fill=ORANGE + (255,), width=16)
+    draw.polygon([(885, 585), (1035, 540), (995, 665)], fill=GREEN + (255,))
+    return canvas
+
+
+def make_facade_logo() -> Image.Image:
+    canvas = Image.new("RGBA", (1200, 800))
+    draw = ImageDraw.Draw(canvas, "RGBA")
+    draw.rounded_rectangle(
+        (120, 150, 1080, 650),
+        radius=56,
+        fill=(246, 249, 250, 238),
+        outline=INK + (255,),
+        width=10,
+    )
+    draw.polygon(
+        [(205, 525), (350, 275), (500, 525), (420, 525), (350, 405), (280, 525)],
+        fill=BLUE + (255,),
+    )
+    draw.text((545, 276), "VISION", font=font(92, True), fill=INK + (255,))
+    draw.text((545, 395), "HU13", font=font(124, True), fill=BLUE + (255,))
+    draw.text((550, 535), "PERSPECTIVE LAB", font=font(36, True), fill=INK + (220,))
+    return canvas
+
+
 def write_manifest(source_hash: str) -> None:
     common = {"license": "CC BY 4.0"}
     items = [
+        {
+            "filename": "court.jpg",
+            "kind": "background",
+            "dimensions": [1600, 1200],
+            "license": "Pexels License",
+            "title": "Basketball Court in a City",
+            "creator": "Joaquin Carfagna",
+            "sourceUrl": "https://www.pexels.com/photo/basketball-court-in-a-city-17274508/",
+            "downloadedAt": "2026-07-29",
+            "modifications": "Centered 4:3 crop emphasizing the playing surface, resized to 1600x1200, mild contrast/color adjustment, JPEG optimized",
+            "method": "Licensed source photograph, deterministic crop and Lanczos resize",
+            "source": "Pexels photo 17274508",
+            "provenance": "Derived from the credited Pexels photograph; the unmodified original is not vendored.",
+            "purpose": "Default basketball-court plane for vanishing-point and ground-ad demonstrations",
+        },
+        {
+            "filename": "facade.jpg",
+            "kind": "background",
+            "dimensions": [1600, 1200],
+            "license": "Pexels License",
+            "title": "White Concrete Building",
+            "creator": "Miks Bergmanis",
+            "sourceUrl": "https://www.pexels.com/photo/white-concrete-building-542411/",
+            "downloadedAt": "2026-07-29",
+            "modifications": "Centered 4:3 crop around the low-angle facade, resized to 1600x1200, mild contrast/color adjustment, JPEG optimized",
+            "method": "Licensed source photograph, deterministic crop and Lanczos resize",
+            "source": "Pexels photo 542411",
+            "provenance": "Derived from the credited Pexels photograph; the unmodified original is not vendored.",
+            "purpose": "Low-angle facade plane for vanishing-point and logo-placement demonstrations",
+        },
         {
             "filename": "wall.jpg",
             "kind": "background",
@@ -218,6 +286,28 @@ def write_manifest(source_hash: str) -> None:
             "purpose": "Real unbranded television plane for screen-replacement demonstrations",
         },
         {
+            "filename": "court-ad.png",
+            "kind": "overlay",
+            "dimensions": [1200, 800],
+            **common,
+            "method": "Original deterministic Pillow vector-style drawing",
+            "source": "scripts/generate_assets.py",
+            "provenance": "Original unbranded sponsor artwork; no external visual assets or trademarks",
+            "purpose": "Basketball-court ground advertisement for the default example",
+            "text": ["VISION HU13", "OWN THE ANGLE"],
+        },
+        {
+            "filename": "facade-logo.png",
+            "kind": "overlay",
+            "dimensions": [1200, 800],
+            **common,
+            "method": "Original deterministic Pillow vector-style drawing",
+            "source": "scripts/generate_assets.py",
+            "provenance": "Original Vision Hu13 project artwork; no third-party trademarks",
+            "purpose": "Vision Hu13 logo for the facade placement example",
+            "text": ["VISION HU13", "PERSPECTIVE LAB"],
+        },
+        {
             "filename": "vision-hub-mark.png",
             "kind": "overlay",
             "dimensions": [1200, 800],
@@ -252,8 +342,8 @@ def write_manifest(source_hash: str) -> None:
     manifest = {
         "schemaVersion": 2,
         "licenseNotice": (
-            "The three photographic backgrounds remain under the Pexels License. "
-            "The three original overlays are licensed under CC BY 4.0."
+            "The five photographic backgrounds remain under the Pexels License. "
+            "The five original overlays are licensed under CC BY 4.0."
         ),
         "assets": items,
     }
@@ -276,6 +366,8 @@ def main() -> None:
         image.save(SYNTHETIC_OUTPUT / name, "JPEG", quality=92, optimize=True, subsampling=0)
         shutil.copy2(SYNTHETIC_OUTPUT / name, WEB_SYNTHETIC_OUTPUT / name)
     logo, source_hash = make_logo_overlay()
+    make_court_ad().save(OUTPUT / "court-ad.png", optimize=True)
+    make_facade_logo().save(OUTPUT / "facade-logo.png", optimize=True)
     logo.save(OUTPUT / "vision-hub-mark.png", optimize=True)
     make_poster().save(OUTPUT / "lab-poster.png", optimize=True)
     make_screen_ui().save(OUTPUT / "screen-ui.png", optimize=True)
@@ -284,7 +376,7 @@ def main() -> None:
             shutil.copy2(asset_path, WEB_OUTPUT / asset_path.name)
     write_manifest(source_hash)
     print(
-        "Generated 3 synthetic fallback backgrounds, 3 original overlays, "
+        "Generated 3 synthetic fallback backgrounds, 5 original overlays, "
         f"and the manifest in {OUTPUT.parent}; copied runtime assets to {WEB_OUTPUT}"
     )
 

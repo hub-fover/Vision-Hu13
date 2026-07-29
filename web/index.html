@@ -53,6 +53,8 @@
         <h2><span>02</span> 融合</h2>
         <label for="preset-select">场景预设</label>
         <select id="preset-select">
+          <option value="court" selected>篮球场</option>
+          <option value="facade">楼体 Logo</option>
           <option value="wall">墙面</option>
           <option value="poster">海报</option>
           <option value="packaging">包装</option>
@@ -83,7 +85,7 @@
           <label><input id="brightness" data-option="brightnessMatch" type="checkbox" checked> 亮度匹配</label>
           <label><input id="shadow" data-option="shadow.enabled" type="checkbox"> 投影</label>
           <label><input id="grid-toggle" type="checkbox"> 透视网格</label>
-          <label><input id="vanishing-toggle" type="checkbox"> 消失点</label>
+          <label><input id="vanishing-toggle" type="checkbox" checked> 消影辅助</label>
         </div>
         <div class="two-fields shadow-fields">
           <label>阴影 X <input id="shadow-x" data-option="shadow.offsetX" type="number" min="-80" max="80" step="1" value="6"></label>

@@ -10,6 +10,7 @@ htmlcov/
 
 # Node and Playwright
 node_modules/
+.npm-cache/
 test-results/
 playwright-report/
 blob-report/
@@ -25,4 +26,3 @@ perspective-paste.png
 perspective-paste.jpg
 perspective-paste.jpeg
 *.log
-

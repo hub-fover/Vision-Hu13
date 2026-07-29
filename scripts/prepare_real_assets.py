@@ -24,6 +24,8 @@ class PhotoSpec:
 
 
 PHOTO_SPECS = {
+    "court.jpg": PhotoSpec((6240, 4160), (250, 0, 5797, 4160)),
+    "facade.jpg": PhotoSpec((6000, 3690), (540, 0, 5460, 3690)),
     "wall.jpg": PhotoSpec((5083, 3387), (0, 0, 4516, 3387)),
     "packaging.jpg": PhotoSpec((3000, 2000), (167, 0, 2833, 2000)),
     "screen.jpg": PhotoSpec((5999, 4000), (1100, 700, 4300, 3100)),
@@ -58,8 +60,10 @@ def prepare(source: Path, destination_name: str) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Crop and resize the three credited Pexels source photographs."
+        description="Crop and resize the five credited Pexels source photographs."
     )
+    parser.add_argument("--court", required=True, type=Path)
+    parser.add_argument("--facade", required=True, type=Path)
     parser.add_argument("--wall", required=True, type=Path)
     parser.add_argument("--packaging", required=True, type=Path)
     parser.add_argument("--screen", required=True, type=Path)
@@ -68,10 +72,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     arguments = build_parser().parse_args()
+    prepare(arguments.court, "court.jpg")
+    prepare(arguments.facade, "facade.jpg")
     prepare(arguments.wall, "wall.jpg")
     prepare(arguments.packaging, "packaging.jpg")
     prepare(arguments.screen, "screen.jpg")
-    print("Prepared wall.jpg, packaging.jpg, and screen.jpg at 1600x1200.")
+    print(
+        "Prepared court.jpg, facade.jpg, wall.jpg, packaging.jpg, "
+        "and screen.jpg at 1600x1200."
+    )
 
 
 if __name__ == "__main__":

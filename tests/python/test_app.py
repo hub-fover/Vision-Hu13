@@ -7,6 +7,7 @@ from PIL import Image
 import perspective_paste
 from perspective_paste.app import (
     DEFAULT_TEXT,
+    _draw_perspective_overlay,
     build_parser,
     can_export,
     cycle_blur,
@@ -18,13 +19,13 @@ from perspective_paste.app import (
 from perspective_paste.interaction import InteractionState
 
 
-def test_parser_defaults_to_sample_wall_and_chinese_text():
+def test_parser_defaults_to_basketball_court_and_chinese_text():
     arguments = build_parser().parse_args([])
 
-    assert arguments.background.as_posix().endswith("assets/examples/wall.jpg")
+    assert arguments.background.as_posix().endswith("assets/examples/court.jpg")
     assert arguments.text == DEFAULT_TEXT == "先贴得准，再融得真"
     assert arguments.asset is None
-    assert arguments.preset == "wall"
+    assert arguments.preset == "court"
 
 
 def test_parser_supports_asset_and_rejects_text_asset_combination(tmp_path):
@@ -68,6 +69,17 @@ def test_cycle_blur_uses_the_documented_six_step_sequence():
     assert cycle_blur(0.7) == 1.0
 
 
+def test_perspective_overlay_keeps_offscreen_guidance_inside_the_frame():
+    frame = np.zeros((200, 200, 3), dtype=np.uint8)
+    quad = np.asarray([[60, 70], [140, 90], [120, 140], [80, 120]], dtype=float)
+
+    returned = _draw_perspective_overlay(frame, quad)
+
+    assert returned is frame
+    assert np.count_nonzero(frame) > 0
+    assert np.count_nonzero(frame[54:77, :8]) > 0
+
+
 @pytest.mark.parametrize("suffix", [".png", ".jpg", ".jpeg"])
 def test_export_image_preserves_dimensions(tmp_path, suffix):
     image = np.zeros((17, 23, 4), dtype=np.uint8)
@@ -98,6 +110,7 @@ def test_export_jpeg_uses_quality_92(monkeypatch, tmp_path):
 def test_top_level_package_exports_geometry_renderer_and_blending_apis():
     for name in (
         "validate_quad",
+        "compute_perspective_guide",
         "render_text_layer",
         "load_png_layer",
         "blend_mode",

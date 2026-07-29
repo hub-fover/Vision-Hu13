@@ -5,7 +5,7 @@ import test from "node:test";
 const readWorkflow = (name) =>
   readFile(new URL(`../../.github/workflows/${name}`, import.meta.url), "utf8");
 
-test("CI covers the supported Python matrix and browser/content checks", async () => {
+test("CI covers the supported Python matrix and browser checks", async () => {
   const source = await readWorkflow("ci.yml");
 
   for (const required of [
@@ -19,10 +19,10 @@ test("CI covers the supported Python matrix and browser/content checks", async (
     "npm run test:web",
     "playwright install --with-deps chromium",
     "npm run test:e2e",
-    "scripts/validate_article_html.py",
   ]) {
     assert.ok(source.includes(required), `ci.yml is missing ${required}`);
   }
+  assert.doesNotMatch(source, /article|公众号|graphite-minimal|validate_article/i);
 });
 
 test("Pages deploys only the static web directory after successful CI", async () => {

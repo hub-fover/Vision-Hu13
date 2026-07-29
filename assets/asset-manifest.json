@@ -1,7 +1,43 @@
 {
   "schemaVersion": 2,
-  "licenseNotice": "The three photographic backgrounds remain under the Pexels License. The three original overlays are licensed under CC BY 4.0.",
+  "licenseNotice": "The five photographic backgrounds remain under the Pexels License. The five original overlays are licensed under CC BY 4.0.",
   "assets": [
+    {
+      "filename": "court.jpg",
+      "kind": "background",
+      "dimensions": [
+        1600,
+        1200
+      ],
+      "license": "Pexels License",
+      "title": "Basketball Court in a City",
+      "creator": "Joaquin Carfagna",
+      "sourceUrl": "https://www.pexels.com/photo/basketball-court-in-a-city-17274508/",
+      "downloadedAt": "2026-07-29",
+      "modifications": "Centered 4:3 crop emphasizing the playing surface, resized to 1600x1200, mild contrast/color adjustment, JPEG optimized",
+      "method": "Licensed source photograph, deterministic crop and Lanczos resize",
+      "source": "Pexels photo 17274508",
+      "provenance": "Derived from the credited Pexels photograph; the unmodified original is not vendored.",
+      "purpose": "Default basketball-court plane for vanishing-point and ground-ad demonstrations"
+    },
+    {
+      "filename": "facade.jpg",
+      "kind": "background",
+      "dimensions": [
+        1600,
+        1200
+      ],
+      "license": "Pexels License",
+      "title": "White Concrete Building",
+      "creator": "Miks Bergmanis",
+      "sourceUrl": "https://www.pexels.com/photo/white-concrete-building-542411/",
+      "downloadedAt": "2026-07-29",
+      "modifications": "Centered 4:3 crop around the low-angle facade, resized to 1600x1200, mild contrast/color adjustment, JPEG optimized",
+      "method": "Licensed source photograph, deterministic crop and Lanczos resize",
+      "source": "Pexels photo 542411",
+      "provenance": "Derived from the credited Pexels photograph; the unmodified original is not vendored.",
+      "purpose": "Low-angle facade plane for vanishing-point and logo-placement demonstrations"
+    },
     {
       "filename": "wall.jpg",
       "kind": "background",
@@ -55,6 +91,40 @@
       "source": "Pexels photo 19866439",
       "provenance": "Derived from the credited Pexels photograph; the unmodified original is not vendored.",
       "purpose": "Real unbranded television plane for screen-replacement demonstrations"
+    },
+    {
+      "filename": "court-ad.png",
+      "kind": "overlay",
+      "dimensions": [
+        1200,
+        800
+      ],
+      "license": "CC BY 4.0",
+      "method": "Original deterministic Pillow vector-style drawing",
+      "source": "scripts/generate_assets.py",
+      "provenance": "Original unbranded sponsor artwork; no external visual assets or trademarks",
+      "purpose": "Basketball-court ground advertisement for the default example",
+      "text": [
+        "VISION HU13",
+        "OWN THE ANGLE"
+      ]
+    },
+    {
+      "filename": "facade-logo.png",
+      "kind": "overlay",
+      "dimensions": [
+        1200,
+        800
+      ],
+      "license": "CC BY 4.0",
+      "method": "Original deterministic Pillow vector-style drawing",
+      "source": "scripts/generate_assets.py",
+      "provenance": "Original Vision Hu13 project artwork; no third-party trademarks",
+      "purpose": "Vision Hu13 logo for the facade placement example",
+      "text": [
+        "VISION HU13",
+        "PERSPECTIVE LAB"
+      ]
     },
     {
       "filename": "vision-hub-mark.png",
