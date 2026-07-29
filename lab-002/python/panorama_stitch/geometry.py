@@ -70,40 +70,55 @@ def estimate_homography(
     """Estimate and validate a left-to-right adjacent homography."""
 
     selected = options or StitchOptions()
-    source = left.points[matches.left_indices]
-    target = right.points[matches.right_indices]
+    source_original = left.points[matches.left_indices]
+    target_original = right.points[matches.right_indices]
+    source = source_original * left.analysis_scale
+    target = target_original * right.analysis_scale
     if len(source) < max(4, selected.min_inliers):
         raise _pair_error(
             "INSUFFICIENT_OVERLAP",
             "Too few mutual matches remain for a stable homography.",
             matches,
         )
-    transform, mask = cv2.findHomography(
+    analysis_transform, mask = cv2.findHomography(
         source,
         target,
         method=cv2.RANSAC,
         ransacReprojThreshold=selected.ransac_threshold_px,
     )
-    if transform is None or mask is None or not np.isfinite(transform).all():
+    if (
+        analysis_transform is None
+        or mask is None
+        or not np.isfinite(analysis_transform).all()
+    ):
         raise _pair_error(
             "HOMOGRAPHY_UNSTABLE",
             "RANSAC could not estimate a stable transform; avoid a flat or collinear scene.",
             matches,
         )
-    if abs(transform[2, 2]) < 1e-12:
+    if abs(analysis_transform[2, 2]) < 1e-12:
         raise _pair_error(
             "HOMOGRAPHY_UNSTABLE",
             "The homography normalization is singular.",
             matches,
         )
-    transform = np.asarray(transform / transform[2, 2], dtype=np.float64)
-    condition = float(np.linalg.cond(transform))
+    analysis_transform = np.asarray(
+        analysis_transform / analysis_transform[2, 2],
+        dtype=np.float64,
+    )
+    condition = float(np.linalg.cond(analysis_transform))
     if not np.isfinite(condition) or condition > 1e8:
         raise _pair_error(
             "HOMOGRAPHY_UNSTABLE",
             f"The homography condition number ({condition:.2g}) is unstable.",
             matches,
         )
+    left_scale = np.diag([left.analysis_scale, left.analysis_scale, 1.0])
+    right_scale_inverse = np.diag(
+        [1 / right.analysis_scale, 1 / right.analysis_scale, 1.0]
+    )
+    transform = right_scale_inverse @ analysis_transform @ left_scale
+    transform /= transform[2, 2]
     _validate_homography_bounds(transform, left.image_shape, matches)
     inliers = mask.reshape(-1).astype(bool)
     inlier_count = int(np.count_nonzero(inliers))
@@ -122,7 +137,7 @@ def estimate_homography(
         )
     projected = cv2.perspectiveTransform(
         source.reshape(1, -1, 2),
-        transform,
+        analysis_transform,
     )[0]
     errors = np.linalg.norm(projected - target, axis=1)
     median_error = float(np.median(errors[inliers]))

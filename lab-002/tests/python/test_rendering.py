@@ -88,6 +88,24 @@ def test_canvas_plan_downsamples_three_12mp_sources_to_fit_the_memory_budget() -
     assert plan.estimated_working_set_mib <= 384
 
 
+def test_canvas_memory_model_covers_the_peak_blend_allocations() -> None:
+    plan_canvas = api("plan_canvas")
+    shapes = [(800, 1200)] * 3
+
+    plan = plan_canvas(shapes, [np.eye(3)] * 3)
+
+    canvas_pixels = plan.canvas_size[0] * plan.canvas_size[1]
+    source_and_analysis_bytes = sum(height * width * 6 for height, width in shapes)
+    minimum_blend_bytes_per_pixel = 64 + 4 * len(shapes)
+    modeled_lower_bound = (
+        source_and_analysis_bytes
+        + canvas_pixels * minimum_blend_bytes_per_pixel
+    )
+    assert plan.canvas_bytes_per_pixel >= minimum_blend_bytes_per_pixel
+    assert plan.estimated_working_set_bytes >= modeled_lower_bound
+    assert plan.estimated_working_set_bytes <= 384 * 1024 * 1024
+
+
 def test_blend_panorama_clamps_overlap_exposure_gain() -> None:
     blend_panorama = api("blend_panorama")
     masks = [np.ones((20, 20), dtype=np.uint8) * 255 for _ in range(2)]

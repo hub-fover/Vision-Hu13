@@ -10,14 +10,20 @@ def api(name: str):
     return getattr(panorama, name)
 
 
-def feature_set(points: np.ndarray, descriptors: np.ndarray):
+def feature_set(
+    points: np.ndarray,
+    descriptors: np.ndarray,
+    *,
+    analysis_scale: float = 1.0,
+    image_shape: tuple[int, int] = (120, 160),
+):
     feature_type = api("FeatureSet")
     return feature_type(
         points=np.asarray(points, dtype=np.float32),
         descriptors=np.asarray(descriptors, dtype=np.uint8),
         analysis_image=np.zeros((120, 160, 3), dtype=np.uint8),
-        analysis_scale=1.0,
-        image_shape=(120, 160),
+        analysis_scale=analysis_scale,
+        image_shape=image_shape,
     )
 
 
@@ -134,6 +140,63 @@ def test_estimate_homography_returns_metrics_for_a_valid_translation() -> None:
     assert result.metrics.inlier_count == 25
     assert result.metrics.inlier_ratio == pytest.approx(1.0)
     assert result.metrics.median_reprojection_error_px < 0.05
+
+
+def test_homography_gates_are_resolution_independent_in_analysis_pixels() -> None:
+    match_pair = api("match_pair")
+    estimate_homography = api("estimate_homography")
+    small_points = grid_points(columns=6, rows=5) * 7
+    descriptors = unique_descriptors(30)
+    angles = np.linspace(0, 2 * np.pi, len(small_points), endpoint=False)
+    analysis_noise = np.column_stack((np.cos(angles), np.sin(angles))) * 2
+    small_right_points = small_points + (100, -20) + analysis_noise
+    small_left = feature_set(
+        small_points,
+        descriptors,
+        image_shape=(960, 1280),
+    )
+    small_right = feature_set(
+        small_right_points,
+        descriptors.copy(),
+        image_shape=(960, 1280),
+    )
+    large_left = feature_set(
+        small_points * 4,
+        descriptors,
+        analysis_scale=0.25,
+        image_shape=(3840, 5120),
+    )
+    large_right = feature_set(
+        small_right_points * 4,
+        descriptors.copy(),
+        analysis_scale=0.25,
+        image_shape=(3840, 5120),
+    )
+
+    small = estimate_homography(
+        small_left,
+        small_right,
+        match_pair(small_left, small_right),
+    )
+    large = estimate_homography(
+        large_left,
+        large_right,
+        match_pair(large_left, large_right),
+    )
+
+    small_projection = small.transform @ np.array([500.0, 400.0, 1.0])
+    large_projection = large.transform @ np.array([2000.0, 1600.0, 1.0])
+    small_projection /= small_projection[2]
+    large_projection /= large_projection[2]
+    assert large_projection[:2] / 4 == pytest.approx(
+        small_projection[:2],
+        abs=0.1,
+    )
+    assert large.metrics.inlier_count == small.metrics.inlier_count
+    assert large.metrics.median_reprojection_error_px == pytest.approx(
+        small.metrics.median_reprojection_error_px,
+        abs=0.05,
+    )
 
 
 def test_estimate_homography_rejects_a_low_inlier_ratio() -> None:

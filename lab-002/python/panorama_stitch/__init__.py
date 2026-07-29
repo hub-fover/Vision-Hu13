@@ -3,6 +3,7 @@
 from .cli import (
     DEFAULT_SAMPLE_RELATIVE_DIRECTORY,
     cli_main,
+    default_sample_directory,
     discover_default_samples,
     exit_code_for_error,
 )
@@ -41,6 +42,7 @@ __all__ = [
     "blend_panorama",
     "cli_main",
     "compose_transforms",
+    "default_sample_directory",
     "discover_default_samples",
     "estimate_homography",
     "exit_code_for_error",

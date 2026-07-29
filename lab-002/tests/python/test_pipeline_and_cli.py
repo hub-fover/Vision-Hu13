@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
+import tomllib
 
 import numpy as np
 import panorama_stitch as panorama
@@ -152,7 +154,7 @@ def test_default_sample_contract_discovers_supported_mountain_frames_in_order(
     discovered = discover_default_samples(sample_dir)
 
     assert panorama.DEFAULT_SAMPLE_RELATIVE_DIRECTORY.as_posix() == (
-        "assets/samples/mountains"
+        "samples/mountains"
     )
     assert [path.name for path in discovered] == [
         "mountain-01.jpg",
@@ -172,6 +174,57 @@ def test_default_sample_contract_fails_actionably_until_real_media_is_present(
 
     assert caught.value.code == "NOT_ENOUGH_IMAGES"
     assert "mountain sample" in str(caught.value).lower()
+
+
+def test_default_sample_directory_is_an_importlib_package_resource() -> None:
+    default_sample_directory = api("default_sample_directory")
+
+    sample_dir = default_sample_directory()
+
+    assert sample_dir.is_dir()
+    assert sample_dir.name == "mountains"
+    assert sample_dir.parent.name == "samples"
+    assert sample_dir.parent.parent.name == "panorama_stitch"
+
+
+def test_package_metadata_includes_the_mountain_resource_directory() -> None:
+    project_root = Path(__file__).resolve().parents[2]
+    with (project_root / "pyproject.toml").open("rb") as config_file:
+        config = tomllib.load(config_file)
+
+    package_data = config["tool"]["setuptools"]["package-data"]["panorama_stitch"]
+
+    assert "samples/mountains/*" in package_data
+
+
+def test_sample_resource_resolves_from_an_isolated_installed_package(
+    tmp_path: Path,
+) -> None:
+    project_root = Path(__file__).resolve().parents[2]
+    site_packages = tmp_path / "site-packages"
+    installed_package = site_packages / "panorama_stitch"
+    shutil.copytree(
+        project_root / "python" / "panorama_stitch",
+        installed_package,
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+    )
+    script = (
+        "import sys;"
+        f"sys.path.insert(0, {str(site_packages)!r});"
+        "from panorama_stitch import default_sample_directory;"
+        "sample_dir=default_sample_directory();"
+        "assert sample_dir.is_dir();"
+        "assert sample_dir.name == 'mountains'"
+    )
+
+    completed = subprocess.run(
+        [sys.executable, "-I", "-c", script],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
 
 
 def test_cli_no_arguments_uses_the_packaged_sample_contract(

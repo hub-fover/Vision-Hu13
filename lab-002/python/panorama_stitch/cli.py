@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+from importlib import resources
+from importlib.resources.abc import Traversable
 from pathlib import Path
 import sys
 from typing import Sequence
@@ -15,22 +17,35 @@ from .io import SUPPORTED_EXTENSIONS
 from .pipeline import stitch_images
 
 
-DEFAULT_SAMPLE_RELATIVE_DIRECTORY = Path("assets") / "samples" / "mountains"
-DEFAULT_SAMPLE_DIRECTORY = (
-    Path(__file__).resolve().parents[2] / DEFAULT_SAMPLE_RELATIVE_DIRECTORY
-)
+DEFAULT_SAMPLE_RELATIVE_DIRECTORY = Path("samples") / "mountains"
 
 
-def discover_default_samples(directory: str | Path | None = None) -> tuple[Path, ...]:
+def default_sample_directory() -> Traversable:
+    """Return the installed package resource reserved for real sample frames."""
+
+    return resources.files("panorama_stitch").joinpath(
+        *DEFAULT_SAMPLE_RELATIVE_DIRECTORY.parts
+    )
+
+
+def discover_default_samples(
+    directory: str | Path | Traversable | None = None,
+) -> tuple[Traversable, ...]:
     """Discover the packaged real mountain frames in filename order."""
 
-    sample_directory = Path(directory) if directory is not None else DEFAULT_SAMPLE_DIRECTORY
+    if directory is None:
+        sample_directory = default_sample_directory()
+    elif isinstance(directory, (str, Path)):
+        sample_directory = Path(directory)
+    else:
+        sample_directory = directory
     samples = tuple(
         sorted(
             (
                 path
                 for path in sample_directory.iterdir()
-                if path.is_file() and path.suffix.lower() in SUPPORTED_EXTENSIONS
+                if path.is_file()
+                and Path(path.name).suffix.lower() in SUPPORTED_EXTENSIONS
             ),
             key=lambda path: path.name.casefold(),
         )
@@ -40,7 +55,8 @@ def discover_default_samples(directory: str | Path | None = None) -> tuple[Path,
             "NOT_ENOUGH_IMAGES",
             (
                 "The packaged mountain sample is not available; add at least two "
-                f"real frames under {DEFAULT_SAMPLE_RELATIVE_DIRECTORY.as_posix()}."
+                "licensed real frames under "
+                f"panorama_stitch/{DEFAULT_SAMPLE_RELATIVE_DIRECTORY.as_posix()}."
             ),
         )
     return samples

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import ceil, floor, sqrt
+from math import floor, sqrt
 from typing import Sequence
 
 import cv2
@@ -32,6 +32,8 @@ class CanvasPlan:
     canvas_size: tuple[int, int]
     transforms: tuple[np.ndarray, ...]
     output_scale: float
+    canvas_bytes_per_pixel: int
+    estimated_working_set_bytes: int
     estimated_working_set_mib: float
 
 
@@ -132,8 +134,12 @@ def plan_canvas(
             * max(1, round(width * analysis_scale))
             * 3
         )
-    fixed_bytes = source_bytes + analysis_bytes
-    canvas_bytes_per_pixel = 34 + 4 * len(image_shapes)
+    feature_overhead_bytes = len(image_shapes) * 1024 * 1024
+    fixed_bytes = source_bytes + analysis_bytes + feature_overhead_bytes
+    # 4N retains every RGB warp and mask. The 64-byte blend allowance covers
+    # accumulators, coverage, binary/distance/weight masks, float RGB
+    # temporaries, and the larger boolean-indexed finalization peak.
+    canvas_bytes_per_pixel = 64 + 4 * len(image_shapes)
     budget_bytes = selected.max_working_set_mib * 1024 * 1024
     requested_pixels = (
         max(1, floor(base_width * output_scale))
@@ -185,6 +191,8 @@ def plan_canvas(
         canvas_size=(canvas_width, canvas_height),
         transforms=canvas_transforms,
         output_scale=output_scale,
+        canvas_bytes_per_pixel=canvas_bytes_per_pixel,
+        estimated_working_set_bytes=working_bytes,
         estimated_working_set_mib=working_mib,
     )
 
