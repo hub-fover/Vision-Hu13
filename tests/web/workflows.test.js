@@ -14,6 +14,7 @@ test("CI covers the supported Python matrix and browser/content checks", async (
     '"3.11"',
     '"3.12"',
     "python -m pytest",
+    "fonts-noto-cjk",
     "npm ci",
     "npm run test:web",
     "playwright install --with-deps chromium",
