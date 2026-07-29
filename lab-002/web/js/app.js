@@ -48,6 +48,7 @@ const elements = {
 
 let state = createQueueState();
 let dragSourceId = null;
+let pointerDrag = null;
 let client;
 let resultUrls = [];
 
@@ -141,14 +142,46 @@ function renderQueue() {
       event.preventDefault();
       if (dragSourceId) reorder(dragSourceId, image.id);
     });
-    item.addEventListener("pointerdown", () => {
-      dragSourceId = image.id;
-    });
-    item.addEventListener("pointerup", () => {
-      if (dragSourceId && dragSourceId !== image.id) {
-        reorder(dragSourceId, image.id);
+    item.addEventListener("pointerdown", (event) => {
+      if (
+        !event.isPrimary ||
+        (event.pointerType === "mouse" && event.button !== 0) ||
+        event.target.closest?.("button, input, select, a")
+      ) {
+        return;
       }
-      dragSourceId = null;
+      pointerDrag = {
+        pointerId: event.pointerId,
+        sourceId: image.id,
+        targetId: image.id,
+      };
+      item.classList.add("dragging");
+      item.setPointerCapture?.(event.pointerId);
+    });
+    item.addEventListener("pointermove", (event) => {
+      if (pointerDrag?.pointerId !== event.pointerId) return;
+      const target = document
+        .elementFromPoint(event.clientX, event.clientY)
+        ?.closest?.("[data-image-id]");
+      if (target?.dataset.imageId) {
+        pointerDrag.targetId = target.dataset.imageId;
+      }
+      event.preventDefault();
+    });
+    item.addEventListener("pointerup", (event) => {
+      if (pointerDrag?.pointerId !== event.pointerId) return;
+      const { sourceId, targetId } = pointerDrag;
+      pointerDrag = null;
+      item.classList.remove("dragging");
+      if (item.hasPointerCapture?.(event.pointerId)) {
+        item.releasePointerCapture(event.pointerId);
+      }
+      if (sourceId !== targetId) reorder(sourceId, targetId);
+    });
+    item.addEventListener("pointercancel", (event) => {
+      if (pointerDrag?.pointerId !== event.pointerId) return;
+      pointerDrag = null;
+      item.classList.remove("dragging");
     });
 
     const preview = document.createElement("img");

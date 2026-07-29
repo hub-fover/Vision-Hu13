@@ -62,14 +62,23 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Install LAB 002 Web dependencies
+        run: npm ci --prefix lab-002/web
+
       - name: Run Web unit tests
         run: npm run test:web
+
+      - name: Run LAB 002 Web unit tests
+        run: npm run test:lab002:web
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
       - name: Run browser acceptance tests
         run: npm run test:e2e
+
+      - name: Run LAB 002 browser acceptance tests
+        run: npm --prefix lab-002/web run test:e2e
 
       - name: Upload Playwright report on failure
         if: failure()

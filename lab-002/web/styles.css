@@ -206,6 +206,7 @@ input[type="file"] {
   border: 1px solid var(--line);
   border-radius: 13px;
   background: var(--panel);
+  touch-action: none;
 }
 
 .queue-item.dragging {

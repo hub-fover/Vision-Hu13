@@ -9,6 +9,7 @@
     "test:lab002": "npm run test:lab002:web && npm run test:lab002:python",
     "test:lab002:web": "npm --prefix lab-002/web run test",
     "test:lab002:python": "python -m pytest -c lab-002/pyproject.toml lab-002/tests/python",
+    "build:lab002": "npm --prefix lab-002/web run build:pages",
     "test:e2e": "playwright test",
     "test:all": "npm run test:web && npm run test:e2e",
     "record:demo": "node scripts/record_demo.mjs",

@@ -6,13 +6,16 @@ import {
   planCanvas,
 } from "./geometry.js";
 
+export const MAX_EXPOSURE_SAMPLES = 65_536;
+
 function median(values) {
   if (!values.length) return 0;
-  values.sort((left, right) => left - right);
-  const middle = Math.floor(values.length / 2);
-  return values.length % 2 ?
-    values[middle] :
-    (values[middle - 1] + values[middle]) / 2;
+  const sorted = Float32Array.from(values);
+  sorted.sort();
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ?
+    sorted[middle] :
+    (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
 function deleteValue(value) {
@@ -24,6 +27,48 @@ function contextError(code, message, context) {
     pairIndex: context.pairIndex,
     pairNames: context.pairNames,
   });
+}
+
+export function sampleOverlapLuminance(
+  previous,
+  current,
+  previousMask,
+  currentMask,
+  previousGain = 1,
+) {
+  const stride = Math.max(
+    1,
+    Math.ceil(currentMask.length / MAX_EXPOSURE_SAMPLES),
+  );
+  const capacity = Math.min(
+    MAX_EXPOSURE_SAMPLES,
+    Math.ceil(currentMask.length / stride),
+  );
+  const previousValues = new Float32Array(capacity);
+  const currentValues = new Float32Array(capacity);
+  let count = 0;
+  for (
+    let pixel = 0;
+    pixel < currentMask.length && count < capacity;
+    pixel += stride
+  ) {
+    if (!previousMask[pixel] || !currentMask[pixel]) continue;
+    const offset = pixel * 4;
+    previousValues[count] = (
+      previous[offset] * 0.2126 +
+      previous[offset + 1] * 0.7152 +
+      previous[offset + 2] * 0.0722
+    ) * previousGain;
+    currentValues[count] =
+      current[offset] * 0.2126 +
+      current[offset + 1] * 0.7152 +
+      current[offset + 2] * 0.0722;
+    count += 1;
+  }
+  return {
+    previous: previousValues.subarray(0, count),
+    current: currentValues.subarray(0, count),
+  };
 }
 
 export class OpenCvAdapter {
@@ -81,7 +126,7 @@ export class OpenCvAdapter {
     const mask = new cv.Mat();
     const keypoints = new cv.KeyPointVector();
     const descriptors = new cv.Mat();
-    const orb = new cv.ORB(options.maxFeatures);
+    const orb = cv.ORB.create(options.maxFeatures);
     try {
       cv.cvtColor(image.mat, gray, cv.COLOR_RGBA2GRAY);
       if (scale < 1) {
@@ -326,6 +371,11 @@ export class OpenCvAdapter {
           medianReprojectionErrorPx,
         },
       };
+    } catch (error) {
+      if (error instanceof StitchError && error.pairIndex === null) {
+        throw contextError(error.code, error.message, matches);
+      }
+      throw error;
     } finally {
       deleteValue(homography);
       deleteValue(inlierMask);
@@ -403,29 +453,16 @@ export class OpenCvAdapter {
   exposureGains(images, masks, options) {
     const gains = [1];
     for (let index = 1; index < images.length; index += 1) {
-      const previousValues = [];
-      const currentValues = [];
-      const previous = images[index - 1].data;
-      const current = images[index].data;
-      const previousMask = masks[index - 1].data;
-      const currentMask = masks[index].data;
-      for (let pixel = 0; pixel < currentMask.length; pixel += 1) {
-        if (!previousMask[pixel] || !currentMask[pixel]) continue;
-        const offset = pixel * 4;
-        previousValues.push(
-          (previous[offset] * 0.2126 +
-            previous[offset + 1] * 0.7152 +
-            previous[offset + 2] * 0.0722) * gains[index - 1],
-        );
-        currentValues.push(
-          current[offset] * 0.2126 +
-          current[offset + 1] * 0.7152 +
-          current[offset + 2] * 0.0722,
-        );
-      }
-      const denominator = median(currentValues);
+      const samples = sampleOverlapLuminance(
+        images[index - 1].data,
+        images[index].data,
+        masks[index - 1].data,
+        masks[index].data,
+        gains[index - 1],
+      );
+      const denominator = median(samples.current);
       const gain = denominator > 1e-6 ?
-        median(previousValues) / denominator :
+        median(samples.previous) / denominator :
         1;
       gains.push(Math.max(
         options.exposureGain.min,

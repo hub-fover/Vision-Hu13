@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { deflateSync } from "node:zlib";
 
 const png = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
@@ -34,7 +36,7 @@ async function installFakeWorker(page, scenario = "success") {
           }
           send({ type: "progress", jobId: message.jobId, stage: "特征提取", progress: 0.25 });
           if (selectedScenario === "pending") return;
-          queueMicrotask(() => {
+          queueMicrotask(async () => {
             if (selectedScenario === "failure") {
               send({
                 type: "error",
@@ -47,8 +49,15 @@ async function installFakeWorker(page, scenario = "success") {
               });
               return;
             }
-            const jpeg = new Blob(["jpeg-result"], { type: "image/jpeg" });
-            const seam = new Blob(["seam-overlay"], { type: "image/png" });
+            const canvas = new OffscreenCanvas(1000, 400);
+            const context = canvas.getContext("2d");
+            context.fillStyle = "#546d2f";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            const jpeg = await canvas.convertToBlob({
+              type: "image/jpeg",
+              quality: 0.92,
+            });
+            const seam = await canvas.convertToBlob({ type: "image/png" });
             send({
               type: "result",
               jobId: message.jobId,
@@ -67,6 +76,62 @@ async function installFakeWorker(page, scenario = "success") {
       };
     };
   }, { selectedScenario: scenario });
+}
+
+const crcTable = Array.from({ length: 256 }, (_, value) => {
+  let crc = value;
+  for (let bit = 0; bit < 8; bit += 1) {
+    crc = (crc & 1) ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1;
+  }
+  return crc >>> 0;
+});
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type, data) {
+  const typeBytes = Buffer.from(type, "ascii");
+  const size = Buffer.alloc(4);
+  size.writeUInt32BE(data.length);
+  const checksum = Buffer.alloc(4);
+  checksum.writeUInt32BE(crc32(Buffer.concat([typeBytes, data])));
+  return Buffer.concat([size, typeBytes, data, checksum]);
+}
+
+function overlappingPng(name, offsetX, width = 360, height = 220) {
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header[8] = 8;
+  header[9] = 2;
+  const rows = Buffer.alloc((width * 3 + 1) * height);
+  for (let y = 0; y < height; y += 1) {
+    const row = y * (width * 3 + 1);
+    for (let x = 0; x < width; x += 1) {
+      const worldX = x + offsetX;
+      let hash = Math.imul(worldX + 17, 374761393) ^
+        Math.imul(y + 31, 668265263);
+      hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
+      const value = hash ^ (hash >>> 16);
+      const pixel = row + 1 + x * 3;
+      rows[pixel] = (value >>> 16) & 0xff;
+      rows[pixel + 1] = (value >>> 8) & 0xff;
+      rows[pixel + 2] = value & 0xff;
+    }
+  }
+  return {
+    name,
+    mimeType: "image/png",
+    buffer: Buffer.concat([
+      Buffer.from("89504e470d0a1a0a", "hex"),
+      pngChunk("IHDR", header),
+      pngChunk("IDAT", deflateSync(rows, { level: 9 })),
+      pngChunk("IEND", Buffer.alloc(0)),
+    ]),
+  };
 }
 
 test("selection, camera append, accessible reorder, and pointer drag work", async ({ page }) => {
@@ -96,6 +161,45 @@ test("selection, camera append, accessible reorder, and pointer drag work", asyn
     "right.png",
     "middle.png",
     "left.png",
+  ]);
+});
+
+test("touch movement reorders through the element under the pointer", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "pixel-7", "touch is covered on Pixel 7");
+  await installFakeWorker(page);
+  await page.goto("/");
+  await page.locator("#gallery-input").setInputFiles(files([
+    "left.png",
+    "middle.png",
+    "right.png",
+  ]));
+  const source = page.locator("[data-image-id]").last();
+  const target = page.locator("[data-image-id]").first();
+  await source.scrollIntoViewIfNeeded();
+  const sourceBox = await source.boundingBox();
+  const targetBox = await target.boundingBox();
+  const session = await page.context().newCDPSession(page);
+  const point = (box) => ({
+    x: box.x + box.width / 2,
+    y: box.y + box.height / 2,
+  });
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [point(sourceBox)],
+  });
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [point(targetBox)],
+  });
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+
+  await expect(page.locator("[data-image-name]")).toHaveText([
+    "right.png",
+    "left.png",
+    "middle.png",
   ]);
 });
 
@@ -165,4 +269,88 @@ test("selecting and stitching never sends image data off origin", async ({ page 
   await page.getByRole("button", { name: "开始拼接" }).click();
   await expect(page.getByText("拼接完成")).toBeVisible();
   expect(offOrigin).toEqual([]);
+});
+
+test("real Worker and OpenCV export a cropped JPEG with decoded pixels", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "one real runtime pass is sufficient");
+  test.setTimeout(120_000);
+  await page.addInitScript(() => {
+    const NativeWorker = globalThis.Worker;
+    globalThis.Worker = class DiagnosticWorker extends NativeWorker {
+      constructor(...args) {
+        super(...args);
+        this.addEventListener("message", ({ data }) => {
+          if (data?.type === "error") {
+            globalThis.__LAB002_LAST_WORKER_ERROR__ = data.error;
+          }
+        });
+      }
+    };
+  });
+  await page.goto("/");
+  await page.locator("#gallery-input").setInputFiles([
+    overlappingPng("left.png", 0),
+    overlappingPng("right.png", 180),
+  ]);
+  await page.getByRole("button", { name: "开始拼接" }).click();
+  const terminal = await page.waitForFunction(() => {
+    if (document.querySelector("#app-status")?.textContent === "拼接完成") {
+      return { type: "result" };
+    }
+    if (globalThis.__LAB002_LAST_WORKER_ERROR__) {
+      return {
+        type: "error",
+        error: globalThis.__LAB002_LAST_WORKER_ERROR__,
+      };
+    }
+    return null;
+  }, null, { timeout: 60_000 }).then((handle) => handle.jsonValue());
+  expect(terminal).toEqual({ type: "result" });
+
+  const preview = await page.evaluate(async () => {
+    const blob = await fetch(document.querySelector("#result-preview").src)
+      .then((response) => response.blob());
+    const bitmap = await createImageBitmap(blob);
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const context = canvas.getContext("2d");
+    context.drawImage(bitmap, 0, 0);
+    const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    let minimum = 255;
+    let maximum = 0;
+    for (let index = 0; index < pixels.length; index += 16) {
+      minimum = Math.min(minimum, pixels[index]);
+      maximum = Math.max(maximum, pixels[index]);
+    }
+    const result = {
+      type: blob.type,
+      width: bitmap.width,
+      height: bitmap.height,
+      range: maximum - minimum,
+    };
+    bitmap.close();
+    return result;
+  });
+  expect(preview.type).toBe("image/jpeg");
+  expect(preview.width).toBeGreaterThan(500);
+  expect(preview.height).toBeGreaterThan(200);
+  expect(preview.range).toBeGreaterThan(40);
+
+  await page.getByLabel("左侧内收").fill("8");
+  await page.getByLabel("右侧内收").fill("4");
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "下载 JPEG" }).click();
+  const download = await downloadPromise;
+  const bytes = await readFile(await download.path());
+  expect(bytes.subarray(0, 2).toString("hex")).toBe("ffd8");
+  const exported = await page.evaluate(async (values) => {
+    const bitmap = await createImageBitmap(new Blob(
+      [new Uint8Array(values)],
+      { type: "image/jpeg" },
+    ));
+    const result = { width: bitmap.width, height: bitmap.height };
+    bitmap.close();
+    return result;
+  }, [...bytes]);
+  expect(exported.width).toBe(preview.width - 12);
+  expect(exported.height).toBe(preview.height);
 });

@@ -124,9 +124,11 @@ test("Worker lazy-loads a same-origin OpenCV build and never embeds an upload UR
   ]);
 
   assert.match(worker, /importScripts\(["']\.\.\/vendor\/opencv\.js["']\)/);
+  assert.match(worker, /setInterval[\s\S]*self\.cv\?\.Mat/);
   assert.match(worker, /onmessage/);
   assert.match(worker, /import\(["']\.\/errors\.js["']\)/);
   assert.doesNotMatch(worker, /panoramaModule\.StitchError/);
+  assert.match(worker, /data\.images[\s\S]*bitmap\?\.close\(\)/);
   assert.match(client, /new Worker\(new URL\("\.\/panorama\.worker\.js", import\.meta\.url\)\)/);
   assert.doesNotMatch(`${worker}\n${client}`, /https?:\/\/|fetch\s*\(|XMLHttpRequest|WebSocket/);
 });
@@ -138,7 +140,6 @@ test("OpenCV adapter uses the required modules and contains explicit cleanup", a
   );
 
   for (const required of [
-    "ORB",
     "BFMatcher",
     "findHomography",
     "warpPerspective",
@@ -146,6 +147,26 @@ test("OpenCV adapter uses the required modules and contains explicit cleanup", a
   ]) {
     assert.match(source, new RegExp(`\\.${required}\\b|new cv\\.${required}\\b`));
   }
+  assert.match(source, /cv\.ORB\.create\(/);
+  assert.doesNotMatch(source, /new cv\.ORB\(/);
   assert.match(source, /finally\s*{/);
   assert.match(source, /\.delete\(\)/);
+});
+
+test("exposure sampling is bounded independently of panorama pixels", async () => {
+  const {
+    MAX_EXPOSURE_SAMPLES,
+    sampleOverlapLuminance,
+  } = await import("../../web/js/opencv-adapter.js");
+  assert.equal(typeof sampleOverlapLuminance, "function");
+  assert.ok(MAX_EXPOSURE_SAMPLES > 0);
+  const pixels = MAX_EXPOSURE_SAMPLES * 4;
+  const rgba = new Uint8Array(pixels * 4).fill(127);
+  const mask = new Uint8Array(pixels).fill(255);
+
+  const samples = sampleOverlapLuminance(rgba, rgba, mask, mask);
+
+  assert.ok(samples.previous.length <= MAX_EXPOSURE_SAMPLES);
+  assert.equal(samples.previous.length, samples.current.length);
+  assert.equal(samples.previous[0], samples.current[0]);
 });

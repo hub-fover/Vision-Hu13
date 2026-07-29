@@ -2,6 +2,17 @@ import { stitchOptions } from "./contracts.js";
 import { StitchError } from "./errors.js";
 
 export const IDENTITY = Object.freeze([1, 0, 0, 0, 1, 0, 0, 0, 1]);
+const SOURCE_BYTES_PER_PIXEL = 4;
+const EXPOSURE_TEMPORARY_BYTES = 65_536 * 2 * Float32Array.BYTES_PER_ELEMENT;
+
+function adjacentError(error, pairIndex, pairNames) {
+  if (!(error instanceof StitchError) || error.pairIndex !== null) throw error;
+  return new StitchError(error.code, error.message, {
+    pairIndex,
+    pairNames: pairNames?.[pairIndex] ?? null,
+    cause: error,
+  });
+}
 
 export function multiply3(left, right) {
   const result = Array(9).fill(0);
@@ -79,6 +90,7 @@ export function applyHomography(matrix, point) {
 export function composeTransforms(adjacentHomographies, {
   imageCount = adjacentHomographies.length + 1,
   anchorIndex = Math.floor(imageCount / 2),
+  pairNames = null,
 } = {}) {
   if (
     imageCount < 1 ||
@@ -90,16 +102,25 @@ export function composeTransforms(adjacentHomographies, {
   }
   const result = Array.from({ length: imageCount }, () => [...IDENTITY]);
   for (let index = anchorIndex - 1; index >= 0; index -= 1) {
-    result[index] = multiply3(
-      result[index + 1],
-      normalizeHomography(adjacentHomographies[index]),
-    );
+    try {
+      result[index] = multiply3(
+        result[index + 1],
+        normalizeHomography(adjacentHomographies[index]),
+      );
+    } catch (error) {
+      throw adjacentError(error, index, pairNames);
+    }
   }
   for (let index = anchorIndex + 1; index < imageCount; index += 1) {
-    result[index] = multiply3(
-      result[index - 1],
-      invert3(normalizeHomography(adjacentHomographies[index - 1])),
-    );
+    const pairIndex = index - 1;
+    try {
+      result[index] = multiply3(
+        result[index - 1],
+        invert3(normalizeHomography(adjacentHomographies[pairIndex])),
+      );
+    } catch (error) {
+      throw adjacentError(error, pairIndex, pairNames);
+    }
   }
   return result;
 }
@@ -124,8 +145,21 @@ export function planCanvas(images, transforms, {
   if (!["mobile", "hd"].includes(quality)) {
     throw new RangeError("quality must be mobile or hd");
   }
-  const points = images.flatMap((image, index) =>
-    transformedCorners(image, transforms[index]));
+  const pairNames = images.slice(0, -1).map((image, index) => [
+    image.name,
+    images[index + 1].name,
+  ]);
+  const points = images.flatMap((image, index) => {
+    try {
+      return transformedCorners(image, transforms[index]);
+    } catch (error) {
+      throw adjacentError(
+        error,
+        Math.min(index, images.length - 2),
+        pairNames,
+      );
+    }
+  });
   const xs = points.map(([x]) => x);
   const ys = points.map(([, y]) => y);
   const minX = Math.floor(Math.min(...xs));
@@ -142,21 +176,25 @@ export function planCanvas(images, transforms, {
     32766 / baseHeight,
   );
   const sourceBytes = images.reduce(
-    (sum, image) => sum + image.width * image.height * 3,
+    (sum, image) =>
+      sum + image.width * image.height * SOURCE_BYTES_PER_PIXEL,
     0,
   );
-  const analysisBytes = images.reduce((sum, image) => {
+  const analysisPeakBytes = images.reduce((largest, image) => {
     const scale = Math.min(
       1,
       options.analysisMaxSide / Math.max(image.width, image.height),
     );
-    return sum +
+    const pixels =
       Math.max(1, Math.round(image.width * scale)) *
-      Math.max(1, Math.round(image.height * scale)) *
-      3;
+      Math.max(1, Math.round(image.height * scale));
+    return Math.max(largest, pixels * 2);
   }, 0);
-  const fixedBytes = sourceBytes + analysisBytes + images.length * 1024 * 1024;
-  const canvasBytesPerPixel = 64 + 4 * images.length;
+  const fixedBytes = sourceBytes +
+    analysisPeakBytes +
+    images.length * 1024 * 1024 +
+    EXPOSURE_TEMPORARY_BYTES;
+  const canvasBytesPerPixel = 64 + 5 * images.length;
   const budgetBytes = options.maxWorkingSetMiB * 1024 * 1024;
   const requestedPixels =
     Math.max(1, Math.floor(baseWidth * outputScale)) *
@@ -189,6 +227,8 @@ export function planCanvas(images, transforms, {
     width,
     height,
     outputScale,
+    sourceBytesPerPixel: SOURCE_BYTES_PER_PIXEL,
+    exposureTemporaryBytes: EXPOSURE_TEMPORARY_BYTES,
     canvasBytesPerPixel,
     estimatedWorkingSetBytes,
     estimatedWorkingSetMiB: estimatedWorkingSetBytes / (1024 * 1024),

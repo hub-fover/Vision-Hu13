@@ -1,35 +1,55 @@
 let openCvPromise;
+let openCvModule;
 let activeJobId = null;
 const cancelledJobs = new Set();
 
 function loadOpenCv() {
   if (openCvPromise) return openCvPromise;
   openCvPromise = new Promise((resolve, reject) => {
-    const timeout = setTimeout(
-      () => reject(new Error("OpenCV.js initialization timed out.")),
-      30_000,
-    );
+    let poll;
+    let settled = false;
+    const finish = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      clearInterval(poll);
+      callback(value);
+    };
+    const ready = (value) => {
+      if (!value?.Mat) return;
+      if (typeof value.ORB === "function" && typeof value.ORB.create !== "function") {
+        const ORB = value.ORB;
+        Object.defineProperty(ORB, "create", {
+          configurable: true,
+          value: (...args) => new ORB(...args),
+          writable: true,
+        });
+      }
+      openCvModule = value;
+      finish(resolve, { module: openCvModule });
+    };
+    const timeout = setTimeout(() => finish(
+      reject,
+      new Error("OpenCV.js initialization timed out."),
+    ), 90_000);
     self.Module = {
       onRuntimeInitialized() {
-        clearTimeout(timeout);
-        resolve(self.cv);
+        ready(self.cv);
       },
     };
     try {
       importScripts("../vendor/opencv.js");
+      poll = setInterval(() => {
+        if (self.cv?.Mat) ready(self.cv);
+      }, 25);
       if (self.cv?.then) {
-        self.cv.then((value) => {
-          clearTimeout(timeout);
-          self.cv = value;
-          resolve(value);
-        }, reject);
-      } else if (self.cv?.Mat) {
-        clearTimeout(timeout);
-        resolve(self.cv);
+        self.cv.then(ready, (error) => finish(reject, error));
+      } else {
+        self.cv.onRuntimeInitialized = () => ready(self.cv);
+        if (self.cv.Mat) ready(self.cv);
       }
     } catch (error) {
-      clearTimeout(timeout);
-      reject(error);
+      finish(reject, error);
     }
   });
   return openCvPromise;
@@ -43,7 +63,18 @@ self.onmessage = async ({ data }) => {
   if (data.type !== "stitch") return;
   activeJobId = data.jobId;
   try {
-    const [cv, panoramaModule, adapterModule, errorModule] = await Promise.all([
+    self.postMessage({
+      type: "progress",
+      jobId: data.jobId,
+      stage: "加载 OpenCV",
+      progress: 0.01,
+    });
+    const [
+      openCvReady,
+      panoramaModule,
+      adapterModule,
+      errorModule,
+    ] = await Promise.all([
       loadOpenCv(),
       import("./panorama.js"),
       import("./opencv-adapter.js"),
@@ -55,7 +86,7 @@ self.onmessage = async ({ data }) => {
         "Panorama stitching was cancelled.",
       );
     }
-    const adapter = new adapterModule.OpenCvAdapter(cv);
+    const adapter = new adapterModule.OpenCvAdapter(openCvReady.module);
     const result = await panoramaModule.stitchImages(data.images, {
       adapter,
       options: data.options,
@@ -79,6 +110,7 @@ self.onmessage = async ({ data }) => {
       error: serializeError(error),
     });
   } finally {
+    data.images?.forEach(({ bitmap }) => bitmap?.close());
     cancelledJobs.delete(data.jobId);
     if (activeJobId === data.jobId) activeJobId = null;
   }

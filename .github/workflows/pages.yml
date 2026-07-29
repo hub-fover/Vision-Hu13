@@ -32,6 +32,19 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: lab-002/web/package-lock.json
+
+      - name: Install LAB 002 Web dependencies
+        run: npm ci --prefix lab-002/web
+
+      - name: Stage LAB 002 with its same-origin OpenCV runtime
+        run: npm run build:lab002
+
       - name: Upload static site
         uses: actions/upload-pages-artifact@v4
         with:

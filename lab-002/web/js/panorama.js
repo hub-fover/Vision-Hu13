@@ -167,7 +167,13 @@ export async function stitchImages(sources, {
     }
     const transforms = composeTransforms(
       homographies.map(({ transform }) => transform),
-      { imageCount: images.length },
+      {
+        imageCount: images.length,
+        pairNames: names.slice(0, -1).map((name, index) => [
+          name,
+          names[index + 1],
+        ]),
+      },
     );
     const warped = remember(activeAdapter.warpImages(
       images,
