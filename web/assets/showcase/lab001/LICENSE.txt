@@ -1,0 +1,5 @@
+Perspective Paste product showcase assets
+
+Original diagrams and product-generated comparison layouts are licensed under CC BY 4.0.
+Scene photographs and their derivatives retain the Pexels License and attribution recorded in assets/SOURCES.md.
+The basketball operation GIF is generated from the real Perspective Paste Web interface.
