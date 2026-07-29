@@ -4,6 +4,10 @@ Perspective Paste 是一个四点透视与真实融合工具：在照片中的�
 
 [在线体验](https://hub-fover.github.io/Vision-Hu13/) · [GitHub 源码](https://github.com/hub-fover/Vision-Hu13)
 
+LAB 002 panorama-stitch scaffolding and shared contracts live in
+[`lab-002/README.md`](lab-002/README.md). The root Pages experience remains
+LAB 001; LAB 002 is published separately at `/Vision-Hu13/lab-002/`.
+
 ![篮球场透视合成](docs/figures/01-before-after.png)
 
 ## 功能
