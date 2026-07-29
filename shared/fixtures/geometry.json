@@ -1,0 +1,123 @@
+{
+  "ordering": {
+    "name": "skewed-quadrilateral",
+    "unordered": [[180, 130], [20, 20], [25, 140], [170, 10]],
+    "ordered": [[20, 20], [170, 10], [180, 130], [25, 140]],
+    "canvas": [200, 200]
+  },
+  "homographies": [
+    {
+      "name": "identity",
+      "source": [[0, 0], [100, 0], [100, 100], [0, 100]],
+      "destination": [[0, 0], [100, 0], [100, 100], [0, 100]],
+      "expected": [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+    },
+    {
+      "name": "affine-scale-translate",
+      "source": [[0, 0], [100, 0], [100, 50], [0, 50]],
+      "destination": [[10, 20], [210, 20], [210, 170], [10, 170]],
+      "expected": [[2, 0, 10], [0, 3, 20], [0, 0, 1]]
+    },
+    {
+      "name": "projective-trapezoid",
+      "source": [[0, 0], [100, 0], [100, 100], [0, 100]],
+      "destination": [[20, 10], [180, 10], [150, 140], [50, 140]],
+      "expected": [[1.6, 0.6, 20], [0, 2.14, 10], [0, 0.006, 1]],
+      "requiresPerspective": true
+    }
+  ],
+  "singularHomography": {
+    "name": "collinear-source",
+    "source": [[0, 0], [10, 0], [20, 0], [30, 0]],
+    "destination": [[0, 0], [100, 0], [100, 100], [0, 100]],
+    "code": "SINGULAR_HOMOGRAPHY"
+  },
+  "invalidHomographies": [
+    {
+      "name": "wrong-source-point-count",
+      "source": [[0, 0], [100, 0], [100, 100]],
+      "destination": [[0, 0], [100, 0], [100, 100], [0, 100]],
+      "code": "SINGULAR_HOMOGRAPHY"
+    },
+    {
+      "name": "ragged-source-point",
+      "source": [[0, 0], [100], [100, 100], [0, 100]],
+      "destination": [[0, 0], [100, 0], [100, 100], [0, 100]],
+      "code": "SINGULAR_HOMOGRAPHY"
+    },
+    {
+      "name": "non-numeric-destination-coordinate",
+      "source": [[0, 0], [100, 0], [100, 100], [0, 100]],
+      "destination": [[0, 0], [100, "not-a-number"], [100, 100], [0, 100]],
+      "code": "SINGULAR_HOMOGRAPHY"
+    }
+  ],
+  "validationErrors": [
+    {
+      "name": "point-outside-canvas",
+      "points": [[-1, 10], [190, 10], [190, 190], [10, 190]],
+      "canvas": [200, 200],
+      "code": "OUT_OF_BOUNDS"
+    },
+    {
+      "name": "points-below-minimum-distance",
+      "points": [[10, 10], [12, 11], [190, 190], [10, 190]],
+      "canvas": [200, 200],
+      "code": "DUPLICATE_POINTS"
+    },
+    {
+      "name": "bow-tie-cycle",
+      "points": [[10, 10], [190, 190], [190, 10], [10, 190]],
+      "canvas": [200, 200],
+      "code": "SELF_INTERSECTION"
+    },
+    {
+      "name": "concave-cycle",
+      "points": [[10, 10], [190, 10], [80, 80], [10, 190]],
+      "canvas": [200, 200],
+      "code": "NON_CONVEX"
+    },
+    {
+      "name": "three-nearly-collinear-points",
+      "points": [[10, 10], [190, 10], [100, 10.01], [10, 190]],
+      "canvas": [200, 200],
+      "code": "NEAR_COLLINEAR"
+    },
+    {
+      "name": "small-area-rectangle",
+      "points": [[10, 10], [110, 10], [110, 15], [10, 15]],
+      "canvas": [1000, 1000],
+      "code": "AREA_TOO_SMALL"
+    },
+    {
+      "name": "slender-rectangle",
+      "points": [[10, 10], [510, 10], [510, 15], [10, 15]],
+      "canvas": [1000, 1000],
+      "code": "TOO_SLENDER"
+    },
+    {
+      "name": "nan-canvas-width",
+      "points": [[10, 10], [190, 10], [190, 190], [10, 190]],
+      "canvas": ["NaN", 200],
+      "code": "OUT_OF_BOUNDS"
+    },
+    {
+      "name": "infinite-canvas-height",
+      "points": [[10, 10], [190, 10], [190, 190], [10, 190]],
+      "canvas": [200, "Infinity"],
+      "code": "OUT_OF_BOUNDS"
+    }
+  ],
+  "vanishingPoints": [
+    {
+      "name": "parallel-rectangle",
+      "quad": [[0, 0], [100, 0], [100, 50], [0, 50]],
+      "expected": [null, null]
+    },
+    {
+      "name": "finite-horizontal-parallel-vertical",
+      "quad": [[20, 20], [180, 40], [180, 140], [20, 140]],
+      "expected": [[980, 140], null]
+    }
+  ]
+}
