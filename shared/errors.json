@@ -1,0 +1,11 @@
+{
+  "OUT_OF_BOUNDS": "Every point must lie inside the canvas.",
+  "DUPLICATE_POINTS": "Points must be separated by the minimum point distance.",
+  "SELF_INTERSECTION": "Quadrilateral edges must not cross.",
+  "NON_CONVEX": "Quadrilateral must be convex.",
+  "NEAR_COLLINEAR": "No three adjacent points may be nearly collinear.",
+  "AREA_TOO_SMALL": "Quadrilateral area is below the minimum usable area.",
+  "TOO_SLENDER": "Shortest-to-longest edge ratio is below the minimum.",
+  "SINGULAR_HOMOGRAPHY": "A stable homography cannot be computed."
+}
+
