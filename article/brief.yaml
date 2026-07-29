@@ -1,0 +1,44 @@
+version: 1
+title: "Perspective Paste：先贴得准，再融得真"
+content_type: "教程／工程实验"
+audience:
+  who: "想理解并亲手实现平面透视贴图的视觉开发者、设计技术人员和计算机视觉初学者"
+  context: "读者需要把文字、标识或界面准确贴到墙面、包装盒或屏幕照片中，并希望理解背后的几何与融合逻辑"
+  question: "怎样用四个角点完成可控的透视贴图，并避免结果像一张浮在照片上的贴纸"
+goal:
+  takeaway: "可信的贴图分成两件事：先用四点单应性解决位置和透视，再用亮度、环境色、纹理、模糊、阴影与 Alpha 合成解决材质关系"
+  action: "运行 Python 教学版或浏览器版，从内置墙面示例开始，依次检查四点合法性、预设选择、融合参数和失败边界"
+thesis:
+  statement: "Perspective Paste 的核心不是一个滤镜，而是一条可解释、可校验、可跨端复现的“几何定位→外观融合→Alpha 合成”处理链"
+  novelty: "把“贴得准”和“融得真”拆成两个可独立检查的阶段，并用共享 JSON 契约让 Python 与 Web 保持相同参数语义和错误码"
+  boundary: "适用于近似平面的目标区域；不处理曲面形变、遮挡分割、自动平面检测、生成式补全或多图层编辑"
+  counterpoint: "复杂场景可由分割、三维重建或生成式编辑获得更自然的结果，但会提高实现成本，并削弱四点交互的可解释性和确定性"
+personal_materials:
+  available: false
+  items: []
+framework: "痛点"
+enhance_strategy: "行动可用性"
+sections:
+  - purpose: "说明为何几何正确与视觉可信是两个问题"
+    claim_ids: [C1, C2]
+  - purpose: "解释四点排序、合法性和单应性"
+    claim_ids: [C1, C5, C6]
+  - purpose: "解释融合处理链和预设"
+    claim_ids: [C2, C5]
+  - purpose: "说明 Python 与 Web 的实现分工与隐私边界"
+    claim_ids: [C3, C4, C6, C7]
+  - purpose: "给出可复现的运行步骤与失败边界"
+    claim_ids: [C5, C7, C8]
+constraints:
+  desired_length: "1800-2600 字"
+  must_include:
+    - "官方技术来源"
+    - "Python 与 Web 运行步骤"
+    - "失败边界"
+    - "源码与 Pages 入口"
+    - "项目技术图与演示动图"
+  must_avoid:
+    - "编造个人经历"
+    - "把曲面与遮挡问题包装成四点透视可以解决"
+    - "声称用户图片会上传到服务器"
+

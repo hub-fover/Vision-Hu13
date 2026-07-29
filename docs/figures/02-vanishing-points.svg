@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="675" viewBox="0 0 1080 675">
+  <title>Vision Hub · 消失点</title>
+  <rect width="1080" height="675" fill="#08111f"/>
+  <path d="M0 90H1080M80 0V675M1000 0V675" stroke="#18314f" stroke-width="1"/>
+  <text x="80" y="67" fill="#126aff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="20" font-weight="700" letter-spacing="2">VISION HUB · LAB 001</text>
+  <text x="80" y="142" fill="#f4f8ff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="48" font-weight="700">消失点</text>
+  <text x="80" y="181" fill="#8ea6c3" font-family="Arial, Microsoft YaHei, sans-serif" font-size="21">平行线汇聚，透视方向可读</text>
+  <g id="vanish"><rect x="80" y="225" width="920" height="320" rx="20" fill="#10213a"/><circle cx="830" cy="345" r="12" fill="#ff9f43"/>
+<path d="M120 510L830 345M350 510L830 345M610 510L830 345M980 510L830 345" stroke="#126aff" stroke-width="4"/>
+<text x="850" y="340" fill="#ff9f43" font-family="Arial,Microsoft YaHei" font-size="20">消失点</text></g>
+  <text x="80" y="628" fill="#8ea6c3" font-family="Arial, Microsoft YaHei, sans-serif" font-size="17">02 / 10 · PERSPECTIVE PASTE</text>
+</svg>

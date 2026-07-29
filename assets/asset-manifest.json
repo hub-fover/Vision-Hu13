@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 2,
+  "licenseNotice": "The three photographic backgrounds remain under the Pexels License. The three original overlays are licensed under CC BY 4.0.",
+  "assets": [
+    {
+      "filename": "wall.jpg",
+      "kind": "background",
+      "dimensions": [
+        1600,
+        1200
+      ],
+      "license": "Pexels License",
+      "title": "Blank Billboard in Urban Street Setting",
+      "creator": "Peter Dyllong",
+      "sourceUrl": "https://www.pexels.com/photo/blank-billboard-in-urban-street-setting-36519146/",
+      "downloadedAt": "2026-07-29",
+      "modifications": "Cropped to remove the roadside sign, resized to 1600x1200, mild contrast/color adjustment, JPEG optimized",
+      "method": "Licensed source photograph, deterministic crop and Lanczos resize",
+      "source": "Pexels photo 36519146",
+      "provenance": "Derived from the credited Pexels photograph; the unmodified original is not vendored.",
+      "purpose": "Real outdoor billboard plane for perspective-paste demonstrations"
+    },
+    {
+      "filename": "packaging.jpg",
+      "kind": "background",
+      "dimensions": [
+        1600,
+        1200
+      ],
+      "license": "Pexels License",
+      "title": "White Cardboard Box on White Surface",
+      "creator": "mockupbee",
+      "sourceUrl": "https://www.pexels.com/photo/white-cardboard-box-on-white-surface-12039676/",
+      "downloadedAt": "2026-07-29",
+      "modifications": "Centered 4:3 crop, resized to 1600x1200, mild contrast/color adjustment, JPEG optimized",
+      "method": "Licensed source photograph, deterministic crop and Lanczos resize",
+      "source": "Pexels photo 12039676",
+      "provenance": "Derived from the credited Pexels photograph; the unmodified original is not vendored.",
+      "purpose": "Real blank packaging plane for mockup demonstrations"
+    },
+    {
+      "filename": "screen.jpg",
+      "kind": "background",
+      "dimensions": [
+        1600,
+        1200
+      ],
+      "license": "Pexels License",
+      "title": "TV in a Living Room",
+      "creator": "Lisa Anna",
+      "sourceUrl": "https://www.pexels.com/photo/tv-in-a-living-room-19866439/",
+      "downloadedAt": "2026-07-29",
+      "modifications": "Cropped around the unbranded television, resized to 1600x1200, mild contrast/color adjustment, JPEG optimized",
+      "method": "Licensed source photograph, deterministic crop and Lanczos resize",
+      "source": "Pexels photo 19866439",
+      "provenance": "Derived from the credited Pexels photograph; the unmodified original is not vendored.",
+      "purpose": "Real unbranded television plane for screen-replacement demonstrations"
+    },
+    {
+      "filename": "vision-hub-mark.png",
+      "kind": "overlay",
+      "dimensions": [
+        1200,
+        800
+      ],
+      "license": "CC BY 4.0",
+      "method": "Near-white background removal, alpha crop, and Lanczos resize",
+      "source": "assets/source/vision-hub-logo-corrected.png",
+      "provenance": "Derived non-destructively from project-provided corrected logo; source SHA-256 260f7d0618333219809927590195721d41acca312bd40ea7e86300178e2d254b",
+      "purpose": "Transparent Vision Hub mark for planar placement examples"
+    },
+    {
+      "filename": "lab-poster.png",
+      "kind": "overlay",
+      "dimensions": [
+        1200,
+        800
+      ],
+      "license": "CC BY 4.0",
+      "method": "Original deterministic Pillow vector-style drawing",
+      "source": "scripts/generate_assets.py",
+      "provenance": "Original project artwork; no external visual assets",
+      "purpose": "High-contrast poster for wall perspective demonstrations",
+      "text": [
+        "LAB 001",
+        "PERSPECTIVE PASTE"
+      ]
+    },
+    {
+      "filename": "screen-ui.png",
+      "kind": "overlay",
+      "dimensions": [
+        1200,
+        800
+      ],
+      "license": "CC BY 4.0",
+      "method": "Original deterministic Pillow vector-style drawing",
+      "source": "scripts/generate_assets.py",
+      "provenance": "Original unbranded dashboard artwork; no external visual assets",
+      "purpose": "Clean no-brand dashboard for display perspective demonstrations"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+version: 1
+decision: pass
+publishable: true
+reviewed_at: "2026-07-29"
+source_count:
+  verified_official: 10
+  repository_verified: 5
+  user_provided: 1
+  unsupported: 0
+seo:
+  title: "Perspective Paste：先贴得准，再融得真"
+  alt_titles:
+    - "四个点，怎样把一张图真正贴进照片里？"
+    - "从单应性到材质融合：做一个可解释的透视贴图工具"
+  digest: "用四点单应性解决位置，再用环境光与纹理解决真实感。"
+  tags: ["计算机视觉", "OpenCV", "Canvas", "图像合成", "Vision Hub"]
+checks:
+  - name: "任务对齐"
+    result: pass
+    evidence: "正文围绕“先贴得准，再融得真”，给出原理、运行步骤、入口和失败边界。"
+  - name: "事实与来源"
+    result: pass
+    evidence: "技术事实引用 OpenCV、W3C、Pillow、MDN 官方文档；真实展示照片逐张链接到 Pexels 作者页面和许可证；项目功能以仓库文件为准。"
+  - name: "个人材料"
+    result: pass
+    evidence: "personal_materials.available=false；正文没有作者亲历、人物对话或虚构场景。"
+  - name: "实用性"
+    result: pass
+    evidence: "包含 Python 与 Web 最短运行路径、快捷键、测试命令、预设选择和失败信号。"
+  - name: "边界"
+    result: pass
+    evidence: "明确排除曲面、遮挡、自动检测、多图层与生成式补全。"
+  - name: "去 AI 痕迹"
+    result: pass
+    evidence: "已检查机械过渡、等长节奏、凑数清单、夸张承诺、空泛总结与通用 CTA；详见 de_ai_report.md。"
+revisions_applied:
+  - "把浏览器隐私表述限定为仓库当前应用代码，不外推第三方托管平台行为。"
+  - "把几何阈值描述为项目工程护栏，避免包装成通用标准。"
+  - "将 Pages、源码入口与作者署名替换为正式发布信息；在线可用性由发布验收单独确认。"
+  - "把模板化开头、口号式结尾和通用互动 CTA 改成仓库专属的检查顺序与预设对照实验。"
+  - "补充三张真实场景照片的作者、原始作品页和 Pexels License，并明确第三方照片不纳入 CC BY 4.0。"

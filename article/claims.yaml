@@ -1,0 +1,56 @@
+version: 1
+claims:
+  - id: C1
+    text: "四组对应点可用于计算 3×3 透视变换矩阵，随后通过透视变换把源图映射到目标四边形。"
+    type: fact
+    source_ids: [S1]
+    status: supported
+    boundary: "四点必须形成数值稳定且非退化的平面对应关系。"
+  - id: C2
+    text: "W3C 将混合与 Porter-Duff 合成描述为两个相关步骤，并给出 Normal、Multiply、Screen、Overlay 等混合模式及 Alpha 合成公式。"
+    type: fact
+    source_ids: [S2]
+    status: supported
+    boundary: "本文项目公开实现 Normal、Multiply 与 Soft Light，并在最终阶段执行 Alpha 合成。"
+  - id: C3
+    text: "Pillow 的 ImageDraw 可测量和绘制文字，ImageFont.truetype 可从 TrueType 或 OpenType 字体文件创建字体对象。"
+    type: fact
+    source_ids: [S3, S4]
+    status: supported
+    boundary: "字体文件必须可读取，并覆盖待渲染字符。"
+  - id: C4
+    text: "浏览器可用 Canvas 2D 绘制图像和访问像素；FontFace 可由 URL 或 ArrayBuffer 构造并显式加载字体。"
+    type: fact
+    source_ids: [S5, S6]
+    status: supported
+    boundary: "以当前主流桌面浏览器实现为目标，旧浏览器或移动端交互不在重点验收范围。"
+  - id: C5
+    text: "本项目固定了四点合法性阈值、八类错误码、四组融合预设和统一的 RenderOptions 语义。"
+    type: fact
+    source_ids: [S7, S8]
+    status: supported
+    boundary: "这些阈值是项目工程约定，不是所有图像任务的通用最优值。"
+  - id: C6
+    text: "Python 与 Web 独立实现几何算法，并通过共享 JSON 夹具核对角点排序、错误码和单应性重投影结果。"
+    type: fact
+    source_ids: [S8, S9, S10]
+    status: supported
+    boundary: "一致性指公共契约和测试向量，不代表两端逐像素实现完全相同。"
+  - id: C7
+    text: "浏览器版在本地读取用户选择的背景、PNG 和字体，不包含向远程服务上传用户图片的应用代码。"
+    type: fact
+    source_ids: [S11]
+    status: supported
+    boundary: "结论限定于仓库当前静态应用代码；第三方托管平台自身的常规网络行为不属于应用上传逻辑。"
+  - id: C8
+    text: "四点透视适合近似平面；曲面、遮挡和显著三维起伏需要额外的变形、分割或三维方法。"
+    type: inference
+    source_ids: [S1, S12]
+    status: bounded
+    boundary: "这是由单一平面单应性模型与项目明确排除项共同得出的适用边界。"
+  - id: C9
+    text: "默认展示背景来自 Peter Dyllong、mockupbee 和 Lisa Anna 的 Pexels 照片，仓库仅收录裁剪派生图。"
+    type: fact
+    source_ids: [S13, S14, S15, S16]
+    status: supported
+    boundary: "三张照片仍适用 Pexels License，不纳入项目原创资产的 CC BY 4.0。"
