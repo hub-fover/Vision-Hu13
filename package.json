@@ -7,7 +7,7 @@
     "test": "npm run test:web",
     "test:web": "node --test tests/web/*.test.js",
     "test:lab002": "npm run test:lab002:web && npm run test:lab002:python",
-    "test:lab002:web": "node --test lab-002/tests/web/*.test.js",
+    "test:lab002:web": "npm --prefix lab-002/web run test",
     "test:lab002:python": "python -m pytest -c lab-002/pyproject.toml lab-002/tests/python",
     "test:e2e": "playwright test",
     "test:all": "npm run test:web && npm run test:e2e",

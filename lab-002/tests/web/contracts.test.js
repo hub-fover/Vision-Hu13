@@ -37,3 +37,17 @@ test("contract documents the public option and matching metric fields", async ()
   assert.ok(contract.types.StitchOptions.fields.quality);
   assert.ok(contract.types.MatchMetrics.fields.medianReprojectionErrorPx);
 });
+
+test("LAB 002 Web package owns its tests and root commands proxy into it", async () => {
+  const [rootPackage, webPackage] = await Promise.all([
+    readFile(new URL("../package.json", root), "utf8").then(JSON.parse),
+    readFile(new URL("web/package.json", root), "utf8").then(JSON.parse),
+  ]);
+
+  assert.equal(webPackage.name, "panorama-stitch-lab-002-web");
+  assert.equal(webPackage.private, true);
+  assert.equal(webPackage.type, "module");
+  assert.equal(webPackage.scripts.test, "node --test ../tests/web/*.test.js");
+  assert.equal(rootPackage.scripts["test:lab002:web"], "npm --prefix lab-002/web run test");
+  assert.doesNotMatch(rootPackage.scripts["test:lab002:web"], /lab-002\/tests/);
+});
