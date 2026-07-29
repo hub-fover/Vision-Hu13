@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-29",
+  "notice": "These are documented derivatives of real Pexels videos. They are not original Vision Hub or CC BY 4.0 assets.",
+  "sequences": [
+    {
+      "id": "mountains",
+      "title": "Camera Panning Over Mountains",
+      "creator": "cottonbro studio",
+      "videoId": "9943097",
+      "sourceUrl": "https://www.pexels.com/video/camera-panning-over-mountains-9943097/",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/legal-pages/license/",
+      "downloadedAt": "2026-07-29",
+      "directVideoUrl": "https://videos.pexels.com/video-files/9943097/9943097-uhd_4096_2160_25fps.mp4",
+      "directVideoFile": "9943097-uhd_4096_2160_25fps.mp4",
+      "measuredVideo": {
+        "width": 4096,
+        "height": 2160,
+        "fps": 25.0,
+        "frameCount": 470,
+        "durationSeconds": 18.8
+      },
+      "transformations": [
+        "Decoded the original video frame nearest to each documented fractional timestamp.",
+        "Applied decoded orientation (landscape) and a centered 16:9 crop without synthetic fill.",
+        "Applied bounded gray-world color correction with per-channel gains limited to 0.96–1.04.",
+        "Resized with Lanczos interpolation so the longest edge is 1600px.",
+        "Encoded as JPEG at quality 90; no generative or programmatic scene content was added."
+      ],
+      "usage": "Default successful panorama sample for Python and Web.",
+      "frames": [
+        {
+          "index": 1,
+          "fraction": 0.3,
+          "seconds": 5.64,
+          "decodedFrameIndex": 141,
+          "decodedSeconds": 5.64,
+          "sha256": "bc798aaa9eec3c6169f946ad3a481ee86ebbe1cddd3b4aa90e8cdf384c1b736d",
+          "localFiles": [
+            "assets/samples/mountains/01.jpg",
+            "web/assets/samples/mountains/01.jpg",
+            "python/panorama_stitch/samples/mountains/01.jpg"
+          ]
+        },
+        {
+          "index": 2,
+          "fraction": 0.45,
+          "seconds": 8.46,
+          "decodedFrameIndex": 212,
+          "decodedSeconds": 8.48,
+          "sha256": "df26d23285d42851314d2a9291b52b6c9533ce8d2fc1e3b387a0a6fd0202a924",
+          "localFiles": [
+            "assets/samples/mountains/02.jpg",
+            "web/assets/samples/mountains/02.jpg",
+            "python/panorama_stitch/samples/mountains/02.jpg"
+          ]
+        },
+        {
+          "index": 3,
+          "fraction": 0.6,
+          "seconds": 11.28,
+          "decodedFrameIndex": 282,
+          "decodedSeconds": 11.28,
+          "sha256": "9da9cd87ca94201810afbf86f0a9b7400e4f2be624b7b235b9793d8e5700f590",
+          "localFiles": [
+            "assets/samples/mountains/03.jpg",
+            "web/assets/samples/mountains/03.jpg",
+            "python/panorama_stitch/samples/mountains/03.jpg"
+          ]
+        }
+      ],
+      "isGenerated": false,
+      "isThirdParty": true
+    },
+    {
+      "id": "city",
+      "title": "Panoramic Cityscape of Modern Urban Skyline",
+      "creator": "Zulfugar Karimov",
+      "videoId": "36722864",
+      "sourceUrl": "https://www.pexels.com/video/panoramic-cityscape-of-modern-urban-skyline-36722864/",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/legal-pages/license/",
+      "downloadedAt": "2026-07-29",
+      "directVideoUrl": "https://videos.pexels.com/video-files/36722864/15563861_3840_2160_30fps.mp4",
+      "directVideoFile": "15563861_3840_2160_30fps.mp4",
+      "measuredVideo": {
+        "width": 3840,
+        "height": 2160,
+        "fps": 29.97003,
+        "frameCount": 604,
+        "durationSeconds": 20.153467
+      },
+      "transformations": [
+        "Decoded the original video frame nearest to each documented fractional timestamp.",
+        "Applied decoded orientation (landscape) and a centered 16:9 crop without synthetic fill.",
+        "Applied bounded gray-world color correction with per-channel gains limited to 0.96–1.04.",
+        "Resized with Lanczos interpolation so the longest edge is 1600px.",
+        "Encoded as JPEG at quality 90; no generative or programmatic scene content was added."
+      ],
+      "usage": "Four-image urban panorama sample for Web and acceptance checks.",
+      "frames": [
+        {
+          "index": 1,
+          "fraction": 0.2,
+          "seconds": 4.031,
+          "decodedFrameIndex": 121,
+          "decodedSeconds": 4.037,
+          "sha256": "0359f8f9876dac233f7985d88890e2dcd1a6626c223517744e1c26dfd65125b3",
+          "localFiles": [
+            "assets/samples/city/01.jpg",
+            "web/assets/samples/city/01.jpg"
+          ]
+        },
+        {
+          "index": 2,
+          "fraction": 0.35,
+          "seconds": 7.054,
+          "decodedFrameIndex": 211,
+          "decodedSeconds": 7.04,
+          "sha256": "ce21e7d06e39d7e3fa4c88759219957f95143ee38e6883d9067ba29053798555",
+          "localFiles": [
+            "assets/samples/city/02.jpg",
+            "web/assets/samples/city/02.jpg"
+          ]
+        },
+        {
+          "index": 3,
+          "fraction": 0.5,
+          "seconds": 10.077,
+          "decodedFrameIndex": 302,
+          "decodedSeconds": 10.077,
+          "sha256": "1dbf9f206f308ddf912b604e7af7804dbfd73ffebfcc240f5c3dbb8d0b45e8b8",
+          "localFiles": [
+            "assets/samples/city/03.jpg",
+            "web/assets/samples/city/03.jpg"
+          ]
+        },
+        {
+          "index": 4,
+          "fraction": 0.65,
+          "seconds": 13.1,
+          "decodedFrameIndex": 393,
+          "decodedSeconds": 13.113,
+          "sha256": "3e8c699f808acf166a00d8df041917d27025c9439617fe62c9068f929baab143",
+          "localFiles": [
+            "assets/samples/city/04.jpg",
+            "web/assets/samples/city/04.jpg"
+          ]
+        }
+      ],
+      "isGenerated": false,
+      "isThirdParty": true
+    },
+    {
+      "id": "ocean",
+      "title": "Panning Shot of Ocean",
+      "creator": "James Cheney",
+      "videoId": "6746361",
+      "sourceUrl": "https://www.pexels.com/video/panning-shot-of-ocean-6746361/",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/legal-pages/license/",
+      "downloadedAt": "2026-07-29",
+      "directVideoUrl": "https://videos.pexels.com/video-files/6746361/6746361-uhd_3840_2160_24fps.mp4",
+      "directVideoFile": "6746361-uhd_3840_2160_24fps.mp4",
+      "measuredVideo": {
+        "width": 2560,
+        "height": 1440,
+        "fps": 23.976024,
+        "frameCount": 424,
+        "durationSeconds": 17.684333
+      },
+      "transformations": [
+        "Decoded the original video frame nearest to each documented fractional timestamp.",
+        "Applied decoded orientation (landscape) and a centered 16:9 crop without synthetic fill.",
+        "Applied bounded gray-world color correction with per-channel gains limited to 0.96–1.04.",
+        "Resized with Lanczos interpolation so the longest edge is 1600px.",
+        "Encoded as JPEG at quality 90; no generative or programmatic scene content was added."
+      ],
+      "usage": "Real low-texture failure sample for Web and diagnostics.",
+      "frames": [
+        {
+          "index": 1,
+          "fraction": 0.3,
+          "seconds": 5.305,
+          "decodedFrameIndex": 127,
+          "decodedSeconds": 5.297,
+          "sha256": "1aa4ff2477526d2dda07587605b891507ea9df6cba41330cfe57a91947fce084",
+          "localFiles": [
+            "assets/samples/ocean/01.jpg",
+            "web/assets/samples/ocean/01.jpg"
+          ]
+        },
+        {
+          "index": 2,
+          "fraction": 0.45,
+          "seconds": 7.958,
+          "decodedFrameIndex": 191,
+          "decodedSeconds": 7.966,
+          "sha256": "8a67958ff1f450969b26d20dd1da4bea1d19d740e7a7e93a419c4c331f4a271d",
+          "localFiles": [
+            "assets/samples/ocean/02.jpg",
+            "web/assets/samples/ocean/02.jpg"
+          ]
+        },
+        {
+          "index": 3,
+          "fraction": 0.6,
+          "seconds": 10.611,
+          "decodedFrameIndex": 254,
+          "decodedSeconds": 10.594,
+          "sha256": "9bbdc706f5050a5dcfb6797959b9df47ecd91e32de4e90252f26cb1903288c19",
+          "localFiles": [
+            "assets/samples/ocean/03.jpg",
+            "web/assets/samples/ocean/03.jpg"
+          ]
+        }
+      ],
+      "isGenerated": false,
+      "isThirdParty": true
+    }
+  ]
+}

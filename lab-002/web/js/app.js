@@ -9,11 +9,7 @@ import {
 } from "./state.js";
 import { StitchWorkerClient } from "./worker-client.js";
 
-const SAMPLE_URLS = [
-  "./assets/samples/mountains/01.jpg",
-  "./assets/samples/mountains/02.jpg",
-  "./assets/samples/mountains/03.jpg",
-];
+const SAMPLE_MANIFEST_URL = "./assets/samples/manifest.json";
 const acceptedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const elements = {
   gallery: document.querySelector("#gallery-input"),
@@ -402,19 +398,30 @@ async function share() {
 async function loadSample() {
   elements.sampleStatus.textContent = "正在读取示例…";
   try {
-    const responses = await Promise.all(SAMPLE_URLS.map((url) => fetch(url)));
+    const manifestResponse = await fetch(SAMPLE_MANIFEST_URL);
+    if (!manifestResponse.ok) throw new Error("missing manifest");
+    const manifest = await manifestResponse.json();
+    const selected =
+      manifest.sequences?.[manifest.defaultSequence ?? "mountains"];
+    if (!selected?.files?.length) throw new Error("missing default sequence");
+    const sampleUrls = selected.files.map(
+      (relative) => new URL(relative, manifestResponse.url).href,
+    );
+    const responses = await Promise.all(sampleUrls.map((url) => fetch(url)));
     if (responses.some((response) => !response.ok)) throw new Error("missing");
     const files = await Promise.all(responses.map(async (response, index) =>
       new File(
         [await response.blob()],
-        `mountains-${index + 1}.jpg`,
+        `${manifest.defaultSequence ?? "mountains"}-${index + 1}.jpg`,
         { type: "image/jpeg" },
       )));
     await appendFiles(files);
-    elements.sampleStatus.textContent = "已载入 3 张真实山景照片。";
+    elements.sampleStatus.textContent =
+      `已载入 ${files.length} 张真实${selected.title ?? "现场"}照片，` +
+      `素材：${selected.creator}（${selected.license}）。`;
   } catch {
     elements.sampleStatus.textContent =
-      "示例照片尚未安装；Task 4 加入真实素材后，此按钮会自动可用。";
+      "无法读取本地示例，请刷新页面后重试。照片不会上传。";
   }
 }
 

@@ -10,10 +10,10 @@ test("mobile UI keeps gallery and rear-camera inputs separate", async () => {
   assert.doesNotMatch(html, /<form[^>]+action=|type="file"[^>]+name=/);
 });
 
-test("sample paths are stable, relative, and recoverable while media is pending", async () => {
+test("installed sample loader stays relative and reports a recoverable local error", async () => {
   const source = await readFile(new URL("../../web/js/app.js", import.meta.url), "utf8");
 
-  assert.match(source, /\.\/assets\/samples\/mountains\/01\.jpg/);
-  assert.match(source, /示例照片尚未安装/);
+  assert.match(source, /\.\/assets\/samples\/manifest\.json/);
+  assert.match(source, /示例照片尚未安装|无法读取本地示例/);
   assert.doesNotMatch(source, /https?:\/\//);
 });
