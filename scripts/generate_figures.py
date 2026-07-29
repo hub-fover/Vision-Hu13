@@ -50,10 +50,10 @@ def svg_for(index: int, title: str, subtitle: str, motif: str) -> str:
     body = svg_motif(motif)
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="675" viewBox="0 0 1080 675">
-  <title>Vision Hub · {title_e}</title>
+  <title>Vision Hu13 · {title_e}</title>
   <rect width="1080" height="675" fill="{BG}"/>
   <path d="M0 90H1080M80 0V675M1000 0V675" stroke="#18314f" stroke-width="1"/>
-  <text x="80" y="67" fill="{BLUE}" font-family="Arial, Microsoft YaHei, sans-serif" font-size="20" font-weight="700" letter-spacing="2">VISION HUB · LAB 001</text>
+  <text x="80" y="67" fill="{BLUE}" font-family="Arial, Microsoft YaHei, sans-serif" font-size="20" font-weight="700" letter-spacing="2">VISION HU13 · LAB 001</text>
   <text x="80" y="142" fill="{WHITE}" font-family="Arial, Microsoft YaHei, sans-serif" font-size="48" font-weight="700">{title_e}</text>
   <text x="80" y="181" fill="{MUTED}" font-family="Arial, Microsoft YaHei, sans-serif" font-size="21">{subtitle_e}</text>
   <g id="{motif}">{body}</g>
@@ -116,7 +116,7 @@ def draw_png(index: int, title: str, subtitle: str, motif: str) -> Image.Image:
     draw.line((0, 90, W, 90), fill="#18314f", width=1)
     draw.line((80, 0, 80, H), fill="#18314f", width=1)
     draw.line((1000, 0, 1000, H), fill="#18314f", width=1)
-    draw.text((80, 42), "VISION HUB · LAB 001", font=font(20, True), fill=BLUE)
+    draw.text((80, 42), "VISION HU13 · LAB 001", font=font(20, True), fill=BLUE)
     draw.text((80, 105), title, font=font(48, True), fill=WHITE)
     draw.text((80, 160), subtitle, font=font(21), fill=MUTED)
     draw_motif(draw, motif)

@@ -482,11 +482,14 @@ async function boot() {
   const response = await fetch("./shared/presets.json");
   if (!response.ok) throw new Error("预设加载失败");
   presets = (await response.json()).presets;
-  state = applyPreset(state, "wall", presets.wall);
+  state = applyPreset(state, "court", presets.court);
   syncControls();
   makeTextAsset();
   try {
-    await setBackgroundImage("./assets/examples/wall.jpg");
+    await setBackgroundImage("./assets/examples/court.jpg");
+    await setPngAsset("./assets/examples/court-ad.png");
+    document.querySelectorAll("[data-asset-tab]").forEach((button) =>
+      button.classList.toggle("active", button.dataset.assetTab === "png"));
     for (let index = 0; index < 4; index += 1) {
       state = addDefaultCorner(state, canvas.width, canvas.height);
     }

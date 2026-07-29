@@ -14,12 +14,20 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[2]
 ASSETS = ROOT / "assets"
 FIGURES = ROOT / "docs" / "figures"
+CASES = ROOT / "docs" / "cases"
 DEMO = ROOT / "demo"
 LOGO_SOURCE = ASSETS / "source" / "vision-hub-logo-corrected.png"
 LOGO_SHA256 = "260f7d0618333219809927590195721d41acca312bd40ea7e86300178e2d254b"
 
-BACKGROUND_NAMES = ("wall.jpg", "packaging.jpg", "screen.jpg")
-OVERLAY_NAMES = ("vision-hub-mark.png", "lab-poster.png", "screen-ui.png")
+BACKGROUND_NAMES = ("court.jpg", "facade.jpg", "wall.jpg", "packaging.jpg", "screen.jpg")
+SYNTHETIC_BACKGROUND_NAMES = ("wall.jpg", "packaging.jpg", "screen.jpg")
+OVERLAY_NAMES = (
+    "court-ad.png",
+    "facade-logo.png",
+    "vision-hub-mark.png",
+    "lab-poster.png",
+    "screen-ui.png",
+)
 FIGURE_STEMS = (
     "01-before-after",
     "02-vanishing-points",
@@ -31,6 +39,14 @@ FIGURE_STEMS = (
     "08-boundaries",
     "09-shortcuts",
     "10-dual-runtime",
+)
+CASE_NAMES = ("wall", "court", "facade")
+CASE_STATES = (
+    "01-original",
+    "02-wrong-direction",
+    "03-vanishing-guide",
+    "04-correct-perspective",
+    "05-final-blend",
 )
 
 
@@ -72,7 +88,7 @@ def test_asset_manifest_separates_third_party_and_original_licenses() -> None:
     manifest_path = ASSETS / "asset-manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     items = manifest["assets"]
-    assert len(items) == 6
+    assert len(items) == 10
     assert {item["filename"] for item in items} == set(BACKGROUND_NAMES + OVERLAY_NAMES)
     for item in items:
         assert item["kind"] in {"background", "overlay"}
@@ -95,10 +111,23 @@ def test_asset_manifest_separates_third_party_and_original_licenses() -> None:
 
 def test_original_synthetic_backgrounds_remain_as_offline_fallbacks() -> None:
     fallback_dir = ASSETS / "examples" / "synthetic"
-    for name in BACKGROUND_NAMES:
+    for name in SYNTHETIC_BACKGROUND_NAMES:
         with Image.open(fallback_dir / name) as image:
             assert image.size == (1600, 1200)
             assert image.format == "JPEG"
+
+
+def test_court_and_facade_manifest_entries_use_the_approved_pexels_sources() -> None:
+    manifest = json.loads((ASSETS / "asset-manifest.json").read_text(encoding="utf-8"))
+    items = {item["filename"]: item for item in manifest["assets"]}
+    assert items["court.jpg"]["creator"] == "Joaquin Carfagna"
+    assert items["court.jpg"]["sourceUrl"].endswith(
+        "/basketball-court-in-a-city-17274508/"
+    )
+    assert items["facade.jpg"]["creator"] == "Miks Bergmanis"
+    assert items["facade.jpg"]["sourceUrl"].endswith(
+        "/white-concrete-building-542411/"
+    )
 
 
 def test_corrected_logo_source_is_vendored_and_manifest_paths_are_relative() -> None:
@@ -120,12 +149,35 @@ def test_ten_editable_svgs_and_matching_1080px_pngs_exist() -> None:
         assert root.tag.endswith("svg")
         assert root.attrib["viewBox"] == "0 0 1080 675"
         svg_text = svg_path.read_text(encoding="utf-8")
-        assert "Vision Hub" in svg_text
+        assert "Vision Hu13" in svg_text
         assert any("\u4e00" <= char <= "\u9fff" for char in svg_text)
         with Image.open(FIGURES / f"{stem}.png") as image:
             assert image.size == (1080, 675)
             assert image.mode in {"RGB", "RGBA"}
             assert np.asarray(image.convert("RGB"), dtype=np.float32).std() > 10
+
+
+def test_three_real_case_studies_each_have_five_program_generated_states() -> None:
+    for case_name in CASE_NAMES:
+        files = sorted(path.stem for path in (CASES / case_name).glob("*.jpg"))
+        assert files == list(CASE_STATES)
+        images = []
+        for state in CASE_STATES:
+            with Image.open(CASES / case_name / f"{state}.jpg") as image:
+                assert image.size == (1600, 1200)
+                images.append(np.asarray(image.convert("RGB"), dtype=np.int16))
+        assert np.mean(np.abs(images[0] - images[1])) > 1.0
+        assert np.mean(np.abs(images[0] - images[4])) > 1.0
+
+
+def test_case_study_generator_uses_the_product_renderer_and_guide() -> None:
+    source = (ROOT / "scripts" / "generate_case_studies.py").read_text(
+        encoding="utf-8"
+    )
+    assert "blend_composite" in source
+    assert "_draw_perspective_overlay" in source
+    assert "court-ad.png" in source
+    assert "facade-logo.png" in source
 
 
 def test_mp4_is_about_twelve_seconds_at_1080x1350_and_24fps() -> None:

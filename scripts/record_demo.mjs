@@ -108,18 +108,18 @@ async function record(baseUrl) {
 
     // Use the actual file inputs and app rendering pipeline.
     await page.locator("#background-input").setInputFiles(
-      join(ROOT, "assets", "examples", "wall.jpg"));
+      join(ROOT, "assets", "examples", "court.jpg"));
     await page.locator("#asset-input").setInputFiles(
-      join(ROOT, "assets", "examples", "lab-poster.png"));
+      join(ROOT, "assets", "examples", "court-ad.png"));
     await page.locator("#editor-canvas").scrollIntoViewIfNeeded();
     await wait(700);
 
     const canvas = page.locator("#editor-canvas");
     const initialFractions = [
-      [0.22, 0.10],
-      [0.82, 0.10],
-      [0.82, 0.58],
-      [0.22, 0.58],
+      [0.28, 0.64],
+      [0.68, 0.64],
+      [0.68, 0.83],
+      [0.28, 0.83],
     ];
     for (const [fx, fy] of initialFractions) {
       const point = await pointInCanvas(canvas, fx, fy);
@@ -137,10 +137,10 @@ async function record(baseUrl) {
 
     // Drag all four real canvas handles into a readable perspective plane.
     const targetFractions = [
-      [0.19, 0.08],
-      [0.88, 0.08],
-      [0.88, 0.61],
-      [0.19, 0.60],
+      [0.275, 0.633],
+      [0.613, 0.629],
+      [0.838, 0.871],
+      [0.088, 0.896],
     ];
     for (let index = 0; index < initialFractions.length; index += 1) {
       const [fromX, fromY] = initialFractions[index];

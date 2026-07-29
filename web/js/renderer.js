@@ -1,4 +1,4 @@
-import { computeVanishingPoints } from "./geometry.js";
+import { computePerspectiveGuide } from "./geometry.js";
 import { premultiplyRgba, unpremultiplyRgba } from "./blending.js";
 
 export { premultiplyRgba, unpremultiplyRgba };
@@ -244,26 +244,116 @@ export function drawGridOverlay(context, quad, divisions = 4) {
 }
 
 export function drawVanishingOverlay(context, quad) {
-  const points = computeVanishingPoints(quad);
-  context.save();
-  context.strokeStyle = "rgba(14, 165, 233, .75)";
-  context.fillStyle = "#0ea5e9";
-  points.forEach((point, family) => {
-    if (!point) return;
-    const limit = 10000;
-    const target = [
-      Math.max(-limit, Math.min(limit, point[0])),
-      Math.max(-limit, Math.min(limit, point[1])),
-    ];
-    [quad[family], quad[(family + 2) % 4]].forEach((start) => {
-      context.beginPath();
-      context.moveTo(...start);
-      context.lineTo(...target);
-      context.stroke();
-    });
+  const width = context.canvas.width;
+  const height = context.canvas.height;
+  const guide = computePerspectiveGuide(quad, [width, height]);
+  const colors = { u: "#06b6d4", v: "#f97316" };
+  const edgePairs = {
+    u: [[0, 1], [3, 2]],
+    v: [[0, 3], [1, 2]],
+  };
+  const clamp = ([x, y]) => [
+    Math.min(width, Math.max(0, x)),
+    Math.min(height, Math.max(0, y)),
+  ];
+  const midpoint = (first, second) => [
+    (first[0] + second[0]) / 2,
+    (first[1] + second[1]) / 2,
+  ];
+  const drawLine = (start, end) => {
     context.beginPath();
-    context.arc(...target, 4, 0, Math.PI * 2);
+    context.moveTo(...clamp(start));
+    context.lineTo(...clamp(end));
+    context.stroke();
+  };
+  const drawArrow = (anchor, direction, color) => {
+    const tip = clamp(anchor);
+    const inside = clamp([
+      tip[0] - direction[0] * 20,
+      tip[1] - direction[1] * 20,
+    ]);
+    context.strokeStyle = color;
+    drawLine(inside, tip);
+    const perpendicular = [-direction[1], direction[0]];
+    context.fillStyle = color;
+    context.beginPath();
+    context.moveTo(...tip);
+    context.lineTo(...clamp([
+      tip[0] - direction[0] * 10 + perpendicular[0] * 5,
+      tip[1] - direction[1] * 10 + perpendicular[1] * 5,
+    ]));
+    context.lineTo(...clamp([
+      tip[0] - direction[0] * 10 - perpendicular[0] * 5,
+      tip[1] - direction[1] * 10 - perpendicular[1] * 5,
+    ]));
+    context.closePath();
     context.fill();
+  };
+  const label = (value, location, color) => {
+    const [x, y] = clamp(location);
+    context.fillStyle = color;
+    context.font = "600 12px system-ui, sans-serif";
+    context.textBaseline = "middle";
+    context.fillText(value, Math.min(width - 8, Math.max(8, x)),
+      Math.min(height - 8, Math.max(12, y)));
+  };
+
+  context.save();
+  if (guide.vanishing_line.status === "visible") {
+    context.strokeStyle = "rgba(100, 116, 139, .9)";
+    context.lineWidth = 1;
+    context.setLineDash([8, 6]);
+    drawLine(...guide.vanishing_line.segment);
+    context.setLineDash([]);
+    const center = midpoint(...guide.vanishing_line.segment);
+    label("平面消影线", [center[0] + 8, center[1] - 10], "#64748b");
+  } else {
+    label(guide.vanishing_line.status === "infinite" ?
+      "平面消影线位于无穷远" : "平面消影线在画外", [12, height - 16], "#64748b");
+  }
+
+  guide.directions.forEach((direction, index) => {
+    const color = colors[direction.family];
+    const midpoints = edgePairs[direction.family].map(([first, second]) =>
+      midpoint(quad[first], quad[second]));
+    context.strokeStyle = color;
+    context.fillStyle = color;
+    context.lineWidth = 1.25;
+    if (direction.status === "parallel") {
+      midpoints.forEach((center) => {
+        const start = clamp([
+          center[0] - direction.direction[0] * 32,
+          center[1] - direction.direction[1] * 32,
+        ]);
+        const end = clamp([
+          center[0] + direction.direction[0] * 32,
+          center[1] + direction.direction[1] * 32,
+        ]);
+        drawLine(start, end);
+        drawArrow(end, direction.direction, color);
+      });
+      label(`${direction.family.toUpperCase()} 该方向近似平行`,
+        [midpoints[0][0] + 8, midpoints[0][1] - 12], color);
+      return;
+    }
+
+    const target = direction.status === "onscreen" ?
+      direction.point : direction.edge_anchor;
+    midpoints.forEach((start) => drawLine(start, target));
+    if (direction.status === "onscreen") {
+      context.beginPath();
+      context.arc(...clamp(target), 5, 0, Math.PI * 2);
+      context.fill();
+      label(`V${index + 1}`, [target[0] + 9, target[1] - 10], color);
+    } else {
+      drawArrow(target, direction.direction, color);
+      label(`V${index + 1} 画外约 ${direction.distance_diagonals.toFixed(1)}×`,
+        [
+          target[0] - direction.direction[0] * 94,
+          target[1] - direction.direction[1] * 94,
+        ],
+        color);
+    }
   });
   context.restore();
 }

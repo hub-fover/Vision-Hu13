@@ -10,6 +10,40 @@ def test_shared_geometry_preset_is_loaded_into_a_dataclass():
 
 
 EXPECTED_RENDER_PRESETS = {
+    "court": {
+        "blendMode": "normal",
+        "opacity": 0.72,
+        "blurPx": 0.6,
+        "brightnessMatch": True,
+        "tintStrength": 0.12,
+        "textureStrength": 0.38,
+        "saturation": 0.95,
+        "shadow": {
+            "enabled": False,
+            "offsetX": 0,
+            "offsetY": 0,
+            "blur": 0,
+            "opacity": 0,
+        },
+        "fitMode": "fill",
+    },
+    "facade": {
+        "blendMode": "multiply",
+        "opacity": 0.86,
+        "blurPx": 0.5,
+        "brightnessMatch": True,
+        "tintStrength": 0.15,
+        "textureStrength": 0.25,
+        "saturation": 0.95,
+        "shadow": {
+            "enabled": False,
+            "offsetX": 0,
+            "offsetY": 0,
+            "blur": 0,
+            "opacity": 0,
+        },
+        "fitMode": "fill",
+    },
     "wall": {
         "blendMode": "multiply",
         "opacity": 0.78,

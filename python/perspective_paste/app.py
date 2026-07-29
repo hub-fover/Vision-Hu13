@@ -12,14 +12,14 @@ from PIL import Image
 
 from .blending import blend_composite
 from .config import RENDER_PRESETS, get_render_preset
-from .geometry import compute_vanishing_points
+from .geometry import compute_perspective_guide
 from .interaction import InteractionState
 from .renderer import load_png_layer, render_text_layer
 
 
 DEFAULT_TEXT = "先贴得准，再融得真"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_BACKGROUND = PROJECT_ROOT / "assets" / "examples" / "wall.jpg"
+DEFAULT_BACKGROUND = PROJECT_ROOT / "assets" / "examples" / "court.jpg"
 PRESET_NAMES = tuple(RENDER_PRESETS)
 BLUR_STEPS = (0.0, 0.5, 1.0, 1.5, 2.0, 2.5)
 
@@ -42,7 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
     source = parser.add_mutually_exclusive_group()
     source.add_argument("--text", default=DEFAULT_TEXT)
     source.add_argument("--asset", type=Path)
-    parser.add_argument("--preset", choices=PRESET_NAMES, default="wall")
+    parser.add_argument("--preset", choices=PRESET_NAMES, default="court")
     parser.add_argument("--font", type=Path)
     parser.add_argument("--output", type=Path, default=Path("perspective-paste.png"))
     return parser
@@ -129,6 +129,115 @@ def export_composite_safely(
     return f"Exported {exported}"
 
 
+def _draw_perspective_overlay(frame: np.ndarray, quad: np.ndarray) -> np.ndarray:
+    height, width = frame.shape[:2]
+    guide = compute_perspective_guide(quad, (width, height))
+    colors = {"u": (235, 170, 25), "v": (45, 145, 255)}
+    edge_pairs = {
+        "u": ((0, 1), (3, 2)),
+        "v": ((0, 3), (1, 2)),
+    }
+
+    def point(value: np.ndarray | list[float]) -> tuple[int, int]:
+        x, y = np.rint(value).astype(int)
+        return (
+            int(min(width - 1, max(0, x))),
+            int(min(height - 1, max(0, y))),
+        )
+
+    line = guide["vanishing_line"]
+    if line["status"] == "visible":
+        start, end = (point(value) for value in line["segment"])
+        cv2.line(frame, start, end, (180, 180, 180), 1, cv2.LINE_AA)
+        midpoint = point((np.asarray(start) + np.asarray(end)) / 2)
+        cv2.putText(
+            frame,
+            "plane vanishing line",
+            point((midpoint[0] + 8, midpoint[1] - 8)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.42,
+            (220, 220, 220),
+            1,
+            cv2.LINE_AA,
+        )
+    elif line["status"] == "offscreen":
+        cv2.putText(
+            frame,
+            "plane vanishing line is outside",
+            (12, height - 16),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.42,
+            (220, 220, 220),
+            1,
+            cv2.LINE_AA,
+        )
+    else:
+        cv2.putText(
+            frame,
+            "plane vanishing line is at infinity",
+            (12, height - 16),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.42,
+            (220, 220, 220),
+            1,
+            cv2.LINE_AA,
+        )
+
+    for index, direction in enumerate(guide["directions"], start=1):
+        family = direction["family"]
+        color = colors[family]
+        vector = np.asarray(direction["direction"], dtype=float)
+        pairs = edge_pairs[family]
+        midpoints = [
+            (np.asarray(quad[first]) + np.asarray(quad[second])) / 2
+            for first, second in pairs
+        ]
+        if direction["status"] == "parallel":
+            for midpoint in midpoints:
+                start = point(midpoint - vector * 32)
+                end = point(midpoint + vector * 32)
+                cv2.arrowedLine(frame, start, end, color, 1, cv2.LINE_AA, tipLength=0.18)
+            cv2.putText(
+                frame,
+                f"{family.upper()} approximately parallel",
+                point(midpoints[0] + np.asarray([8, -8])),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.42,
+                color,
+                1,
+                cv2.LINE_AA,
+            )
+            continue
+
+        target = point(
+            direction["point"]
+            if direction["status"] == "onscreen"
+            else direction["edge_anchor"]
+        )
+        for midpoint in midpoints:
+            cv2.line(frame, point(midpoint), target, color, 1, cv2.LINE_AA)
+        if direction["status"] == "onscreen":
+            cv2.drawMarker(frame, target, color, cv2.MARKER_CROSS, 16, 2)
+            label_point = point(np.asarray(target) + np.asarray([8, -8]))
+            label = f"V{index}"
+        else:
+            inside = point(np.asarray(target) - vector * 24)
+            cv2.arrowedLine(frame, inside, target, color, 2, cv2.LINE_AA, tipLength=0.32)
+            label_point = point(np.asarray(target) - vector * 92 + np.asarray([4, -4]))
+            label = f"V{index} outside {direction['distance_diagonals']:.1f}x"
+        cv2.putText(
+            frame,
+            label,
+            label_point,
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.42,
+            color,
+            1,
+            cv2.LINE_AA,
+        )
+    return frame
+
+
 def _draw_overlay(
     rgb: np.ndarray,
     state: InteractionState,
@@ -183,16 +292,7 @@ def _draw_overlay(
             cv2.LINE_AA,
         )
     if vanishing and len(state.points) == 4:
-        for point in compute_vanishing_points(state.points):
-            if point is not None and 0 <= point[0] < width and 0 <= point[1] < height:
-                cv2.drawMarker(
-                    frame,
-                    tuple(np.rint(point).astype(int)),
-                    (255, 80, 30),
-                    cv2.MARKER_CROSS,
-                    18,
-                    2,
-                )
+        _draw_perspective_overlay(frame, np.asarray(state.points, dtype=float))
     lines = [
         f"{options['blendMode']}  opacity {options['opacity']:.2f}  "
         f"blur {options['blurPx']:.1f}px  "
@@ -252,7 +352,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     window = "Perspective Paste"
     show_grid = False
-    show_vanishing = False
+    show_vanishing = True
     status: str | None = "Click four corners: top-left, top-right, bottom-right, bottom-left."
 
     def on_mouse(event: int, x: int, y: int, flags: int, _data: object) -> None:

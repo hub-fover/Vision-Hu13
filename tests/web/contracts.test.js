@@ -44,12 +44,16 @@ test("UI exposes upload, four-point, comparison, overlay, reset, and export cont
     "shadow-blur", "shadow-opacity",
   ].forEach((id) => assert.match(html, new RegExp(`id="${id}"`), id));
   assert.match(html, /<meta name="viewport"/);
+  assert.match(html, /id="vanishing-toggle"[^>]*checked/);
+  assert.match(html, /消影辅助/);
   assert.doesNotMatch(html, /(?:src|href)="\//);
 });
 
 test("the first-load demo asset is packaged with the static web app", async () => {
-  const asset = await readFile(new URL("web/assets/examples/wall.jpg", root));
-  assert.ok(asset.byteLength > 10_000);
+  const background = await readFile(new URL("web/assets/examples/court.jpg", root));
+  const overlay = await readFile(new URL("web/assets/examples/court-ad.png", root));
+  assert.ok(background.byteLength > 10_000);
+  assert.ok(overlay.byteLength > 10_000);
 });
 
 test("direct file opening gives an actionable local-server recovery path", async () => {
@@ -71,9 +75,17 @@ test("app uses capped preview, animation frames, worker final render, relative f
   assert.match(source, /requestAnimationFrame/);
   assert.match(source, /new Worker\(new URL\("\.\/worker\.js", import\.meta\.url\)/);
   assert.match(source, /pointerup/);
-  assert.match(source, /assets\/examples\/wall\.jpg/);
+  assert.match(source, /assets\/examples\/court\.jpg/);
+  assert.match(source, /assets\/examples\/court-ad\.png/);
+  assert.match(source, /applyPreset\(state,\s*"court",\s*presets\.court\)/);
   assert.match(source, /先贴得准，再融得真/);
   assert.match(source, /toBlob/);
+});
+
+test("UI exposes court and facade presets with court selected first", async () => {
+  const html = await read("web/index.html");
+  assert.match(html, /<option value="court"[^>]*selected>篮球场<\/option>/);
+  assert.match(html, /<option value="facade">楼体 Logo<\/option>/);
 });
 
 test("canvas exposes keyboard editing and live status contracts", async () => {

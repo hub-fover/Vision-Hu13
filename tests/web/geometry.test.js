@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
-  GeometryError, computeHomography, computeVanishingPoints, orderQuad, validateQuad,
+  GeometryError, computeHomography, computePerspectiveGuide, computeVanishingPoints,
+  orderQuad, validateQuad,
 } from "../../web/js/geometry.js";
 
 const root = new URL("../../", import.meta.url);
@@ -100,5 +101,33 @@ for (const geometryCase of geometryFixtures.vanishingPoints) {
       if (expected === null) assert.equal(point, null);
       else close(point, expected);
     });
+  });
+}
+
+for (const geometryCase of geometryFixtures.perspectiveGuides) {
+  test(`computePerspectiveGuide ${geometryCase.name}`, () => {
+    const guide = computePerspectiveGuide(geometryCase.quad, geometryCase.viewport);
+    assert.equal(guide.directions.length, 2);
+    guide.directions.forEach((actual, index) => {
+      const expected = geometryCase.directions[index];
+      assert.equal(actual.family, expected.family);
+      assert.equal(actual.status, expected.status);
+      if ("point" in expected) close(actual.point, expected.point);
+      else assert.equal(actual.point, null);
+      if ("direction" in expected) close(actual.direction, expected.direction);
+      if ("edgeAnchor" in expected) close(actual.edge_anchor, expected.edgeAnchor);
+      else if (expected.status !== "offscreen") assert.equal(actual.edge_anchor, null);
+      if ("distanceDiagonals" in expected) {
+        assert.ok(Math.abs(actual.distance_diagonals - expected.distanceDiagonals) <= 1e-9);
+      } else if (expected.status !== "offscreen") {
+        assert.equal(actual.distance_diagonals, null);
+      }
+    });
+
+    const expectedLine = geometryCase.vanishingLine;
+    assert.equal(guide.vanishing_line.status, expectedLine.status);
+    close(guide.vanishing_line.coefficients, expectedLine.coefficients);
+    if (expectedLine.segment === null) assert.equal(guide.vanishing_line.segment, null);
+    else close(guide.vanishing_line.segment, expectedLine.segment);
   });
 }

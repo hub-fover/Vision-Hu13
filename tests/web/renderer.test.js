@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  drawImageBitmapToCanvas, meshSubdivisionCount, replaceTrackedFont,
+  drawImageBitmapToCanvas, drawVanishingOverlay, meshSubdivisionCount, replaceTrackedFont,
   triangleTransform,
 } from "../../web/js/renderer.js";
 
@@ -44,4 +44,60 @@ test("replacing an uploaded font removes the previous tracked face", () => {
   const next = { family: "new" };
   assert.equal(replaceTrackedFont(fontSet, previous, next), next);
   assert.deepEqual(calls, [["delete", previous], ["add", next]]);
+});
+
+function recordingContext(width = 200, height = 200) {
+  const calls = [];
+  const context = {
+    canvas: { width, height },
+    calls,
+    save() {},
+    restore() {},
+    beginPath() {},
+    closePath() {},
+    stroke() {},
+    fill() {},
+    setLineDash(value) { calls.push(["dash", ...value]); },
+    moveTo(x, y) { calls.push(["point", x, y]); },
+    lineTo(x, y) { calls.push(["point", x, y]); },
+    arc(x, y) { calls.push(["point", x, y]); },
+    fillText(value, x, y) { calls.push(["text", value, x, y]); },
+  };
+  return context;
+}
+
+test("vanishing overlay uses bounded arrows, labels, and the visible plane line", () => {
+  const context = recordingContext();
+  const quad = [[60, 70], [140, 90], [120, 140], [80, 120]];
+
+  drawVanishingOverlay(context, quad);
+
+  const points = context.calls.filter(([kind]) => kind === "point");
+  assert.ok(points.length > 6);
+  points.forEach(([, x, y]) => {
+    assert.ok(x >= 0 && x <= 200, `x=${x}`);
+    assert.ok(y >= 0 && y <= 200, `y=${y}`);
+  });
+  const labels = context.calls.filter(([kind]) => kind === "text")
+    .map(([, value]) => value);
+  assert.ok(labels.some((value) => value.includes("V1 画外约")));
+  assert.ok(labels.includes("V2"));
+  assert.ok(context.calls.some(([kind, first, second]) =>
+    kind === "dash" && first === 8 && second === 6));
+});
+
+test("vanishing overlay labels infinite directions without huge coordinates", () => {
+  const context = recordingContext();
+
+  drawVanishingOverlay(context, [[20, 20], [180, 20], [180, 140], [20, 140]]);
+
+  const labels = context.calls.filter(([kind]) => kind === "text")
+    .map(([, value]) => value);
+  assert.ok(labels.includes("U 该方向近似平行"));
+  assert.ok(labels.includes("V 该方向近似平行"));
+  context.calls.filter(([kind]) => kind === "point").forEach(([, x, y]) => {
+    assert.ok(Number.isFinite(x) && Number.isFinite(y));
+    assert.ok(x >= 0 && x <= 200);
+    assert.ok(y >= 0 && y <= 200);
+  });
 });

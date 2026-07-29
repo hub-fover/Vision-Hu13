@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="675" viewBox="0 0 1080 675">
-  <title>Vision Hub · 双端运行</title>
+  <title>Vision Hu13 · 双端运行</title>
   <rect width="1080" height="675" fill="#08111f"/>
   <path d="M0 90H1080M80 0V675M1000 0V675" stroke="#18314f" stroke-width="1"/>
-  <text x="80" y="67" fill="#126aff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="20" font-weight="700" letter-spacing="2">VISION HUB · LAB 001</text>
+  <text x="80" y="67" fill="#126aff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="20" font-weight="700" letter-spacing="2">VISION HU13 · LAB 001</text>
   <text x="80" y="142" fill="#f4f8ff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="48" font-weight="700">双端运行</text>
   <text x="80" y="181" fill="#8ea6c3" font-family="Arial, Microsoft YaHei, sans-serif" font-size="21">浏览器与 Python 共用几何契约</text>
   <g id="runtime"><rect x="100" y="265" width="330" height="225" rx="24" fill="#10213a" stroke="#126aff" stroke-width="4"/>

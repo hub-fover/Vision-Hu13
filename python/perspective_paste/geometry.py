@@ -195,3 +195,154 @@ def compute_vanishing_points(
         _line_intersection(points[0], points[1], points[3], points[2]),
         _line_intersection(points[0], points[3], points[1], points[2]),
     )
+
+
+def _homogeneous_line(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    return np.cross([a[0], a[1], 1.0], [b[0], b[1], 1.0])
+
+
+def _canonical_direction(value: np.ndarray, reference: np.ndarray) -> list[float]:
+    norm = float(np.linalg.norm(value))
+    if norm <= np.finfo(float).eps:
+        return [0.0, 0.0]
+    direction = value / norm
+    if float(np.dot(direction, reference)) < 0:
+        direction = -direction
+    return [float(direction[0]), float(direction[1])]
+
+
+def _unit_direction(value: np.ndarray) -> list[float]:
+    norm = float(np.linalg.norm(value))
+    if norm <= np.finfo(float).eps:
+        return [0.0, 0.0]
+    return [float(value[0] / norm), float(value[1] / norm)]
+
+
+def _edge_anchor(
+    center: np.ndarray, direction: np.ndarray, width: float, height: float
+) -> list[float]:
+    candidates = []
+    if abs(direction[0]) > np.finfo(float).eps:
+        boundary_x = width if direction[0] > 0 else 0.0
+        candidates.append((boundary_x - center[0]) / direction[0])
+    if abs(direction[1]) > np.finfo(float).eps:
+        boundary_y = height if direction[1] > 0 else 0.0
+        candidates.append((boundary_y - center[1]) / direction[1])
+    amount = min(value for value in candidates if value >= 0)
+    point = center + direction * amount
+    return [
+        float(min(width, max(0.0, point[0]))),
+        float(min(height, max(0.0, point[1]))),
+    ]
+
+
+def _clip_line(
+    coefficients: Sequence[float], width: float, height: float
+) -> list[list[float]] | None:
+    a, b, c = (float(value) for value in coefficients)
+    candidates: list[list[float]] = []
+
+    def add(x: float, y: float) -> None:
+        tolerance = 1e-9
+        if (
+            -tolerance <= x <= width + tolerance
+            and -tolerance <= y <= height + tolerance
+        ):
+            point = [float(min(width, max(0.0, x))), float(min(height, max(0.0, y)))]
+            if not any(math.dist(point, existing) <= tolerance for existing in candidates):
+                candidates.append(point)
+
+    if abs(b) > np.finfo(float).eps:
+        add(0.0, -c / b)
+        add(width, -(a * width + c) / b)
+    if abs(a) > np.finfo(float).eps:
+        add(-c / a, 0.0)
+        add(-(b * height + c) / a, height)
+    if len(candidates) < 2:
+        return None
+    return max(
+        ([first, second] for index, first in enumerate(candidates)
+         for second in candidates[index + 1:]),
+        key=lambda pair: math.dist(*pair),
+    )
+
+
+def compute_perspective_guide(
+    quad: Sequence[Sequence[float]], viewport_size: Sequence[float]
+) -> dict[str, object]:
+    """Return finite, off-screen, and infinite vanishing guidance for a viewport."""
+    points = _points(quad)
+    try:
+        viewport = np.asarray(viewport_size, dtype=float)
+    except (TypeError, ValueError, OverflowError) as error:
+        raise GeometryError("OUT_OF_BOUNDS") from error
+    if viewport.shape != (2,) or not np.isfinite(viewport).all() or np.any(viewport <= 0):
+        raise GeometryError("OUT_OF_BOUNDS")
+    width, height = (float(value) for value in viewport)
+    center = viewport / 2.0
+    diagonal = math.hypot(width, height)
+
+    families = (
+        ("u", (0, 1), (3, 2)),
+        ("v", (0, 3), (1, 2)),
+    )
+    directions = []
+    homogeneous_points = []
+    for family, first_pair, second_pair in families:
+        first_line = _homogeneous_line(points[first_pair[0]], points[first_pair[1]])
+        second_line = _homogeneous_line(points[second_pair[0]], points[second_pair[1]])
+        homogeneous = np.cross(first_line, second_line)
+        homogeneous_points.append(homogeneous)
+        scale = max(1.0, abs(float(homogeneous[0])), abs(float(homogeneous[1])))
+        reference = (
+            points[first_pair[1]] - points[first_pair[0]]
+            + points[second_pair[1]] - points[second_pair[0]]
+        )
+        if abs(float(homogeneous[2])) <= PARALLEL_EPSILON * scale:
+            directions.append({
+                "family": family,
+                "status": "parallel",
+                "point": None,
+                "direction": _canonical_direction(homogeneous[:2], reference),
+                "edge_anchor": None,
+                "distance_diagonals": None,
+            })
+            continue
+
+        point = homogeneous[:2] / homogeneous[2]
+        vector = point - center
+        unit = np.asarray(_unit_direction(vector), dtype=float)
+        onscreen = 0.0 <= point[0] <= width and 0.0 <= point[1] <= height
+        directions.append({
+            "family": family,
+            "status": "onscreen" if onscreen else "offscreen",
+            "point": [float(point[0]), float(point[1])],
+            "direction": [float(unit[0]), float(unit[1])],
+            "edge_anchor": None if onscreen else _edge_anchor(center, unit, width, height),
+            "distance_diagonals": (
+                None if onscreen else float(np.linalg.norm(vector) / diagonal)
+            ),
+        })
+
+    line = np.cross(homogeneous_points[0], homogeneous_points[1])
+    line_norm = math.hypot(float(line[0]), float(line[1]))
+    if line_norm <= np.finfo(float).eps:
+        line_result = {
+            "status": "infinite",
+            "coefficients": [0.0, 0.0, 1.0],
+            "segment": None,
+        }
+    else:
+        line = line / line_norm
+        if line[0] < -np.finfo(float).eps or (
+            abs(line[0]) <= np.finfo(float).eps and line[1] < 0
+        ):
+            line = -line
+        coefficients = [float(value) for value in line]
+        segment = _clip_line(coefficients, width, height)
+        line_result = {
+            "status": "visible" if segment is not None else "offscreen",
+            "coefficients": coefficients,
+            "segment": segment,
+        }
+    return {"directions": directions, "vanishing_line": line_result}

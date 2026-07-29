@@ -8,6 +8,7 @@ import pytest
 from perspective_paste.geometry import (
     GeometryError,
     compute_homography,
+    compute_perspective_guide,
     compute_vanishing_points,
     order_quad,
     validate_quad,
@@ -118,3 +119,45 @@ def test_compute_vanishing_points_finite_and_parallel_cases(case):
             assert point is None
         else:
             np.testing.assert_allclose(point, expected, atol=1e-9)
+
+
+@pytest.mark.parametrize("case", GEOMETRY_FIXTURES["perspectiveGuides"])
+def test_compute_perspective_guide_shared_contract(case):
+    guide = compute_perspective_guide(case["quad"], case["viewport"])
+    assert len(guide["directions"]) == 2
+    for actual, expected in zip(guide["directions"], case["directions"]):
+        assert actual["family"] == expected["family"]
+        assert actual["status"] == expected["status"]
+        if "point" in expected:
+            np.testing.assert_allclose(actual["point"], expected["point"], atol=1e-9)
+        else:
+            assert actual["point"] is None
+        if "direction" in expected:
+            np.testing.assert_allclose(
+                actual["direction"], expected["direction"], atol=1e-9
+            )
+        if "edgeAnchor" in expected:
+            np.testing.assert_allclose(
+                actual["edge_anchor"], expected["edgeAnchor"], atol=1e-9
+            )
+        elif expected["status"] != "offscreen":
+            assert actual["edge_anchor"] is None
+        if "distanceDiagonals" in expected:
+            assert actual["distance_diagonals"] == pytest.approx(
+                expected["distanceDiagonals"], abs=1e-9
+            )
+        elif expected["status"] != "offscreen":
+            assert actual["distance_diagonals"] is None
+
+    expected_line = case["vanishingLine"]
+    actual_line = guide["vanishing_line"]
+    assert actual_line["status"] == expected_line["status"]
+    np.testing.assert_allclose(
+        actual_line["coefficients"], expected_line["coefficients"], atol=1e-9
+    )
+    if expected_line["segment"] is None:
+        assert actual_line["segment"] is None
+    else:
+        np.testing.assert_allclose(
+            actual_line["segment"], expected_line["segment"], atol=1e-9
+        )

@@ -42,7 +42,7 @@ jobs:
       - name: Install Python dependencies
         run: python -m pip install -e ".[dev]"
 
-      - name: Run Python tests and content checks
+      - name: Run Python tests
         run: python -m pytest
 
   web:
@@ -52,11 +52,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
-
-      - name: Set up Python for the content validator
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -69,11 +64,6 @@ jobs:
 
       - name: Run Web unit tests
         run: npm run test:web
-
-      - name: Validate the WeChat HTML fragment
-        run: >-
-          python scripts/validate_article_html.py
-          "article/Perspective_Paste_排版_石墨极简风(graphite-minimal).html"
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium

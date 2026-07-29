@@ -4,8 +4,10 @@ Except where a file or the asset ledger says otherwise, the following material
 is licensed under the
 [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/):
 
-- `article/`
 - `docs/figures/`
+- `docs/cases/`
+- `assets/examples/court-ad.png`
+- `assets/examples/facade-logo.png`
 - `assets/examples/vision-hub-mark.png`
 - `assets/examples/lab-poster.png`
 - `assets/examples/screen-ui.png`
@@ -17,6 +19,8 @@ and remain subject to the
 [Pexels License](https://www.pexels.com/legal-pages/license/):
 
 - `assets/examples/wall.jpg`
+- `assets/examples/court.jpg`
+- `assets/examples/facade.jpg`
 - `assets/examples/packaging.jpg`
 - `assets/examples/screen.jpg`
 
@@ -28,7 +32,7 @@ pages, download dates, and modifications are recorded in
 
 Attribution should include:
 
-> Perspective Paste — Vision Hub, CC BY 4.0  
+> Perspective Paste — Vision Hu13, CC BY 4.0
 > https://github.com/hub-fover/Vision-Hu13
 
 You may share and adapt these materials for any purpose, including commercial
