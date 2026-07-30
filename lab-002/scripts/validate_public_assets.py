@@ -9,6 +9,11 @@ from typing import Any
 
 from PIL import Image
 
+try:
+    from scripts.extract_real_samples import JPEG_QUALITY
+except ModuleNotFoundError:  # Direct `python scripts/validate_public_assets.py`.
+    from extract_real_samples import JPEG_QUALITY
+
 
 EXPECTED = {
     "mountains": {
@@ -60,9 +65,9 @@ def _validate_image(path: Path, expected_hash: str, errors: list[str]) -> str | 
             image.load()
             if image.format != "JPEG":
                 errors.append(f"sample is not JPEG: {path.as_posix()}")
-            if max(image.size) != 1600:
+            if image.size != (1600, 900):
                 errors.append(
-                    f"sample max side must be 1600px: {path.as_posix()} is {image.size}"
+                    f"sample must be exactly 1600x900: {path.as_posix()} is {image.size}"
                 )
     except (OSError, ValueError) as exc:
         errors.append(f"sample cannot be decoded: {path.as_posix()}: {exc}")
@@ -114,6 +119,17 @@ def validate_public_assets(lab_root: Path) -> list[str]:
             errors.append(f"{sequence_id}.directVideoUrl must record the exact file")
         if not sequence.get("transformations"):
             errors.append(f"{sequence_id}.transformations must be documented")
+        derivative = sequence.get("derivative")
+        expected_derivative = {
+            "width": 1600,
+            "height": 900,
+            "format": "JPEG",
+            "jpegQuality": JPEG_QUALITY,
+        }
+        if derivative != expected_derivative:
+            errors.append(
+                f"{sequence_id}.derivative must be {expected_derivative!r}"
+            )
 
         frames = sequence.get("frames", [])
         if len(frames) != contract["count"]:

@@ -5,8 +5,16 @@ from pathlib import Path
 
 import pytest
 
-from scripts.validate_public_assets import validate_public_assets
-from scripts.extract_real_samples import _write_jpeg
+from scripts.validate_public_assets import (
+    _validate_image,
+    validate_public_assets,
+)
+from scripts.extract_real_samples import (
+    JPEG_QUALITY,
+    SOURCES,
+    _resolve_source_video,
+    _write_jpeg,
+)
 
 
 LAB_ROOT = Path(__file__).resolve().parents[2]
@@ -75,3 +83,45 @@ def test_extractor_writes_jpeg_inside_unicode_workspace(tmp_path: Path) -> None:
     with Image.open(output) as image:
         assert image.format == "JPEG"
         assert image.size == (20, 12)
+
+
+def test_extractor_resolves_each_documented_direct_video_filename(tmp_path: Path) -> None:
+    for source in SOURCES:
+        exact = tmp_path / source.direct_video_file
+        exact.write_bytes(b"real source placeholder")
+
+        assert _resolve_source_video(source, tmp_path) == exact
+
+        exact.unlink()
+        alias = tmp_path / source.source_file
+        alias.write_bytes(b"real source placeholder")
+        assert _resolve_source_video(source, tmp_path) == alias
+        alias.unlink()
+
+
+def test_derivative_contract_records_exact_size_and_encoder_quality() -> None:
+    manifest = json.loads((LAB_ROOT / "assets" / "asset-manifest.json").read_text("utf-8"))
+
+    assert JPEG_QUALITY == 90
+    for sequence in manifest["sequences"]:
+        assert sequence["derivative"] == {
+            "width": 1600,
+            "height": 900,
+            "format": "JPEG",
+            "jpegQuality": 90,
+        }
+
+
+def test_validator_rejects_a_1600px_image_with_the_wrong_aspect(tmp_path: Path) -> None:
+    from hashlib import sha256
+
+    from PIL import Image
+
+    image_path = tmp_path / "wrong-shape.jpg"
+    Image.new("RGB", (1600, 800), "gray").save(image_path, quality=90)
+    expected_hash = sha256(image_path.read_bytes()).hexdigest()
+    errors: list[str] = []
+
+    _validate_image(image_path, expected_hash, errors)
+
+    assert any("1600x900" in error for error in errors)

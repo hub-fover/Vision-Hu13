@@ -17,6 +17,9 @@ import cv2
 import numpy as np
 
 
+JPEG_QUALITY = 90
+
+
 @dataclass(frozen=True)
 class Source:
     id: str
@@ -25,6 +28,7 @@ class Source:
     video_id: str
     page_url: str
     direct_url: str
+    direct_video_file: str
     source_file: str
     fractions: tuple[float, ...]
     usage: str
@@ -41,6 +45,7 @@ SOURCES = (
             "https://videos.pexels.com/video-files/9943097/"
             "9943097-uhd_4096_2160_25fps.mp4"
         ),
+        direct_video_file="9943097-uhd_4096_2160_25fps.mp4",
         source_file="mountains-9943097.mp4",
         fractions=(0.30, 0.45, 0.60),
         usage="Default successful panorama sample for Python and Web.",
@@ -58,6 +63,7 @@ SOURCES = (
             "https://videos.pexels.com/video-files/36722864/"
             "15563861_3840_2160_30fps.mp4"
         ),
+        direct_video_file="15563861_3840_2160_30fps.mp4",
         source_file="city-36722864.mp4",
         fractions=(0.20, 0.35, 0.50, 0.65),
         usage="Four-image urban panorama sample for Web and acceptance checks.",
@@ -72,6 +78,7 @@ SOURCES = (
             "https://videos.pexels.com/video-files/6746361/"
             "6746361-uhd_3840_2160_24fps.mp4"
         ),
+        direct_video_file="6746361-uhd_3840_2160_24fps.mp4",
         source_file="ocean-6746361.mp4",
         fractions=(0.30, 0.45, 0.60),
         usage="Real low-texture failure sample for Web and diagnostics.",
@@ -96,7 +103,7 @@ def _write_jpeg(path: Path, image: np.ndarray) -> None:
 
     path.parent.mkdir(parents=True, exist_ok=True)
     ok, encoded = cv2.imencode(
-        ".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 90]
+        ".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY]
     )
     if not ok:
         raise RuntimeError(f"Could not encode {path}")
@@ -130,12 +137,26 @@ def _resize_1600(image: np.ndarray) -> np.ndarray:
     return cv2.resize(image, output_size, interpolation=cv2.INTER_LANCZOS4)
 
 
+def _resolve_source_video(source: Source, video_dir: Path) -> Path:
+    """Accept the exact documented basename and the local convenience alias."""
+
+    candidates = (
+        video_dir / source.direct_video_file,
+        video_dir / source.source_file,
+    )
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    joined = ", ".join(path.name for path in candidates)
+    raise FileNotFoundError(
+        f"Missing approved source video for {source.id}; expected one of: {joined}"
+    )
+
+
 def _extract_sequence(
     source: Source, video_dir: Path, lab_root: Path
 ) -> dict[str, object]:
-    video_path = video_dir / source.source_file
-    if not video_path.is_file():
-        raise FileNotFoundError(f"Missing approved source video: {video_path}")
+    video_path = _resolve_source_video(source, video_dir)
     capture = cv2.VideoCapture(str(video_path))
     if not capture.isOpened():
         raise RuntimeError(f"OpenCV could not decode {video_path}")
@@ -208,7 +229,7 @@ def _extract_sequence(
         "licenseUrl": "https://www.pexels.com/legal-pages/license/",
         "downloadedAt": "2026-07-29",
         "directVideoUrl": source.direct_url,
-        "directVideoFile": Path(source.direct_url).name,
+        "directVideoFile": source.direct_video_file,
         "measuredVideo": {
             "width": width,
             "height": height,
@@ -217,6 +238,12 @@ def _extract_sequence(
             "durationSeconds": round(duration, 6),
         },
         "transformations": TRANSFORMATIONS,
+        "derivative": {
+            "width": 1600,
+            "height": 900,
+            "format": "JPEG",
+            "jpegQuality": JPEG_QUALITY,
+        },
         "usage": source.usage,
         "frames": frames,
         "isGenerated": False,

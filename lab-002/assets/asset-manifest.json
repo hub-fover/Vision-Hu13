@@ -28,6 +28,12 @@
         "Resized with Lanczos interpolation so the longest edge is 1600px.",
         "Encoded as JPEG at quality 90; no generative or programmatic scene content was added."
       ],
+      "derivative": {
+        "width": 1600,
+        "height": 900,
+        "format": "JPEG",
+        "jpegQuality": 90
+      },
       "usage": "Default successful panorama sample for Python and Web.",
       "frames": [
         {
@@ -98,6 +104,12 @@
         "Resized with Lanczos interpolation so the longest edge is 1600px.",
         "Encoded as JPEG at quality 90; no generative or programmatic scene content was added."
       ],
+      "derivative": {
+        "width": 1600,
+        "height": 900,
+        "format": "JPEG",
+        "jpegQuality": 90
+      },
       "usage": "Four-image urban panorama sample for Web and acceptance checks.",
       "frames": [
         {
@@ -177,6 +189,12 @@
         "Resized with Lanczos interpolation so the longest edge is 1600px.",
         "Encoded as JPEG at quality 90; no generative or programmatic scene content was added."
       ],
+      "derivative": {
+        "width": 1600,
+        "height": 900,
+        "format": "JPEG",
+        "jpegQuality": 90
+      },
       "usage": "Real low-texture failure sample for Web and diagnostics.",
       "frames": [
         {
