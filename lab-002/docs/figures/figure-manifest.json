@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-30",
+  "generator": "scripts/generate_technical_figures.py",
+  "notice": "Every figure uses committed real Pexels frames and actual algorithm measurements. Overlays add only labels, lines, masks, and diagnostics.",
+  "figures": [
+    {
+      "number": 1,
+      "id": "overlap",
+      "title": "实拍序列与重叠区域",
+      "output": "docs/figures/01-overlap.png",
+      "sourceDefinition": "docs/figures/source-data/01-overlap.json",
+      "baseFiles": [
+        "assets/samples/mountains/01.jpg",
+        "assets/samples/mountains/02.jpg",
+        "assets/samples/mountains/03.jpg"
+      ],
+      "evidenceType": "real-sequence-overlap",
+      "creator": "cottonbro studio",
+      "sourceUrl": "https://www.pexels.com/video/camera-panning-over-mountains-9943097/",
+      "license": "Pexels License",
+      "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
+      "annotationLabel": "基于真实输入的算法标注",
+      "basedOnRealInput": true,
+      "isGeneratedScene": false
+    },
+    {
+      "number": 2,
+      "id": "orb",
+      "title": "山景上的 ORB 特征点",
+      "output": "docs/figures/02-orb.png",
+      "sourceDefinition": "docs/figures/source-data/02-orb.json",
+      "baseFiles": [
+        "assets/samples/mountains/02.jpg"
+      ],
+      "evidenceType": "actual-orb-keypoints",
+      "creator": "cottonbro studio",
+      "sourceUrl": "https://www.pexels.com/video/camera-panning-over-mountains-9943097/",
+      "license": "Pexels License",
+      "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
+      "annotationLabel": "基于真实输入的算法标注",
+      "basedOnRealInput": true,
+      "isGeneratedScene": false
+    },
+    {
+      "number": 3,
+      "id": "candidate-matches",
+      "title": "两张真实照片之间的候选匹配",
+      "output": "docs/figures/03-candidate-matches.png",
+      "sourceDefinition": "docs/figures/source-data/03-candidate-matches.json",
+      "baseFiles": [
+        "assets/samples/mountains/01.jpg",
+        "assets/samples/mountains/02.jpg"
+      ],
+      "evidenceType": "actual-knn-candidates",
+      "creator": "cottonbro studio",
+      "sourceUrl": "https://www.pexels.com/video/camera-panning-over-mountains-9943097/",
+      "license": "Pexels License",
+      "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
+      "annotationLabel": "基于真实输入的算法标注",
+      "basedOnRealInput": true,
+      "isGeneratedScene": false
+    },
+    {
+      "number": 4,
+      "id": "ratio-filter",
+      "title": "比率筛选前后",
+      "output": "docs/figures/04-ratio-filter.png",
+      "sourceDefinition": "docs/figures/source-data/04-ratio-filter.json",
+      "baseFiles": [
+        "assets/samples/mountains/01.jpg",
+        "assets/samples/mountains/02.jpg"
+      ],
+      "evidenceType": "actual-ratio-mutual-filter",
+      "creator": "cottonbro studio",
+      "sourceUrl": "https://www.pexels.com/video/camera-panning-over-mountains-9943097/",
+      "license": "Pexels License",
+      "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
+      "annotationLabel": "基于真实输入的算法标注",
+      "basedOnRealInput": true,
+      "isGeneratedScene": false
+    },
+    {
+      "number": 5,
+      "id": "ransac",
+      "title": "RANSAC 内点与离群点",
+      "output": "docs/figures/05-ransac.png",
+      "sourceDefinition": "docs/figures/source-data/05-ransac.json",
+      "baseFiles": [
+        "assets/samples/mountains/01.jpg",
+        "assets/samples/mountains/02.jpg"
+      ],
+      "evidenceType": "actual-ransac-inlier-mask",
+      "creator": "cottonbro studio",
+      "sourceUrl": "https://www.pexels.com/video/camera-panning-over-mountains-9943097/",
+      "license": "Pexels License",
+      "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
+      "annotationLabel": "基于真实输入的算法标注",
+      "basedOnRealInput": true,
+      "isGeneratedScene": false
+    },
+    {
+      "number": 6,
+      "id": "transformed-canvas",
+      "title": "单应性变换后的真实画布范围",
+      "output": "docs/figures/06-transformed-canvas.png",
+      "sourceDefinition": "docs/figures/source-data/06-transformed-canvas.json",
+      "baseFiles": [
+        "assets/samples/mountains/01.jpg",
+        "assets/samples/mountains/02.jpg",
+        "assets/samples/mountains/03.jpg"
+      ],
+      "evidenceType": "actual-warped-canvas",
+      "creator": "cottonbro studio",
+      "sourceUrl": "https://www.pexels.com/video/camera-panning-over-mountains-9943097/",
+      "license": "Pexels License",
+      "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
+      "annotationLabel": "基于真实输入的算法标注",
+      "basedOnRealInput": true,
+      "isGeneratedScene": false
+    },
+    {
+      "number": 7,
+      "id": "middle-anchor",
+      "title": "多图相对中间锚点的位置",
+      "output": "docs/figures/07-middle-anchor.png",
+      "sourceDefinition": "docs/figures/source-data/07-middle-anchor.json",
+      "baseFiles": [
+        "assets/samples/mountains/01.jpg",
+        "assets/samples/mountains/02.jpg",
+        "assets/samples/mountains/03.jpg"
+      ],
+      "evidenceType": "actual-middle-anchor-transforms",
+      "creator": "cottonbro studio",
+      "sourceUrl": "https://www.pexels.com/video/camera-panning-over-mountains-9943097/",
+      "license": "Pexels License",
+      "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
+      "annotationLabel": "基于真实输入的算法标注",
+      "basedOnRealInput": true,
+      "isGeneratedScene": false
+    },
+    {
+      "number": 8,
+      "id": "exposure",
+      "title": "真实重叠区曝光匹配前后",
+      "output": "docs/figures/08-exposure.png",
+      "sourceDefinition": "docs/figures/source-data/08-exposure.json",
+      "baseFiles": [
+        "assets/samples/mountains/01.jpg",
+        "assets/samples/mountains/02.jpg",
+        "assets/samples/mountains/03.jpg"
+      ],
+      "evidenceType": "actual-overlap-exposure",
+      "creator": "cottonbro studio",
+      "sourceUrl": "https://www.pexels.com/video/camera-panning-over-mountains-9943097/",
+      "license": "Pexels License",
+      "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
+      "annotationLabel": "基于真实输入的算法标注",
+      "basedOnRealInput": true,
+      "isGeneratedScene": false
+    },
+    {
+      "number": 9,
+      "id": "feather",
+      "title": "真实接缝羽化权重与最终效果",
+      "output": "docs/figures/09-feather.png",
+      "sourceDefinition": "docs/figures/source-data/09-feather.json",
+      "baseFiles": [
+        "assets/samples/mountains/01.jpg",
+        "assets/samples/mountains/02.jpg",
+        "assets/samples/mountains/03.jpg"
+      ],
+      "evidenceType": "actual-distance-feather",
+      "creator": "cottonbro studio",
+      "sourceUrl": "https://www.pexels.com/video/camera-panning-over-mountains-9943097/",
+      "license": "Pexels License",
+      "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
+      "annotationLabel": "基于真实输入的算法标注",
+      "basedOnRealInput": true,
+      "isGeneratedScene": false
+    },
+    {
+      "number": 10,
+      "id": "failure-boundaries",
+      "title": "海面低纹理压力测试与首版边界",
+      "output": "docs/figures/10-failure-boundaries.png",
+      "sourceDefinition": "docs/figures/source-data/10-failure-boundaries.json",
+      "baseFiles": [
+        "assets/samples/ocean/01.jpg",
+        "assets/samples/ocean/02.jpg"
+      ],
+      "evidenceType": "actual-low-texture-roi-failure",
+      "creator": "James Cheney",
+      "sourceUrl": "https://www.pexels.com/video/panning-shot-of-ocean-6746361/",
+      "license": "Pexels License",
+      "credit": "来源：James Cheney · Pexels 视频 6746361 · Pexels License",
+      "annotationLabel": "基于真实输入的算法标注",
+      "basedOnRealInput": true,
+      "isGeneratedScene": false
+    }
+  ]
+}

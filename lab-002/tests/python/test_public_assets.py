@@ -8,6 +8,7 @@ import pytest
 from scripts.validate_public_assets import (
     _validate_image,
     validate_public_assets,
+    validate_public_figures,
 )
 from scripts.extract_real_samples import (
     JPEG_QUALITY,
@@ -125,3 +126,43 @@ def test_validator_rejects_a_1600px_image_with_the_wrong_aspect(tmp_path: Path) 
     _validate_image(image_path, expected_hash, errors)
 
     assert any("1600x900" in error for error in errors)
+
+
+def test_real_input_technical_figures_are_complete_and_traceable() -> None:
+    assert validate_public_figures(LAB_ROOT) == []
+
+    manifest = json.loads(
+        (LAB_ROOT / "docs" / "figures" / "figure-manifest.json").read_text("utf-8")
+    )
+    expected = [
+        "overlap",
+        "orb",
+        "candidate-matches",
+        "ratio-filter",
+        "ransac",
+        "transformed-canvas",
+        "middle-anchor",
+        "exposure",
+        "feather",
+        "failure-boundaries",
+    ]
+    assert [figure["id"] for figure in manifest["figures"]] == expected
+    assert all(figure["isGeneratedScene"] is False for figure in manifest["figures"])
+    assert all(figure["basedOnRealInput"] is True for figure in manifest["figures"])
+
+
+def test_real_device_media_is_explicitly_pending_without_fake_public_files() -> None:
+    status = json.loads(
+        (LAB_ROOT / "assets" / "real-device-media-status.json").read_text("utf-8")
+    )
+
+    assert status["status"] == "PENDING_DEVICE_CAPTURE"
+    assert status["isSimulated"] is False
+    assert status["publicFiles"] == []
+    assert status["requiredDevices"] == ["Android Chrome", "iPhone Safari"]
+    public_media = [
+        path
+        for path in LAB_ROOT.rglob("*")
+        if path.suffix.lower() in {".gif", ".mp4", ".webm"}
+    ]
+    assert public_media == []

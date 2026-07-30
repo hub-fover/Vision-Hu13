@@ -36,6 +36,20 @@ EXPECTED = {
     },
 }
 
+FIGURE_IDS = (
+    "overlap",
+    "orb",
+    "candidate-matches",
+    "ratio-filter",
+    "ransac",
+    "transformed-canvas",
+    "middle-anchor",
+    "exposure",
+    "feather",
+    "failure-boundaries",
+)
+REAL_INPUT_LABEL = "基于真实输入的算法标注"
+
 
 def _load_json(path: Path, errors: list[str]) -> dict[str, Any]:
     if not path.is_file():
@@ -190,13 +204,140 @@ def validate_public_assets(lab_root: Path) -> list[str]:
     return errors
 
 
+def validate_public_figures(lab_root: Path) -> list[str]:
+    """Validate real-input technical figures and honest device-media status."""
+
+    lab_root = Path(lab_root).resolve()
+    errors: list[str] = []
+    figures_root = lab_root / "docs" / "figures"
+    manifest = _load_json(figures_root / "figure-manifest.json", errors)
+    figures = manifest.get("figures", [])
+    if [figure.get("id") for figure in figures] != list(FIGURE_IDS):
+        errors.append("figure manifest must contain the required 10 figures in order")
+
+    asset_manifest = _load_json(
+        lab_root / "assets" / "asset-manifest.json", errors
+    )
+    published_sample_hashes = {
+        relative: frame.get("sha256")
+        for sequence in asset_manifest.get("sequences", [])
+        for frame in sequence.get("frames", [])
+        for relative in frame.get("localFiles", [])
+        if relative.startswith("assets/samples/")
+    }
+    seen_outputs: set[str] = set()
+    for number, figure in enumerate(figures, start=1):
+        figure_id = figure.get("id", f"figure-{number}")
+        if figure.get("number") != number:
+            errors.append(f"{figure_id}.number must be {number}")
+        if figure.get("basedOnRealInput") is not True:
+            errors.append(f"{figure_id} must say basedOnRealInput=true")
+        if figure.get("isGeneratedScene") is not False:
+            errors.append(f"{figure_id} must say isGeneratedScene=false")
+        if figure.get("annotationLabel") != REAL_INPUT_LABEL:
+            errors.append(f"{figure_id} lacks the required annotation label")
+        credit = str(figure.get("credit", ""))
+        if (
+            figure.get("license") != "Pexels License"
+            or "Pexels License" not in credit
+            or not figure.get("creator")
+            or figure.get("creator") not in credit
+        ):
+            errors.append(f"{figure_id} lacks a nearby creator/Pexels credit")
+        if not str(figure.get("sourceUrl", "")).startswith(
+            "https://www.pexels.com/"
+        ):
+            errors.append(f"{figure_id} lacks a Pexels work-page URL")
+
+        output_relative = str(figure.get("output", ""))
+        if output_relative in seen_outputs:
+            errors.append(f"duplicate figure output: {output_relative}")
+        seen_outputs.add(output_relative)
+        output = (lab_root / output_relative).resolve()
+        try:
+            output.relative_to(figures_root)
+        except ValueError:
+            errors.append(f"{figure_id} output escapes docs/figures")
+            continue
+        if not output.is_file():
+            errors.append(f"missing figure output: {output_relative}")
+        else:
+            try:
+                with Image.open(output) as image:
+                    image.load()
+                    if image.format != "PNG" or image.width != 1080:
+                        errors.append(
+                            f"{figure_id} must be a 1080px-wide PNG"
+                        )
+                    info = image.info
+                    if info.get("annotationLabel") != REAL_INPUT_LABEL:
+                        errors.append(
+                            f"{figure_id} PNG metadata lacks the real-input label"
+                        )
+                    if info.get("credit") != credit:
+                        errors.append(f"{figure_id} PNG metadata credit differs")
+                    if info.get("generator") != "scripts/generate_technical_figures.py":
+                        errors.append(f"{figure_id} lacks deterministic generator metadata")
+            except (OSError, ValueError) as exc:
+                errors.append(f"cannot decode figure {output_relative}: {exc}")
+
+        base_files = figure.get("baseFiles", [])
+        if not base_files:
+            errors.append(f"{figure_id} must list real base files")
+        for relative in base_files:
+            if relative not in published_sample_hashes:
+                errors.append(
+                    f"{figure_id} base is not a tracked real sample: {relative}"
+                )
+            if not (lab_root / relative).is_file():
+                errors.append(f"{figure_id} base is missing: {relative}")
+
+        definition_relative = str(figure.get("sourceDefinition", ""))
+        definition = _load_json(lab_root / definition_relative, errors)
+        if definition.get("id") != figure_id:
+            errors.append(f"{figure_id} source definition ID differs")
+        if definition.get("baseFiles") != base_files:
+            errors.append(f"{figure_id} source definition bases differ")
+        recorded_hashes = definition.get("baseSha256", {})
+        for relative in base_files:
+            if recorded_hashes.get(relative) != published_sample_hashes.get(relative):
+                errors.append(f"{figure_id} source hash differs for {relative}")
+        if not definition.get("measurements"):
+            errors.append(f"{figure_id} lacks real algorithm measurements")
+
+    status = _load_json(
+        lab_root / "assets" / "real-device-media-status.json", errors
+    )
+    if status.get("status") != "PENDING_DEVICE_CAPTURE":
+        errors.append("real-device media status must remain PENDING_DEVICE_CAPTURE")
+    if status.get("isSimulated") is not False:
+        errors.append("real-device media must state isSimulated=false")
+    if status.get("publicFiles") != []:
+        errors.append("pending real-device media cannot list public files")
+    if status.get("requiredDevices") != ["Android Chrome", "iPhone Safari"]:
+        errors.append("real-device status must require Android Chrome and iPhone Safari")
+    workflow = lab_root / "scripts" / "REAL_DEVICE_CAPTURE.md"
+    if not workflow.is_file():
+        errors.append("missing exact real-device capture workflow")
+
+    forbidden_media = [
+        path
+        for path in lab_root.rglob("*")
+        if path.is_file() and path.suffix.lower() in {".gif", ".mp4", ".webm"}
+    ]
+    if forbidden_media:
+        errors.append("no GIF/MP4/WebM may be published before real-device capture")
+    return errors
+
+
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument("lab_root", nargs="?", default=Path(__file__).parents[1])
     args = parser.parse_args()
-    problems = validate_public_assets(Path(args.lab_root))
+    root = Path(args.lab_root)
+    problems = validate_public_assets(root) + validate_public_figures(root)
     if problems:
         raise SystemExit("\n".join(f"- {problem}" for problem in problems))
     print("LAB 002 real-sample provenance: PASS")

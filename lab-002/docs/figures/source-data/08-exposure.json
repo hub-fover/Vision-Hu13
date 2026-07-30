@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "exposure",
+  "generator": "scripts/generate_technical_figures.py",
+  "baseFiles": [
+    "assets/samples/mountains/01.jpg",
+    "assets/samples/mountains/02.jpg",
+    "assets/samples/mountains/03.jpg"
+  ],
+  "baseSha256": {
+    "assets/samples/mountains/01.jpg": "bc798aaa9eec3c6169f946ad3a481ee86ebbe1cddd3b4aa90e8cdf384c1b736d",
+    "assets/samples/mountains/02.jpg": "df26d23285d42851314d2a9291b52b6c9533ce8d2fc1e3b387a0a6fd0202a924",
+    "assets/samples/mountains/03.jpg": "9da9cd87ca94201810afbf86f0a9b7400e4f2be624b7b235b9793d8e5700f590"
+  },
+  "measurements": {
+    "exposureGains": [
+      1.0,
+      0.9982807636260986,
+      0.9996870160102844
+    ],
+    "gainLimits": [
+      0.7,
+      1.3
+    ]
+  },
+  "overlays": [
+    {
+      "type": "before-after-panorama"
+    }
+  ],
+  "annotationLabel": "基于真实输入的算法标注",
+  "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License"
+}
