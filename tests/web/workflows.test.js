@@ -17,12 +17,17 @@ test("CI covers the supported Python matrix and browser checks", async () => {
     "fonts-noto-cjk",
     "npm ci",
     "npm run test:web",
+    "npm run test:lab002:web",
+    "npm run test:lab002:python",
+    "npm run test:lab002:acceptance",
+    "npm run validate:lab002:release",
+    "npm run validate:lab002:pages",
     "playwright install --with-deps chromium",
     "npm run test:e2e",
+    "npm run test:lab002:e2e",
   ]) {
     assert.ok(source.includes(required), `ci.yml is missing ${required}`);
   }
-  assert.doesNotMatch(source, /article|公众号|graphite-minimal|validate_article/i);
 });
 
 test("Pages deploys only the static web directory after successful CI", async () => {
@@ -33,6 +38,7 @@ test("Pages deploys only the static web directory after successful CI", async ()
     "conclusion == 'success'",
     "actions/checkout@v6",
     "actions/configure-pages@v5",
+    "npm run validate:lab002:pages",
     "actions/upload-pages-artifact@v4",
     "actions/deploy-pages@v4",
     "path: ./web",

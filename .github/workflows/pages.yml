@@ -45,6 +45,9 @@ jobs:
       - name: Stage LAB 002 with its same-origin OpenCV runtime
         run: npm run build:lab002
 
+      - name: Validate LAB 002 staged static resources
+        run: npm run validate:lab002:pages
+
       - name: Upload static site
         uses: actions/upload-pages-artifact@v4
         with:

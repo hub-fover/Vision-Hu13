@@ -1,0 +1,6 @@
+# Reproducible Python environment for LAB 002 tests and figure regeneration.
+# Keep synchronized with pyproject.toml and Python 3.11-3.12.
+numpy==2.5.1
+opencv-python==4.14.0.94
+Pillow==11.3.0
+pytest==8.4.2

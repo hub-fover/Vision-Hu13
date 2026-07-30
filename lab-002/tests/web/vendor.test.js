@@ -19,6 +19,7 @@ test("OpenCV 4.12 vendoring is pinned, same-origin, and part of Pages", async ()
     packageJson.scripts["vendor:opencv"],
     "node ../scripts/vendor-opencv.mjs",
   );
+  assert.equal(packageJson.scripts.pretest, "npm run vendor:opencv");
   assert.equal(packageJson.scripts["pretest:e2e"], "npm run vendor:opencv");
   assert.match(script, /@techstark\/opencv-js/);
   assert.match(script, /dist[/\\]",?\s*"opencv\.js|dist[/\\]opencv\.js/);

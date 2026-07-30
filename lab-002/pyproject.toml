@@ -7,10 +7,13 @@ name = "panorama-stitch-lab-002"
 version = "0.1.0"
 requires-python = ">=3.11,<3.13"
 dependencies = [
-  "numpy>=1.26",
-  "opencv-python>=4.9",
-  "Pillow>=10",
+  "numpy==2.5.1",
+  "opencv-python==4.14.0.94",
+  "Pillow==11.3.0",
 ]
+
+[project.optional-dependencies]
+test = ["pytest==8.4.2"]
 
 [tool.setuptools]
 package-dir = {"" = "python"}
@@ -22,5 +25,5 @@ where = ["python"]
 panorama_stitch = ["samples/mountains/*"]
 
 [tool.pytest.ini_options]
-pythonpath = ["python"]
+pythonpath = [".", "python"]
 testpaths = ["tests/python"]

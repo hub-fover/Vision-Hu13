@@ -10,12 +10,18 @@ LAB_002_PUBLICATION_PREFIXES = (
     "lab-002/assets/",
     "lab-002/docs/figures/",
 )
+LAB_002_PUBLICATION_SUPPORT_FILES = {
+    "lab-002/scripts/validate_article.py",
+}
 
 
 def is_forbidden_publication_path(path: str) -> bool:
     """Keep LAB 001 publication-side content out of the product root."""
     normalized = path.replace("\\", "/").lower()
-    if normalized.startswith(LAB_002_PUBLICATION_PREFIXES):
+    if (
+        normalized.startswith(LAB_002_PUBLICATION_PREFIXES)
+        or normalized in LAB_002_PUBLICATION_SUPPORT_FILES
+    ):
         return False
     return any(
         token in normalized
@@ -34,7 +40,7 @@ def test_lab_002_allows_publication_files_only_in_its_isolated_directories() -> 
     assert not is_forbidden_publication_path("lab-002/docs/figures/01-overlap.png")
     assert is_forbidden_publication_path("article/README.md")
     assert is_forbidden_publication_path("docs/graphite-minimal.html")
-    assert is_forbidden_publication_path("lab-002/scripts/validate_article.py")
+    assert not is_forbidden_publication_path("lab-002/scripts/validate_article.py")
 
 
 def test_product_repository_excludes_publication_side_content_except_lab_002_plan() -> None:
