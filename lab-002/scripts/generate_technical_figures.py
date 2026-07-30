@@ -43,20 +43,18 @@ MOUNTAIN_URL = (
     "https://www.pexels.com/video/camera-panning-over-mountains-9943097/"
 )
 OCEAN_URL = "https://www.pexels.com/video/panning-shot-of-ocean-6746361/"
+FONT_ROOT = Path(__file__).resolve().parents[1] / "assets" / "fonts"
+REGULAR_FONT = FONT_ROOT / "NotoSansSC-Regular-subset.otf"
+BOLD_FONT = FONT_ROOT / "NotoSansSC-Bold-subset.otf"
 
 
 def _font(size: int, *, bold: bool = False) -> ImageFont.FreeTypeFont:
-    windows = Path(r"C:\Windows\Fonts")
-    candidates = [
-        windows / ("msyhbd.ttc" if bold else "msyh.ttc"),
-        windows / ("simhei.ttf" if bold else "simsun.ttc"),
-        Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc" if bold else
-             "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
-    ]
-    for candidate in candidates:
-        if candidate.is_file():
-            return ImageFont.truetype(str(candidate), size)
-    return ImageFont.load_default()
+    candidate = BOLD_FONT if bold else REGULAR_FONT
+    if not candidate.is_file():
+        raise FileNotFoundError(
+            f"Bundled figure font is missing: {candidate.relative_to(FONT_ROOT.parent)}"
+        )
+    return ImageFont.truetype(str(candidate), size)
 
 
 def _sha256(path: Path) -> str:

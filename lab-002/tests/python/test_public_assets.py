@@ -6,7 +6,7 @@ import shutil
 
 import pytest
 
-from scripts.generate_technical_figures import generate_figures
+from scripts.generate_technical_figures import _font, generate_figures
 from scripts.validate_public_assets import (
     _validate_image,
     validate_public_assets,
@@ -188,6 +188,27 @@ def test_figure_generation_is_repeatable_in_isolated_directories(
         first_hash = sha256((first / filename).read_bytes()).hexdigest()
         second_hash = sha256((second / filename).read_bytes()).hexdigest()
         assert first_hash == second_hash == figure["sha256"]
+
+
+def test_figure_generation_uses_only_bundled_ofl_fonts() -> None:
+    from hashlib import sha256
+
+    fonts_root = (LAB_ROOT / "assets" / "fonts").resolve()
+    manifest = json.loads((fonts_root / "font-manifest.json").read_text("utf-8"))
+
+    assert manifest["license"] == "SIL Open Font License 1.1"
+    assert (fonts_root / "OFL.txt").is_file()
+    assert "SIL OPEN FONT LICENSE Version 1.1" in (
+        fonts_root / "OFL.txt"
+    ).read_text("utf-8")
+    for bold, filename in (
+        (False, "NotoSansSC-Regular-subset.otf"),
+        (True, "NotoSansSC-Bold-subset.otf"),
+    ):
+        font_path = Path(_font(20, bold=bold).path).resolve()
+
+        assert font_path == fonts_root / filename
+        assert sha256(font_path.read_bytes()).hexdigest() == manifest["files"][filename]
 
 
 def test_validator_rejects_fabricated_png_with_copied_metadata(
