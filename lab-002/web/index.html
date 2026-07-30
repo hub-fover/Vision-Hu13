@@ -17,7 +17,10 @@
       <div class="intro">
         <p class="eyebrow">LAB 002 · PANORAMA STITCH</p>
         <h1>几张照片，<br>怎样接成一张？</h1>
-        <p class="lede">按拍摄顺序放入相邻照片。浏览器会在本机寻找共同画面、对齐并融合接缝。</p>
+        <p class="promise">一键打开，三步完成</p>
+        <p class="lede">选择照片、排好顺序、开始拼接。浏览器会在本机寻找共同画面、对齐并融合接缝。</p>
+        <p class="privacy-copy">照片只在这台设备的浏览器里处理，不上传。</p>
+        <p id="compatibility-notice" class="compatibility-notice" aria-live="polite" hidden></p>
       </div>
 
       <section class="step" aria-labelledby="step-one-title">
@@ -33,7 +36,7 @@
           <input id="gallery-input" type="file" multiple accept="image/jpeg,image/png,image/webp">
           <label class="action" for="camera-input">后置相机追加</label>
           <input id="camera-input" type="file" capture="environment" accept="image/jpeg,image/png,image/webp">
-          <button id="sample-button" class="action" type="button">载入真实山景示例</button>
+          <button id="sample-button" class="action" type="button">先用示例试一次</button>
         </div>
         <p id="sample-status" class="inline-status" aria-live="polite"></p>
       </section>

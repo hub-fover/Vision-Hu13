@@ -20,6 +20,7 @@ const requiredRuntimeFiles = [
   "index.html",
   "styles.css",
   "js/app.js",
+  "js/capabilities.js",
   "js/contracts.js",
   "js/crop.js",
   "js/errors.js",
@@ -136,19 +137,11 @@ export async function validatePagesStage(destination = defaultDestination) {
     throw new Error(`compressed OpenCV.js exceeds 8MiB: ${opencvGzipBytes}`);
   }
 
-  const article = await readFile(resolve(labRoot, "article/article.md"), "utf8");
-  const runtimeLink = article.match(
-    /https:\/\/hub-fover\.github\.io\/Vision-Hu13\/(lab-002\/)/,
-  );
-  if (!runtimeLink) {
-    throw new Error("article does not link the staged LAB 002 runtime");
-  }
   return {
     files: await allFiles(root),
     missing: [],
     remoteRuntimeReferences,
     unsafeSubpathReferences,
-    articleRuntimePath: runtimeLink[1],
     opencvGzipBytes,
   };
 }

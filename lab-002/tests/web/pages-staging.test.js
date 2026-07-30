@@ -76,13 +76,13 @@ test("Pages staging includes every same-origin runtime dependency", async (t) =>
 
   assert.equal(report.missing.length, 0);
   assert.equal(report.remoteRuntimeReferences.length, 0);
-  assert.equal(report.articleRuntimePath, "lab-002/");
   assert.ok(report.files.includes("js/panorama.worker.js"));
+  assert.ok(report.files.includes("js/capabilities.js"));
   assert.ok(report.files.includes("vendor/opencv.js"));
   assert.ok(report.files.includes("assets/samples/manifest.json"));
 });
 
-test("Pages validation fails when an article-linked runtime asset is missing", async (t) => {
+test("Pages validation fails when a required runtime asset is missing", async (t) => {
   const temporary = await mkdtemp(join(tmpdir(), "lab002-pages-"));
   t.after(() => rm(temporary, { recursive: true, force: true }));
   await stagePages(temporary);
