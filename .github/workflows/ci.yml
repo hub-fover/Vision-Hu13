@@ -120,7 +120,7 @@ jobs:
       - name: Validate LAB 002 Pages staging
         run: npm run validate:lab002:pages
 
-      - name: Validate cross-runtime, provenance, figures, article, gzh HTML, and Pages
+      - name: Validate cross-runtime, provenance, figures, and Pages
         run: npm run validate:lab002:release
 
       - name: Upload Playwright reports on failure

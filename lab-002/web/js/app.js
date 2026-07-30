@@ -1,5 +1,11 @@
 import { pairErrorMessage, StitchError } from "./errors.js";
 import {
+  canShareFiles,
+  compatibilityMessage,
+  decodeImageBitmap,
+  shareFallbackMessage,
+} from "./capabilities.js";
+import {
   appendImages,
   createQueueState,
   moveImage,
@@ -16,6 +22,7 @@ const elements = {
   camera: document.querySelector("#camera-input"),
   sample: document.querySelector("#sample-button"),
   sampleStatus: document.querySelector("#sample-status"),
+  compatibilityNotice: document.querySelector("#compatibility-notice"),
   queue: document.querySelector("#image-queue"),
   empty: document.querySelector("#empty-queue"),
   warnings: document.querySelector("#queue-warnings"),
@@ -73,7 +80,7 @@ async function imageRecord(file) {
   }
   let bitmap;
   try {
-    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    bitmap = await decodeImageBitmap(file);
     return {
       id: makeId(),
       name: file.name,
@@ -381,17 +388,23 @@ async function download() {
 async function share() {
   const blob = await croppedBlob();
   const file = new File([blob], "panorama.jpg", { type: "image/jpeg" });
+  if (!canShareFiles(navigator, file)) {
+    elements.shareStatus.textContent = shareFallbackMessage();
+    return;
+  }
   try {
-    if (typeof navigator.share !== "function") throw new Error("Share unavailable");
     await navigator.share({
       title: "LAB 002 全景拼接",
       text: "我的本地全景拼接结果",
       files: [file],
     });
     elements.shareStatus.textContent = "已打开系统分享。";
-  } catch {
-    downloadBlob(blob);
-    elements.shareStatus.textContent = "分享不可用，已改为下载 JPEG。";
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      elements.shareStatus.textContent = "已取消分享，结果仍保留在上方。";
+    } else {
+      elements.shareStatus.textContent = shareFallbackMessage();
+    }
   }
 }
 
@@ -447,5 +460,14 @@ for (const input of [
 }
 elements.download.addEventListener("click", download);
 elements.share.addEventListener("click", share);
+
+const unsupportedMessage = compatibilityMessage(globalThis);
+if (unsupportedMessage) {
+  elements.compatibilityNotice.textContent = unsupportedMessage;
+  elements.compatibilityNotice.hidden = false;
+  elements.gallery.disabled = true;
+  elements.camera.disabled = true;
+  elements.sample.disabled = true;
+}
 
 renderQueue();

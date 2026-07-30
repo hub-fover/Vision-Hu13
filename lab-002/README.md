@@ -11,7 +11,7 @@ remain consistent across runtimes.
 - `web/` — subpath-safe mobile Web application for `/Vision-Hu13/lab-002/`.
 - `shared/` — portable defaults, error codes, and public contract documentation.
 - `tests/` — isolated Python and Node tests.
-- `assets/`, `article/`, and `docs/figures/` — real-media and publication work.
+- `assets/` and `docs/figures/` — licensed real-media samples and technical figures.
 - `scripts/` — repeatable local asset and verification helpers.
 
 LAB 001 remains the repository root experience. See
@@ -57,10 +57,10 @@ lazy same-origin OpenCV loading, and its 8 MiB compressed ceiling.
 
 `build:lab002` leaves the LAB 001 files at `web/` unchanged and generates the
 ignored Pages staging directory at `web/lab-002/`. Staging validation fails on
-missing Worker, OpenCV, sample, or article-linked runtime resources and on
+missing Worker, OpenCV, sample, or other runtime resources and on
 remote or root-absolute runtime references. CI runs the LAB 001 regressions
 alongside LAB 002 Python 3.11/3.12, Node, real Worker, Pixel 7, provenance,
-deterministic-figure, article, gzh-compatible HTML, and Pages gates.
+deterministic-figure, and Pages gates.
 
 Real Android Chrome and iPhone Safari capture remains
 `PENDING_DEVICE_CAPTURE`; verification does not generate GIF, MP4, or WebM.

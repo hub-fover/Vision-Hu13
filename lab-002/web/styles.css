@@ -21,6 +21,11 @@
 body {
   margin: 0;
   min-width: 320px;
+  padding:
+    env(safe-area-inset-top, 0)
+    env(safe-area-inset-right, 0)
+    env(safe-area-inset-bottom, 0)
+    env(safe-area-inset-left, 0);
   background:
     linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
     var(--ink);
@@ -93,6 +98,29 @@ h1 {
   color: var(--muted);
   font-size: 1rem;
   line-height: 1.8;
+}
+
+.promise {
+  margin: 0 0 8px;
+  color: var(--acid);
+  font-size: 1.05rem;
+  font-weight: 760;
+}
+
+.privacy-copy,
+.compatibility-notice {
+  max-width: 600px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+.compatibility-notice {
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent);
+  border-radius: 12px;
+  color: #ffc3bf;
 }
 
 .step {
@@ -248,7 +276,7 @@ input[type="file"] {
 }
 
 .queue-actions button {
-  min-height: 34px;
+  min-height: 48px;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: var(--panel-raised);

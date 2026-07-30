@@ -11,8 +11,7 @@ LAB 001; LAB 002 is published separately at `/Vision-Hu13/lab-002/`.
 LAB 002 release verification is reproducible from the repository root:
 `npm run build:lab002` stages its ignored Pages artifact at `web/lab-002/`,
 then `npm run validate:lab002:release` checks cross-runtime acceptance,
-real-media provenance, deterministic figures, article/gzh compatibility, and
-all staged static resources.
+real-media provenance, deterministic figures, and all staged static resources.
 
 ![篮球场透视合成](docs/figures/01-before-after.png)
 

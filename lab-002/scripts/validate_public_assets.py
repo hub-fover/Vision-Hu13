@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 from panorama_stitch.errors import StitchError
 
 try:
@@ -54,8 +54,10 @@ FIGURE_IDS = (
     "failure-boundaries",
 )
 REAL_INPUT_LABEL = "基于真实输入的算法标注"
-MAX_REGENERATED_CHANGED_PIXEL_RATIO = 0.12
-MAX_REGENERATED_MEAN_ABSOLUTE_ERROR = 3.0
+REGENERATED_PREVIEW_SIZE = (270, 180)
+MAX_REGENERATED_MATERIAL_PIXEL_RATIO = 0.15
+MAX_REGENERATED_PERCEPTUAL_ERROR = 8.0
+MAX_REGENERATED_MATERIAL_TILE_RATIO = 0.15
 
 
 def _compare_regenerated_pixels(
@@ -88,20 +90,50 @@ def _compare_regenerated_pixels(
     except (OSError, ValueError) as exc:
         return [f"deterministic regeneration comparison failed: {exc}"]
 
-    absolute_difference = np.abs(canonical_pixels - regenerated_pixels)
-    changed_pixel_ratio = float(
-        np.count_nonzero(np.any(absolute_difference != 0, axis=2))
-        / (canonical_pixels.shape[0] * canonical_pixels.shape[1])
+    # Compare a lightly blurred quarter-scale preview instead of exact edge
+    # pixels. FreeType and OpenCV rasterizers can move anti-aliased strokes by
+    # one pixel across operating systems even when the figure content is the
+    # same. Downsampling keeps layout, photographs, colors, and overlays in the
+    # contract while ignoring that harmless edge jitter.
+    def perceptual_preview(pixels: np.ndarray) -> np.ndarray:
+        return np.asarray(
+            Image.fromarray(np.uint8(pixels))
+            .resize(REGENERATED_PREVIEW_SIZE, Image.Resampling.LANCZOS)
+            .filter(ImageFilter.GaussianBlur(radius=1)),
+            dtype=np.int16,
+        )
+
+    canonical_preview = perceptual_preview(canonical_pixels)
+    regenerated_preview = perceptual_preview(regenerated_pixels)
+    absolute_difference = np.abs(canonical_preview - regenerated_preview)
+    materially_changed_ratio = float(
+        np.count_nonzero(np.any(absolute_difference > 12, axis=2))
+        / (canonical_preview.shape[0] * canonical_preview.shape[1])
     )
-    mean_absolute_error = float(np.mean(absolute_difference))
+    perceptual_error = float(np.mean(absolute_difference))
+    tile_errors = []
+    tile_width = 30
+    tile_height = 30
+    for top in range(0, REGENERATED_PREVIEW_SIZE[1], tile_height):
+        for left in range(0, REGENERATED_PREVIEW_SIZE[0], tile_width):
+            tile = absolute_difference[
+                top : top + tile_height,
+                left : left + tile_width,
+            ]
+            tile_errors.append(float(np.mean(tile)))
+    materially_changed_tile_ratio = float(
+        np.count_nonzero(np.asarray(tile_errors) > 12.0) / len(tile_errors)
+    )
     if (
-        changed_pixel_ratio > MAX_REGENERATED_CHANGED_PIXEL_RATIO
-        or mean_absolute_error > MAX_REGENERATED_MEAN_ABSOLUTE_ERROR
+        materially_changed_ratio > MAX_REGENERATED_MATERIAL_PIXEL_RATIO
+        or perceptual_error > MAX_REGENERATED_PERCEPTUAL_ERROR
+        or materially_changed_tile_ratio > MAX_REGENERATED_MATERIAL_TILE_RATIO
     ):
         errors.append(
             "deterministic regeneration pixels differ beyond cross-platform "
-            f"tolerance (changed={changed_pixel_ratio:.3%}, "
-            f"mean_abs={mean_absolute_error:.3f})"
+            f"tolerance (material={materially_changed_ratio:.3%}, "
+            f"perceptual={perceptual_error:.3f}, "
+            f"tiles={materially_changed_tile_ratio:.3%})"
         )
     return errors
 

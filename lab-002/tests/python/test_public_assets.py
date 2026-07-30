@@ -210,6 +210,44 @@ def test_cross_platform_figure_comparison_rejects_a_fabricated_image(
     assert any("pixels differ beyond cross-platform tolerance" in error for error in errors)
 
 
+def test_cross_platform_figure_comparison_accepts_one_pixel_rasterizer_drift(
+    tmp_path: Path,
+) -> None:
+    from PIL import Image, ImageDraw
+
+    canonical = tmp_path / "canonical.png"
+    shifted = tmp_path / "shifted.png"
+    first = Image.new("RGB", (1080, 720), "#111318")
+    second = Image.new("RGB", (1080, 720), "#111318")
+    first_draw = ImageDraw.Draw(first)
+    second_draw = ImageDraw.Draw(second)
+    for x in range(20, 1060, 12):
+        first_draw.line((x, 100, x, 620), fill="#f4f5f7", width=2)
+        second_draw.line((x + 1, 100, x + 1, 620), fill="#f4f5f7", width=2)
+    first.save(canonical)
+    second.save(shifted)
+
+    assert _compare_regenerated_pixels(canonical, shifted) == []
+
+
+def test_cross_platform_figure_comparison_rejects_removed_semantic_region(
+    tmp_path: Path,
+) -> None:
+    from PIL import Image, ImageDraw
+
+    canonical = LAB_ROOT / "docs" / "figures" / "01-overlap.png"
+    altered = tmp_path / "altered.png"
+    with Image.open(canonical) as image:
+        changed = image.convert("RGB")
+    draw = ImageDraw.Draw(changed)
+    draw.rectangle((360, 210, 720, 430), fill="#111318")
+    changed.save(altered)
+
+    errors = _compare_regenerated_pixels(canonical, altered)
+
+    assert any("pixels differ beyond cross-platform tolerance" in error for error in errors)
+
+
 def test_figure_generation_uses_only_bundled_ofl_fonts() -> None:
     from hashlib import sha256
 

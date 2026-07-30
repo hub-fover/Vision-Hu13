@@ -203,7 +203,7 @@ test("touch movement reorders through the element under the pointer", async ({ p
   ]);
 });
 
-test("success exposes seam, inward crop, JPEG download, and share fallback", async ({ page }) => {
+test("success exposes seam, inward crop, JPEG download, and save guidance", async ({ page }) => {
   await installFakeWorker(page);
   await page.goto("/");
   await page.locator("#gallery-input").setInputFiles(files(["left.png", "right.png"]));
@@ -221,15 +221,14 @@ test("success exposes seam, inward crop, JPEG download, and share fallback", asy
   expect((await downloadPromise).suggestedFilename()).toMatch(/panorama.*\.jpg/);
 
   await page.evaluate(() => {
-    Object.defineProperty(navigator, "share", {
+    Object.defineProperty(navigator, "canShare", {
       configurable: true,
-      value: async () => { throw new Error("share rejected"); },
+      value: () => false,
     });
   });
-  const fallbackPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "分享" }).click();
-  await fallbackPromise;
-  await expect(page.getByText("分享不可用，已改为下载 JPEG。")).toBeVisible();
+  await expect(page.locator("#share-status")).toContainText("长按上方结果图");
+  await expect(page.locator("#result-preview")).toBeVisible();
 });
 
 test("active work can be cancelled with a clear terminal state", async ({ page }) => {

@@ -20,13 +20,13 @@ export class StitchError extends Error {
 const messages = {
   NOT_ENOUGH_IMAGES: "请至少选择两张有共同画面的照片。",
   UNSUPPORTED_FORMAT: "仅支持 JPEG、PNG 和 WebP 照片。",
-  DECODE_FAILED: "照片无法读取，请换一张原始文件后重试。",
+  DECODE_FAILED: "照片无法读取，请换一张原始文件后重试。若使用 iPhone 或 iPad，请先更新 iOS 并用 Safari 打开。",
   LOW_TEXTURE: "画面细节太少，换用包含纹理或明显边缘的照片。",
   INSUFFICIENT_OVERLAP: "重叠不足。请多保留一些共同画面后重拍。",
   AMBIGUOUS_MATCHES: "重复纹理太多，无法确认对应位置；请减少重复图案。",
   HOMOGRAPHY_UNSTABLE: "透视关系不稳定，请保持机位并增加相邻重叠。",
   HIGH_REPROJECTION_ERROR: "对齐误差过大，请绕同一机位缓慢转动拍摄。",
-  OUTPUT_TOO_LARGE: "预计内存超过 384MiB，请减少照片或先缩小尺寸。",
+  OUTPUT_TOO_LARGE: "照片过多或尺寸过大，手机内存可能不足。请改用 2–4 张标准照片，或先缩小原图后重试。",
   CANCELLED: "已取消拼接。",
 };
 
