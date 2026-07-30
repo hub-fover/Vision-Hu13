@@ -22,7 +22,8 @@
       "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
       "annotationLabel": "基于真实输入的算法标注",
       "basedOnRealInput": true,
-      "isGeneratedScene": false
+      "isGeneratedScene": false,
+      "sha256": "d8f76f04f84a684fcce9bdf5b17a36afebd143a025feda12a418b22ad08b85bc"
     },
     {
       "number": 2,
@@ -40,7 +41,8 @@
       "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
       "annotationLabel": "基于真实输入的算法标注",
       "basedOnRealInput": true,
-      "isGeneratedScene": false
+      "isGeneratedScene": false,
+      "sha256": "92acc30f0d422db5b36923598f34da0b2c2b9a653413bd98fa64f84ae948215a"
     },
     {
       "number": 3,
@@ -59,7 +61,8 @@
       "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
       "annotationLabel": "基于真实输入的算法标注",
       "basedOnRealInput": true,
-      "isGeneratedScene": false
+      "isGeneratedScene": false,
+      "sha256": "31c518f76db3282a01ac560933facb88f4599d2e577c259404dc53b12237ae30"
     },
     {
       "number": 4,
@@ -78,7 +81,8 @@
       "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
       "annotationLabel": "基于真实输入的算法标注",
       "basedOnRealInput": true,
-      "isGeneratedScene": false
+      "isGeneratedScene": false,
+      "sha256": "add3239178d80e1a19ed790b737a10a97624ee065d07f11c03da99da9b9012db"
     },
     {
       "number": 5,
@@ -97,7 +101,8 @@
       "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
       "annotationLabel": "基于真实输入的算法标注",
       "basedOnRealInput": true,
-      "isGeneratedScene": false
+      "isGeneratedScene": false,
+      "sha256": "9be3bad57630e5049408fc84d6d7fb7d12214717a1c65f460e379ceb8746f2af"
     },
     {
       "number": 6,
@@ -117,7 +122,8 @@
       "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
       "annotationLabel": "基于真实输入的算法标注",
       "basedOnRealInput": true,
-      "isGeneratedScene": false
+      "isGeneratedScene": false,
+      "sha256": "465a5a3a9c482b4f506e8957bd263b7ef6146cc4b58494bfccaeec38c4f6dc33"
     },
     {
       "number": 7,
@@ -137,7 +143,8 @@
       "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
       "annotationLabel": "基于真实输入的算法标注",
       "basedOnRealInput": true,
-      "isGeneratedScene": false
+      "isGeneratedScene": false,
+      "sha256": "a27847a107a845e95c3cb67a4b27467cd57ca3b8894cb83ecedc3752ef9b7b7a"
     },
     {
       "number": 8,
@@ -157,7 +164,8 @@
       "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
       "annotationLabel": "基于真实输入的算法标注",
       "basedOnRealInput": true,
-      "isGeneratedScene": false
+      "isGeneratedScene": false,
+      "sha256": "78330e5100a813a2f683b4e1c479f5a5579fe9229bcd93d702757af1099cfbf5"
     },
     {
       "number": 9,
@@ -177,7 +185,8 @@
       "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License",
       "annotationLabel": "基于真实输入的算法标注",
       "basedOnRealInput": true,
-      "isGeneratedScene": false
+      "isGeneratedScene": false,
+      "sha256": "98b9e6425ceada0e205138930c4da9fb4efe6adac8f51beba7a8668d37112567"
     },
     {
       "number": 10,
@@ -196,7 +205,8 @@
       "credit": "来源：James Cheney · Pexels 视频 6746361 · Pexels License",
       "annotationLabel": "基于真实输入的算法标注",
       "basedOnRealInput": true,
-      "isGeneratedScene": false
+      "isGeneratedScene": false,
+      "sha256": "e542e073fab6f182488a3306cdb48192f124545408f2c6e8974f03ad26724bc4"
     }
   ]
 }

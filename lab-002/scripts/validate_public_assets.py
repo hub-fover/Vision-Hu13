@@ -5,14 +5,18 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 from PIL import Image
+from panorama_stitch.errors import StitchError
 
 try:
     from scripts.extract_real_samples import JPEG_QUALITY
+    from scripts.generate_technical_figures import generate_figures
 except ModuleNotFoundError:  # Direct `python scripts/validate_public_assets.py`.
     from extract_real_samples import JPEG_QUALITY
+    from generate_technical_figures import generate_figures
 
 
 EXPECTED = {
@@ -262,6 +266,13 @@ def validate_public_figures(lab_root: Path) -> list[str]:
         if not output.is_file():
             errors.append(f"missing figure output: {output_relative}")
         else:
+            expected_digest = str(figure.get("sha256", ""))
+            if len(expected_digest) != 64 or any(
+                character not in "0123456789abcdef" for character in expected_digest
+            ):
+                errors.append(f"{figure_id} lacks a valid canonical PNG sha256")
+            elif _sha256(output) != expected_digest:
+                errors.append(f"{figure_id} canonical PNG checksum mismatch")
             try:
                 with Image.open(output) as image:
                     image.load()
@@ -304,6 +315,46 @@ def validate_public_figures(lab_root: Path) -> list[str]:
                 errors.append(f"{figure_id} source hash differs for {relative}")
         if not definition.get("measurements"):
             errors.append(f"{figure_id} lacks real algorithm measurements")
+
+    with TemporaryDirectory(prefix="lab-002-figures-") as temporary:
+        regenerated_root = Path(temporary)
+        try:
+            generate_figures(lab_root, output_dir=regenerated_root)
+        except (OSError, ValueError, StitchError) as exc:
+            errors.append(f"deterministic regeneration failed: {exc}")
+        else:
+            for figure in figures:
+                figure_id = str(figure.get("id", "unknown"))
+                canonical = lab_root / str(figure.get("output", ""))
+                regenerated = regenerated_root / canonical.name
+                if not canonical.is_file() or not regenerated.is_file():
+                    errors.append(
+                        f"{figure_id} deterministic regeneration output is missing"
+                    )
+                    continue
+                if _sha256(regenerated) != _sha256(canonical):
+                    errors.append(
+                        f"{figure_id} deterministic regeneration checksum differs"
+                    )
+                try:
+                    with (
+                        Image.open(canonical) as canonical_image,
+                        Image.open(regenerated) as regenerated_image,
+                    ):
+                        canonical_image.load()
+                        regenerated_image.load()
+                        if (
+                            canonical_image.mode != regenerated_image.mode
+                            or canonical_image.size != regenerated_image.size
+                            or canonical_image.tobytes() != regenerated_image.tobytes()
+                        ):
+                            errors.append(
+                                f"{figure_id} deterministic regeneration pixels differ"
+                            )
+                except (OSError, ValueError) as exc:
+                    errors.append(
+                        f"{figure_id} deterministic regeneration comparison failed: {exc}"
+                    )
 
     status = _load_json(
         lab_root / "assets" / "real-device-media-status.json", errors

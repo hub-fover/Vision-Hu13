@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import shutil
 
 import pytest
 
+from scripts.generate_technical_figures import generate_figures
 from scripts.validate_public_assets import (
     _validate_image,
     validate_public_assets,
@@ -166,3 +168,55 @@ def test_real_device_media_is_explicitly_pending_without_fake_public_files() -> 
         if path.suffix.lower() in {".gif", ".mp4", ".webm"}
     ]
     assert public_media == []
+
+
+def test_figure_generation_is_repeatable_in_isolated_directories(
+    tmp_path: Path,
+) -> None:
+    from hashlib import sha256
+
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    generate_figures(LAB_ROOT, output_dir=first)
+    generate_figures(LAB_ROOT, output_dir=second)
+    manifest = json.loads(
+        (LAB_ROOT / "docs" / "figures" / "figure-manifest.json").read_text("utf-8")
+    )
+
+    for figure in manifest["figures"]:
+        filename = Path(figure["output"]).name
+        first_hash = sha256((first / filename).read_bytes()).hexdigest()
+        second_hash = sha256((second / filename).read_bytes()).hexdigest()
+        assert first_hash == second_hash == figure["sha256"]
+
+
+def test_validator_rejects_fabricated_png_with_copied_metadata(
+    tmp_path: Path,
+) -> None:
+    from PIL import Image
+    from PIL.PngImagePlugin import PngInfo
+
+    sandbox = tmp_path / "lab"
+    shutil.copytree(LAB_ROOT / "assets", sandbox / "assets")
+    shutil.copytree(LAB_ROOT / "docs" / "figures", sandbox / "docs" / "figures")
+    (sandbox / "scripts").mkdir(parents=True)
+    shutil.copy2(
+        LAB_ROOT / "scripts" / "REAL_DEVICE_CAPTURE.md",
+        sandbox / "scripts" / "REAL_DEVICE_CAPTURE.md",
+    )
+    target = sandbox / "docs" / "figures" / "01-overlap.png"
+    with Image.open(target) as original:
+        size = original.size
+        copied_info = {
+            key: value
+            for key, value in original.info.items()
+            if isinstance(value, str)
+        }
+    metadata = PngInfo()
+    for key, value in copied_info.items():
+        metadata.add_text(key, value)
+    Image.new("RGB", size, "#334455").save(target, "PNG", pnginfo=metadata)
+
+    errors = validate_public_figures(sandbox)
+
+    assert any("deterministic regeneration" in error for error in errors)

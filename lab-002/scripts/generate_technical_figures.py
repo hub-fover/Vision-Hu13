@@ -351,10 +351,15 @@ def _figure_context(lab_root: Path) -> dict[str, Any]:
     }
 
 
-def generate_figures(lab_root: Path) -> None:
+def generate_figures(lab_root: Path, output_dir: Path | None = None) -> None:
     lab_root = lab_root.resolve()
-    figures_root = lab_root / "docs" / "figures"
-    definitions_root = figures_root / "source-data"
+    canonical_figures_root = lab_root / "docs" / "figures"
+    figures_root = (
+        Path(output_dir).resolve()
+        if output_dir is not None
+        else canonical_figures_root
+    )
+    write_canonical_metadata = output_dir is None
     context = _figure_context(lab_root)
     mountains: list[np.ndarray] = context["mountains"]
     features: list[FeatureSet] = context["features"]
@@ -391,12 +396,14 @@ def generate_figures(lab_root: Path) -> None:
         measurements: dict[str, Any],
         overlays: list[dict[str, Any]],
     ) -> None:
-        output_relative = f"docs/figures/{number:02d}-{figure_id}.png"
+        output_filename = f"{number:02d}-{figure_id}.png"
+        output_relative = f"docs/figures/{output_filename}"
         definition_relative = (
             f"docs/figures/source-data/{number:02d}-{figure_id}.json"
         )
+        output_path = figures_root / output_filename
         _save_figure(
-            lab_root / output_relative,
+            output_path,
             title=title,
             subtitle=subtitle,
             content=content,
@@ -415,12 +422,13 @@ def generate_figures(lab_root: Path) -> None:
             "annotationLabel": REAL_LABEL,
             "credit": credit,
         }
-        definition_path = lab_root / definition_relative
-        definition_path.parent.mkdir(parents=True, exist_ok=True)
-        definition_path.write_text(
-            json.dumps(definition, ensure_ascii=False, indent=2) + "\n",
-            "utf-8",
-        )
+        if write_canonical_metadata:
+            definition_path = lab_root / definition_relative
+            definition_path.parent.mkdir(parents=True, exist_ok=True)
+            definition_path.write_text(
+                json.dumps(definition, ensure_ascii=False, indent=2) + "\n",
+                "utf-8",
+            )
         manifest_entries.append(
             {
                 "number": number,
@@ -437,6 +445,7 @@ def generate_figures(lab_root: Path) -> None:
                 "annotationLabel": REAL_LABEL,
                 "basedOnRealInput": True,
                 "isGeneratedScene": False,
+                "sha256": _sha256(output_path),
             }
         )
 
@@ -928,10 +937,11 @@ def generate_figures(lab_root: Path) -> None:
         ),
         "figures": manifest_entries,
     }
-    (figures_root / "figure-manifest.json").write_text(
-        json.dumps(figure_manifest, ensure_ascii=False, indent=2) + "\n",
-        "utf-8",
-    )
+    if write_canonical_metadata:
+        (canonical_figures_root / "figure-manifest.json").write_text(
+            json.dumps(figure_manifest, ensure_ascii=False, indent=2) + "\n",
+            "utf-8",
+        )
 
 
 if __name__ == "__main__":
