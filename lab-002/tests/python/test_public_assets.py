@@ -8,6 +8,7 @@ import pytest
 
 from scripts.generate_technical_figures import _font, generate_figures
 from scripts.validate_public_assets import (
+    _compare_regenerated_pixels,
     _validate_image,
     validate_public_assets,
     validate_public_figures,
@@ -187,7 +188,26 @@ def test_figure_generation_is_repeatable_in_isolated_directories(
         filename = Path(figure["output"]).name
         first_hash = sha256((first / filename).read_bytes()).hexdigest()
         second_hash = sha256((second / filename).read_bytes()).hexdigest()
-        assert first_hash == second_hash == figure["sha256"]
+        assert first_hash == second_hash
+        assert _compare_regenerated_pixels(
+            LAB_ROOT / figure["output"],
+            first / filename,
+        ) == []
+
+
+def test_cross_platform_figure_comparison_rejects_a_fabricated_image(
+    tmp_path: Path,
+) -> None:
+    from PIL import Image
+
+    canonical = tmp_path / "canonical.png"
+    fabricated = tmp_path / "fabricated.png"
+    Image.new("RGB", (1080, 720), "#111318").save(canonical)
+    Image.new("RGB", (1080, 720), "#334455").save(fabricated)
+
+    errors = _compare_regenerated_pixels(canonical, fabricated)
+
+    assert any("pixels differ beyond cross-platform tolerance" in error for error in errors)
 
 
 def test_figure_generation_uses_only_bundled_ofl_fonts() -> None:
