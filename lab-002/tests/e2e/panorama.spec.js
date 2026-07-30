@@ -271,6 +271,125 @@ test("selecting and stitching never sends image data off origin", async ({ page 
   expect(offOrigin).toEqual([]);
 });
 
+test("default committed mountain sample completes in the real Worker", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "one real default-sample pass is sufficient");
+  test.setTimeout(120_000);
+  const offOrigin = [];
+  const uploads = [];
+  const mountainRequests = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.pathname.includes("/assets/samples/mountains/")) {
+      mountainRequests.push(url.pathname);
+    }
+    if (
+      ["http:", "https:"].includes(url.protocol) &&
+      url.hostname !== "127.0.0.1"
+    ) {
+      offOrigin.push(request.url());
+    }
+    if (!["GET", "HEAD"].includes(request.method())) {
+      uploads.push(`${request.method()} ${request.url()}`);
+    }
+  });
+  await page.addInitScript(() => {
+    const NativeWorker = globalThis.Worker;
+    globalThis.Worker = class DiagnosticWorker extends NativeWorker {
+      constructor(...args) {
+        super(...args);
+        this.addEventListener("message", ({ data }) => {
+          if (data?.type === "error") {
+            globalThis.__LAB002_LAST_WORKER_ERROR__ = data.error;
+          }
+        });
+      }
+    };
+  });
+  await page.goto("/");
+  await page.locator("#sample-button").click();
+  await expect(page.locator("#sample-status")).toContainText(
+    "已载入 3 张真实Camera Panning Over Mountains照片",
+  );
+  await expect(page.locator("#sample-status")).toContainText("Pexels License");
+  await expect(page.locator("[data-image-name]")).toHaveText([
+    "mountains-1.jpg",
+    "mountains-2.jpg",
+    "mountains-3.jpg",
+  ]);
+  expect(mountainRequests).toEqual([
+    "/assets/samples/mountains/01.jpg",
+    "/assets/samples/mountains/02.jpg",
+    "/assets/samples/mountains/03.jpg",
+  ]);
+
+  await page.locator("#run-button").click();
+  const terminal = await page.waitForFunction(() => {
+    if (document.querySelector("#app-status")?.textContent === "拼接完成") {
+      return { type: "result" };
+    }
+    if (globalThis.__LAB002_LAST_WORKER_ERROR__) {
+      return {
+        type: "error",
+        error: globalThis.__LAB002_LAST_WORKER_ERROR__,
+      };
+    }
+    return null;
+  }, null, { timeout: 60_000 }).then((handle) => handle.jsonValue());
+  expect(terminal).toEqual({ type: "result" });
+
+  const preview = await page.evaluate(async () => {
+    const blob = await fetch(document.querySelector("#result-preview").src)
+      .then((response) => response.blob());
+    const bitmap = await createImageBitmap(blob);
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const context = canvas.getContext("2d");
+    context.drawImage(bitmap, 0, 0);
+    const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    let minimum = 255;
+    let maximum = 0;
+    for (let index = 0; index < pixels.length; index += 16) {
+      minimum = Math.min(minimum, pixels[index]);
+      maximum = Math.max(maximum, pixels[index]);
+    }
+    const result = {
+      size: blob.size,
+      type: blob.type,
+      width: bitmap.width,
+      height: bitmap.height,
+      range: maximum - minimum,
+    };
+    bitmap.close();
+    return result;
+  });
+  expect(preview.type).toBe("image/jpeg");
+  expect(preview.size).toBeGreaterThan(10_000);
+  expect(preview.width).toBeGreaterThan(1600);
+  expect(preview.height).toBeGreaterThan(500);
+  expect(preview.range).toBeGreaterThan(40);
+
+  await page.locator("#crop-left").fill("8");
+  await page.locator("#crop-right").fill("4");
+  await page.locator("#crop-top").fill("3");
+  const downloadPromise = page.waitForEvent("download");
+  await page.locator("#download-button").click();
+  const bytes = await readFile(await (await downloadPromise).path());
+  expect(bytes.length).toBeGreaterThan(10_000);
+  expect(bytes.subarray(0, 2).toString("hex")).toBe("ffd8");
+  const cropped = await page.evaluate(async (values) => {
+    const bitmap = await createImageBitmap(new Blob(
+      [new Uint8Array(values)],
+      { type: "image/jpeg" },
+    ));
+    const result = { width: bitmap.width, height: bitmap.height };
+    bitmap.close();
+    return result;
+  }, [...bytes]);
+  expect(cropped.width).toBe(preview.width - 12);
+  expect(cropped.height).toBe(preview.height - 3);
+  expect(offOrigin).toEqual([]);
+  expect(uploads).toEqual([]);
+});
+
 test("real Worker and OpenCV export a cropped JPEG with decoded pixels", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "one real runtime pass is sufficient");
   test.setTimeout(120_000);

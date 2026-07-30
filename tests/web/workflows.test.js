@@ -30,12 +30,12 @@ test("CI covers the supported Python matrix and browser checks", async () => {
   }
 });
 
-test("Pages deploys only the static web directory after successful CI", async () => {
+test("Pages deploys only trusted default-branch push results from successful CI", async () => {
   const source = await readWorkflow("pages.yml");
+  const deployGate = source.match(/^\s{4}if:\s*(.+)$/m)?.[1] ?? "";
 
   for (const required of [
     "workflow_run:",
-    "conclusion == 'success'",
     "actions/checkout@v6",
     "actions/configure-pages@v5",
     "npm run validate:lab002:pages",
@@ -46,5 +46,16 @@ test("Pages deploys only the static web directory after successful CI", async ()
     "id-token: write",
   ]) {
     assert.ok(source.includes(required), `pages.yml is missing ${required}`);
+  }
+  for (const requiredCondition of [
+    "github.event.workflow_run.conclusion == 'success'",
+    "github.event.workflow_run.event == 'push'",
+    "github.event.workflow_run.head_branch == github.event.repository.default_branch",
+    "github.event.workflow_run.head_repository.full_name == github.repository",
+  ]) {
+    assert.ok(
+      deployGate.includes(requiredCondition),
+      `Pages deploy gate is missing ${requiredCondition}`,
+    );
   }
 });
