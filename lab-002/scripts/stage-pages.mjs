@@ -1,5 +1,6 @@
 import { cp, mkdir, readFile, readdir, rm, stat } from "node:fs/promises";
-import { dirname, relative, resolve, sep } from "node:path";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { tmpdir } from "node:os";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 
@@ -42,13 +43,19 @@ async function allFiles(root, current = root) {
   return files.sort();
 }
 
-function assertDestination(destination) {
+function isStrictDescendant(parent, candidate) {
+  const child = relative(parent, candidate);
+  return child !== "" && !child.startsWith("..") && !isAbsolute(child);
+}
+
+export function assertSafeStageDestination(destination) {
   const resolved = resolve(destination);
-  if (
-    resolved === source ||
-    resolved === labRoot ||
-    dirname(resolved) === resolved
-  ) {
+  const isExpectedPagesTarget = resolved === defaultDestination;
+  const isIsolatedTemporaryTarget = isStrictDescendant(
+    resolve(tmpdir()),
+    resolved,
+  );
+  if (!isExpectedPagesTarget && !isIsolatedTemporaryTarget) {
     throw new Error(`unsafe LAB 002 staging destination: ${resolved}`);
   }
   return resolved;
@@ -147,7 +154,7 @@ export async function validatePagesStage(destination = defaultDestination) {
 }
 
 export async function stagePages(destination = defaultDestination) {
-  const target = assertDestination(destination);
+  const target = assertSafeStageDestination(destination);
   await rm(target, { recursive: true, force: true });
   await mkdir(target, { recursive: true });
   await cp(source, target, {

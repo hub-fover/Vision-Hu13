@@ -34,8 +34,8 @@ all local copies are recorded in
 
 ## Reproducible verification and Pages staging
 
-LAB 002 pins the Python packages used by stitching, sample extraction, and
-technical-figure regeneration in
+LAB 002 pins OpenCV 4.12 and the compatible Python packages used by stitching,
+sample extraction, and technical-figure regeneration in
 [`requirements-lock.txt`](requirements-lock.txt). The pins support Python
 3.11 and 3.12 and are mirrored by `pyproject.toml`.
 

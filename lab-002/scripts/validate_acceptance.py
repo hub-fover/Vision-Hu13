@@ -27,6 +27,7 @@ from panorama_stitch import (
     plan_canvas,
     stitch_images,
 )
+from panorama_stitch.errors import StitchError
 
 
 THRESHOLDS = {
@@ -112,6 +113,29 @@ def _cross_runtime_request() -> tuple[dict[str, Any], list[np.ndarray], list[np.
             "width": crop_mask.shape[1],
             "height": crop_mask.shape[0],
             "mask": crop_mask.reshape(-1).tolist(),
+        },
+        "budgetBoundary": {
+            "outputCap": {
+                "images": [{"name": "cap.jpg", "width": 6000, "height": 4000}],
+                "transforms": [[1, 0, 0, 0, 1, 0, 0, 0, 1]],
+                "options": {"maxWorkingSetMiB": 4096},
+            },
+            "memoryPressure": {
+                "images": [
+                    {"name": f"memory-{index}.jpg", "width": 4000, "height": 3000}
+                    for index in range(3)
+                ],
+                "transforms": [[1, 0, 0, 0, 1, 0, 0, 0, 1]] * 3,
+                "options": {},
+            },
+            "overLimit": {
+                "images": [
+                    {"name": f"over-{index}.jpg", "width": 18000, "height": 12000}
+                    for index in range(2)
+                ],
+                "transforms": [[1, 0, 0, 0, 1, 0, 0, 0, 1]] * 2,
+                "options": {},
+            },
         },
     }
     return request, color_images, color_masks
@@ -268,6 +292,80 @@ def validate_acceptance(lab_root: Path) -> tuple[dict[str, Any], list[str]]:
             ),
         }
 
+    boundary = request["budgetBoundary"]
+    output_cap_shapes = [
+        (image["height"], image["width"])
+        for image in boundary["outputCap"]["images"]
+    ]
+    output_cap_transforms = [
+        np.asarray(transform, dtype=np.float64).reshape(3, 3)
+        for transform in boundary["outputCap"]["transforms"]
+    ]
+    output_cap_options = StitchOptions(max_working_set_mib=4096)
+    python_output_caps: dict[str, dict[str, float]] = {}
+    for quality in ("mobile", "hd"):
+        plan = plan_canvas(
+            output_cap_shapes,
+            output_cap_transforms,
+            options=output_cap_options,
+            quality=quality,
+        )
+        python_output_caps[quality] = {
+            "outputMegapixels": (
+                plan.canvas_size[0] * plan.canvas_size[1] / 1_000_000
+            ),
+            "estimatedWorkingSetMiB": plan.estimated_working_set_mib,
+        }
+
+    memory_shapes = [
+        (image["height"], image["width"])
+        for image in boundary["memoryPressure"]["images"]
+    ]
+    memory_transforms = [
+        np.asarray(transform, dtype=np.float64).reshape(3, 3)
+        for transform in boundary["memoryPressure"]["transforms"]
+    ]
+    python_memory_plan = plan_canvas(memory_shapes, memory_transforms)
+    python_memory_pressure = {
+        "outputScale": python_memory_plan.output_scale,
+        "outputMegapixels": (
+            python_memory_plan.canvas_size[0]
+            * python_memory_plan.canvas_size[1]
+            / 1_000_000
+        ),
+        "estimatedWorkingSetMiB": python_memory_plan.estimated_working_set_mib,
+    }
+
+    over_limit_shapes = [
+        (image["height"], image["width"])
+        for image in boundary["overLimit"]["images"]
+    ]
+    over_limit_transforms = [
+        np.asarray(transform, dtype=np.float64).reshape(3, 3)
+        for transform in boundary["overLimit"]["transforms"]
+    ]
+    python_over_limit_rejected = False
+    try:
+        plan_canvas(over_limit_shapes, over_limit_transforms)
+    except StitchError as error:
+        if error.code != "OUTPUT_TOO_LARGE":
+            raise
+        python_over_limit_rejected = True
+    budget_boundary = {
+        "outputCaps": {
+            "python": python_output_caps,
+            "web": web["budgetBoundary"]["outputCaps"],
+        },
+        "memoryPressure": {
+            "python": python_memory_pressure,
+            "web": web["budgetBoundary"]["memoryPressure"],
+        },
+        "overLimitRejected": {
+            "python": python_over_limit_rejected,
+            "web": web["budgetBoundary"]["overLimitRejected"],
+        },
+    }
+
     mountain_paths = sorted(
         (lab_root / "python" / "panorama_stitch" / "samples" / "mountains").glob("*.jpg")
     )
@@ -285,12 +383,15 @@ def validate_acceptance(lab_root: Path) -> tuple[dict[str, Any], list[str]]:
         "seamBoundaryExcludedPixels": int(np.count_nonzero(seam_boundary)),
         "safeCropHasBlankHoles": safe_crop_has_holes,
         "budgets": budgets,
+        "budgetBoundary": budget_boundary,
         "mountainSample": {
             "validPanorama": bool(mountain.image.size and mountain.image.shape[1] > mountain.image.shape[0]),
             "inputCount": len(mountain_paths),
             "outputPixels": int(mountain.image.shape[0] * mountain.image.shape[1]),
         },
         "opencvCompressedBytes": compressed_bytes,
+        "opencvRuntime": web["opencvRuntime"],
+        "pythonOpenCvVersion": cv2.__version__,
         "privacyStaticResources": "PASS" if not privacy_errors else "FAIL",
     }
     errors = list(privacy_errors)
@@ -308,10 +409,31 @@ def validate_acceptance(lab_root: Path) -> tuple[dict[str, Any], list[str]]:
             errors.append(f"{quality} output exceeds {limit}MP")
         if budgets[quality]["estimatedWorkingSetMiB"] > THRESHOLDS["maxWorkingSetMiB"]:
             errors.append(f"{quality} estimated working set exceeds 384MiB")
+        for runtime in ("python", "web"):
+            measured = budget_boundary["outputCaps"][runtime][quality][
+                "outputMegapixels"
+            ]
+            if not limit * 0.99 <= measured <= limit:
+                errors.append(
+                    f"{runtime} {quality} output-cap boundary is {measured:.3f}MP"
+                )
+    for runtime in ("python", "web"):
+        memory = budget_boundary["memoryPressure"][runtime]
+        if not 380 <= memory["estimatedWorkingSetMiB"] <= 384:
+            errors.append(
+                f"{runtime} memory-pressure boundary is "
+                f"{memory['estimatedWorkingSetMiB']:.3f}MiB"
+            )
+        if memory["outputScale"] >= 1:
+            errors.append(f"{runtime} memory-pressure case was not downsampled")
+        if not budget_boundary["overLimitRejected"][runtime]:
+            errors.append(f"{runtime} did not reject source allocations over budget")
     if not report["mountainSample"]["validPanorama"]:
         errors.append("committed mountain sample did not produce a valid panorama")
     if compressed_bytes > THRESHOLDS["opencvCompressedBytes"]:
         errors.append("compressed OpenCV.js exceeds 8MiB")
+    if not cv2.__version__.startswith("4.12."):
+        errors.append(f"Python OpenCV must be 4.12, found {cv2.__version__}")
     return report, errors
 
 
