@@ -1,0 +1,56 @@
+version: 1
+claims:
+  - id: C1
+    text: "基础全景拼接先建立不同照片中同一位置的对应关系，再把照片变换到共同坐标并处理覆盖关系。"
+    type: inference
+    source_ids: [opencv-homography, repo-contracts, repo-figure-manifest]
+    status: supported
+    boundary: "这是本项目对相邻图像、平面单应性流程的教学概括。"
+  - id: C2
+    text: "LAB 002 使用 ORB、BF-Hamming KNN、0.75 比率筛选、双向一致性和 RANSAC 处理相邻照片对。"
+    type: fact
+    source_ids: [opencv-homography, repo-contracts, repo-figure-manifest]
+    status: supported
+    boundary: "参数与处理顺序描述的是当前仓库版本。"
+  - id: C3
+    text: "项目以序列中间图片为锚点，随后进行受限曝光匹配、有效掩膜距离羽化与安全裁剪。"
+    type: fact
+    source_ids: [repo-contracts, repo-figure-manifest]
+    status: supported
+    boundary: "不等同于束调整、多频段融合或圆柱投影。"
+  - id: C4
+    text: "当前 Web 应用读取同站点示例和用户本地文件，没有图片上传、远程处理、分析或第三方存储请求。"
+    type: fact
+    source_ids: [repo-privacy-tests]
+    status: supported
+    boundary: "结论限于当前仓库应用代码与自动化检查；同站点静态资源仍需正常加载。"
+  - id: C5
+    text: "capture 属性可提示浏览器使用特定方向的相机，但移动浏览器支持并不完全一致，因此页面保留普通相册入口。"
+    type: fact
+    source_ids: [mdn-capture, repo-privacy-tests]
+    status: supported
+    boundary: "最终相机与分享行为仍需在具体 Android Chrome 和 iPhone Safari 上验收。"
+  - id: C6
+    text: "公开山景、城市与海面示例来自三段明确记录作者、页面、时间戳和修改方式的 Pexels 实拍视频。"
+    type: fact
+    source_ids: [pexels-license, pexels-mountains, pexels-city, pexels-ocean, repo-asset-manifest]
+    status: supported
+    boundary: "派生帧继续适用 Pexels License，不属于项目 CC BY 4.0 原创资产。"
+  - id: C7
+    text: "本次真实诊断中，完整三帧海面序列成功拼接；只截取海面低纹理区域后仅 9 组比率匹配通过，并返回 INSUFFICIENT_OVERLAP。"
+    type: fact
+    source_ids: [repo-ocean-diagnostic, repo-figure-manifest]
+    status: supported
+    boundary: "这是提交样例和当前实现的一次可重建压力测试，不外推为所有海面画面的结果。"
+  - id: C8
+    text: "近景视差与移动物体重影是首版明确边界，但当前文章没有相应的真实图像证据。"
+    type: fact
+    source_ids: [repo-ocean-diagnostic, repo-contracts]
+    status: bounded
+    boundary: "文章只把它们列为待另行实拍验证的限制，不声称已有展示图。"
+  - id: C9
+    text: "对初学者而言，先检查失败发生在哪一对照片，比继续堆叠融合参数更有用。"
+    type: opinion
+    source_ids: []
+    status: bounded
+    boundary: "这是基于本项目可解释诊断目标给出的操作建议。"
