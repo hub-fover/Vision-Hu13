@@ -300,6 +300,9 @@ test("default committed mountain sample completes in the real Worker", async ({ 
           if (data?.type === "error") {
             globalThis.__LAB002_LAST_WORKER_ERROR__ = data.error;
           }
+          if (data?.type === "result") {
+            globalThis.__LAB002_LAST_WORKER_RESULT__ = data.result;
+          }
         });
       }
     };
@@ -366,6 +369,65 @@ test("default committed mountain sample completes in the real Worker", async ({ 
   expect(preview.height).toBeGreaterThan(500);
   expect(preview.range).toBeGreaterThan(40);
 
+  const alignment = await page.evaluate(async () => {
+    const result = globalThis.__LAB002_LAST_WORKER_RESULT__;
+    const [jpegBitmap, seamBitmap] = await Promise.all([
+      createImageBitmap(result.jpeg),
+      createImageBitmap(result.seam),
+    ]);
+    const jpegCanvas = new OffscreenCanvas(jpegBitmap.width, jpegBitmap.height);
+    const seamCanvas = new OffscreenCanvas(seamBitmap.width, seamBitmap.height);
+    const jpegContext = jpegCanvas.getContext("2d");
+    const seamContext = seamCanvas.getContext("2d");
+    jpegContext.drawImage(jpegBitmap, 0, 0);
+    seamContext.drawImage(seamBitmap, 0, 0);
+    const jpegPixels = jpegContext.getImageData(
+      0,
+      0,
+      jpegBitmap.width,
+      jpegBitmap.height,
+    ).data;
+    const seamPixels = seamContext.getImageData(
+      0,
+      0,
+      seamBitmap.width,
+      seamBitmap.height,
+    ).data;
+    let samples = 0;
+    let absoluteError = 0;
+    for (let y = 0; y < jpegBitmap.height; y += 8) {
+      for (let x = 0; x < jpegBitmap.width; x += 8) {
+        const jpegOffset = (y * jpegBitmap.width + x) * 4;
+        const seamOffset = (
+          (y + result.crop.y) * seamBitmap.width +
+          x + result.crop.x
+        ) * 4;
+        const seamRed = seamPixels[seamOffset];
+        const seamGreen = seamPixels[seamOffset + 1];
+        const seamBlue = seamPixels[seamOffset + 2];
+        const looksLikeOverlay =
+          seamRed - seamGreen > 45 &&
+          seamBlue - seamGreen > 20;
+        if (looksLikeOverlay) continue;
+        for (let channel = 0; channel < 3; channel += 1) {
+          absoluteError += Math.abs(
+            jpegPixels[jpegOffset + channel] -
+            seamPixels[seamOffset + channel],
+          );
+        }
+        samples += 1;
+      }
+    }
+    jpegBitmap.close();
+    seamBitmap.close();
+    return {
+      samples,
+      meanAbsoluteError: absoluteError / Math.max(1, samples * 3),
+    };
+  });
+  expect(alignment.samples).toBeGreaterThan(1_000);
+  expect(alignment.meanAbsoluteError).toBeLessThan(12);
+
   await page.locator("#crop-left").fill("8");
   await page.locator("#crop-right").fill("4");
   await page.locator("#crop-top").fill("3");
@@ -385,6 +447,71 @@ test("default committed mountain sample completes in the real Worker", async ({ 
   }, [...bytes]);
   expect(cropped.width).toBe(preview.width - 12);
   expect(cropped.height).toBe(preview.height - 3);
+  const downloadedAlignment = await page.evaluate(async (values) => {
+    const result = globalThis.__LAB002_LAST_WORKER_RESULT__;
+    const [downloadedBitmap, seamBitmap] = await Promise.all([
+      createImageBitmap(new Blob(
+        [new Uint8Array(values)],
+        { type: "image/jpeg" },
+      )),
+      createImageBitmap(result.seam),
+    ]);
+    const downloadedCanvas = new OffscreenCanvas(
+      downloadedBitmap.width,
+      downloadedBitmap.height,
+    );
+    const seamCanvas = new OffscreenCanvas(seamBitmap.width, seamBitmap.height);
+    const downloadedContext = downloadedCanvas.getContext("2d");
+    const seamContext = seamCanvas.getContext("2d");
+    downloadedContext.drawImage(downloadedBitmap, 0, 0);
+    seamContext.drawImage(seamBitmap, 0, 0);
+    const downloadedPixels = downloadedContext.getImageData(
+      0,
+      0,
+      downloadedBitmap.width,
+      downloadedBitmap.height,
+    ).data;
+    const seamPixels = seamContext.getImageData(
+      0,
+      0,
+      seamBitmap.width,
+      seamBitmap.height,
+    ).data;
+    let samples = 0;
+    let absoluteError = 0;
+    for (let y = 0; y < downloadedBitmap.height; y += 8) {
+      for (let x = 0; x < downloadedBitmap.width; x += 8) {
+        const downloadedOffset =
+          (y * downloadedBitmap.width + x) * 4;
+        const seamOffset = (
+          (y + result.crop.y + 3) * seamBitmap.width +
+          x + result.crop.x + 8
+        ) * 4;
+        const seamRed = seamPixels[seamOffset];
+        const seamGreen = seamPixels[seamOffset + 1];
+        const seamBlue = seamPixels[seamOffset + 2];
+        const looksLikeOverlay =
+          seamRed - seamGreen > 45 &&
+          seamBlue - seamGreen > 20;
+        if (looksLikeOverlay) continue;
+        for (let channel = 0; channel < 3; channel += 1) {
+          absoluteError += Math.abs(
+            downloadedPixels[downloadedOffset + channel] -
+            seamPixels[seamOffset + channel],
+          );
+        }
+        samples += 1;
+      }
+    }
+    downloadedBitmap.close();
+    seamBitmap.close();
+    return {
+      samples,
+      meanAbsoluteError: absoluteError / Math.max(1, samples * 3),
+    };
+  }, [...bytes]);
+  expect(downloadedAlignment.samples).toBeGreaterThan(1_000);
+  expect(downloadedAlignment.meanAbsoluteError).toBeLessThan(12);
   expect(offOrigin).toEqual([]);
   expect(uploads).toEqual([]);
 });
