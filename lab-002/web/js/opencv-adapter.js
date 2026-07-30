@@ -550,8 +550,13 @@ export class OpenCvAdapter {
       crop.width,
       crop.height,
     ));
+    const output = new this.cv.Mat();
     try {
-      return region.clone();
+      region.copyTo(output);
+      return output;
+    } catch (error) {
+      deleteValue(output);
+      throw error;
     } finally {
       deleteValue(region);
     }
