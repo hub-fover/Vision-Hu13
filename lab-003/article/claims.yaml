@@ -1,0 +1,25 @@
+claims:
+  - id: C01
+    claim: "Mertens exposure fusion uses contrast, saturation and well-exposedness quality measures and multi-resolution blending."
+    source: S01
+    status: verified
+  - id: C02
+    claim: "Exposure fusion can produce a displayable result without first constructing an HDR radiance map."
+    source: S01
+    status: verified
+  - id: C03
+    claim: "ORB combines FAST keypoint detection with oriented BRIEF descriptors."
+    source: S02
+    status: verified
+  - id: C04
+    claim: "Laplacian pyramid blending reduces visible seams by combining information at multiple spatial scales."
+    source: S03
+    status: verified
+  - id: C05
+    claim: "LAB 003 motion protection is a middle-exposure fallback, not complete deghosting."
+    source: implementation
+    status: verified
+  - id: C06
+    claim: "LAB 003 has no upload, persistence, telemetry, Cookie, Storage or IndexedDB path."
+    source: implementation-and-tests
+    status: verified

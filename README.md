@@ -13,6 +13,24 @@ LAB 002 release verification is reproducible from the repository root:
 then `npm run validate:lab002:release` checks cross-runtime acceptance,
 real-media provenance, deterministic figures, and all staged static resources.
 
+LAB 003 is the local three-exposure exposure-fusion lab. It is published at
+[`/Vision-Hu13/lab-003/`](https://hub-fover.github.io/Vision-Hu13/lab-003/) and
+keeps all three input images in the current page only. Use the packaged Peyrou
+sample or select three ordinary JPEG/PNG/WebP files; the browser Worker lazy-loads
+same-origin OpenCV.js and never uploads the photos.
+
+LAB 003 release verification is reproducible with:
+
+```powershell
+npm run test:lab003
+npm run test:lab003:e2e
+npm run validate:lab003:release
+npm run build:lab003
+```
+
+The article package, real-source manifest, technical figures and review PDF live
+under [`lab-003/article/`](lab-003/article/) and [`lab-003/assets/`](lab-003/assets/).
+
 ![篮球场透视合成](docs/figures/01-before-after.png)
 
 ## 功能

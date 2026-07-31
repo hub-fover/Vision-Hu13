@@ -37,16 +37,27 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-          cache-dependency-path: lab-002/web/package-lock.json
+          cache-dependency-path: |
+            lab-002/web/package-lock.json
+            lab-003/web/package-lock.json
 
       - name: Install LAB 002 Web dependencies
         run: npm ci --prefix lab-002/web
+
+      - name: Install LAB 003 Web dependencies
+        run: npm ci --prefix lab-003/web
 
       - name: Stage LAB 002 with its same-origin OpenCV runtime
         run: npm run build:lab002
 
       - name: Validate LAB 002 staged static resources
         run: npm run validate:lab002:pages
+
+      - name: Stage LAB 003 with its same-origin OpenCV runtime
+        run: npm run build:lab003
+
+      - name: Validate LAB 003 staged static resources
+        run: npm run validate:lab003:pages
 
       - name: Upload static site
         uses: actions/upload-pages-artifact@v4

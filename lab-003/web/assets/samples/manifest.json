@@ -1,0 +1,12 @@
+{
+  "id": "peyrou",
+  "title": "Peyrou water tower exposure sequence",
+  "creator": "arpesenti/exposure_fusion contributors",
+  "license": "MIT",
+  "sourceCommit": "ad19046ddfd266b431a45276c366fe03e107e3cd",
+  "files": [
+    "peyrou/under.jpg",
+    "peyrou/mean.jpg",
+    "peyrou/over.jpg"
+  ]
+}
