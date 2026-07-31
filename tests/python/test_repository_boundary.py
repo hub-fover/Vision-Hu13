@@ -5,18 +5,25 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-LAB_002_PUBLICATION_PREFIXES = (
+ALLOWED_PUBLICATION_PREFIXES = (
     "lab-002/assets/",
     "lab-002/docs/figures/",
+    "lab-003/article/",
 )
+ALLOWED_PUBLICATION_FILES = {
+    "lab-003/scripts/validate_article.py",
+}
+ALLOWED_PLAN_FILES = {
+    "docs/superpowers/plans/2026-07-31-lab-003-exposure-fusion.md",
+}
 
 
 def is_forbidden_publication_path(path: str) -> bool:
     """Keep LAB 001 publication-side content out of the product root."""
     normalized = path.replace("\\", "/").lower()
-    if (
-        normalized.startswith(LAB_002_PUBLICATION_PREFIXES)
-    ):
+    if normalized.startswith(ALLOWED_PUBLICATION_PREFIXES):
+        return False
+    if normalized in ALLOWED_PUBLICATION_FILES:
         return False
     return any(
         token in normalized
@@ -34,13 +41,18 @@ def existing_tracked_paths(paths: list[str], *, root: Path = ROOT) -> list[str]:
     return [path for path in paths if (root / path).exists()]
 
 
-def test_lab_002_allows_only_product_assets_and_figures() -> None:
+def test_publication_allowlist_preserves_product_boundaries() -> None:
     assert is_forbidden_publication_path("lab-002/article/README.md")
     assert not is_forbidden_publication_path("lab-002/assets/asset-manifest.json")
     assert not is_forbidden_publication_path("lab-002/docs/figures/01-overlap.png")
+    assert not is_forbidden_publication_path("lab-003/article/article.md")
+    assert not is_forbidden_publication_path(
+        "lab-003/scripts/validate_article.py"
+    )
     assert is_forbidden_publication_path("article/README.md")
     assert is_forbidden_publication_path("docs/graphite-minimal.html")
     assert is_forbidden_publication_path("lab-002/scripts/validate_article.py")
+    assert is_forbidden_publication_path("lab-004/article/article.md")
 
 
 def test_tracked_path_existence_preserves_original_case(tmp_path: Path) -> None:
@@ -69,6 +81,8 @@ def test_product_repository_excludes_publication_side_content() -> None:
     assert matches == [], f"publication-side paths found in product repository: {matches}"
 
     plan_paths = [
-        path for path in normalized_paths if path.startswith("docs/superpowers/")
+        path
+        for path in normalized_paths
+        if path.startswith("docs/superpowers/") and path not in ALLOWED_PLAN_FILES
     ]
     assert plan_paths == []

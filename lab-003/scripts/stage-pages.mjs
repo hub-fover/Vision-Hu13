@@ -6,11 +6,17 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const source = resolve(scriptDirectory, "../web");
+const figureSource = resolve(scriptDirectory, "../assets/figures");
 const defaultDestination = resolve(scriptDirectory, "../../web/lab-003");
 const excluded = new Set(["node_modules", "package.json", "package-lock.json", ".gitignore", "README.md", "manifest.local.json", "test-results"]);
+const figures = [
+  "01-exposure-comparison.jpg", "02-histogram.jpg", "03-exposure-metrics.jpg", "04-feature-matches.jpg", "05-alignment.jpg",
+  "06-three-weights.jpg", "07-normalized-weights.jpg", "08-pyramid.jpg", "09-motion-mask.jpg", "10-boundaries.jpg",
+];
 const required = [
-  "index.html", "styles.css", "vendor/opencv.js", "assets/samples/manifest.json",
+  "index.html", "article-copy.html", "styles.css", "vendor/opencv.js", "assets/samples/manifest.json",
   "assets/samples/peyrou/under.jpg", "assets/samples/peyrou/mean.jpg", "assets/samples/peyrou/over.jpg",
+  ...figures.map((name) => `assets/figures/${name}`),
   ...["alignment", "analysis", "app", "capture", "contracts", "crop", "errors", "fusion", "motion", "opencv-adapter", "pyramid", "state", "weights", "worker-client"].map((name) => `js/${name}.js`),
   "js/fusion.worker.js",
 ];
@@ -54,6 +60,20 @@ export async function validatePagesStage(destination = defaultDestination) {
   if (!worker.includes('importScripts("../vendor/opencv.js")')) throw new Error("Worker must load same-origin OpenCV.js");
   const opencvGzipBytes = gzipSync(await readFile(resolve(root, "vendor/opencv.js")), { level: 9, mtime: 0 }).byteLength;
   if (opencvGzipBytes > 8 * 1024 * 1024) throw new Error(`OpenCV.js exceeds 8MiB: ${opencvGzipBytes}`);
+  const copyPage = await readFile(resolve(root, "article-copy.html"), "utf8");
+  if (!copyPage.includes('id="copy-button"') || !copyPage.includes("navigator.clipboard")) {
+    throw new Error("article-copy.html must expose the clipboard action");
+  }
+  const publicFigurePattern = /https:\/\/hub-fover\.github\.io\/Vision-Hu13\/lab-003\/(assets\/figures\/[^"']+)/g;
+  const publicFigures = [...copyPage.matchAll(publicFigurePattern)].map((match) => match[1]);
+  if (publicFigures.length !== 10) {
+    throw new Error("article-copy.html must reference all ten public figures");
+  }
+  for (const path of publicFigures) {
+    try { if (!(await stat(resolve(root, path))).isFile()) throw new Error(); }
+    catch { throw new Error(`copy-page figure missing from Pages staging: ${path}`); }
+  }
+  if (/<script[^>]+src=["']https?:\/\//i.test(copyPage)) throw new Error("article-copy.html must not load remote scripts");
   return { files: await files(root), opencvGzipBytes };
 }
 
@@ -62,6 +82,7 @@ export async function stagePages(destination = defaultDestination) {
   await rm(target, { recursive: true, force: true });
   await mkdir(target, { recursive: true });
   await cp(source, target, { recursive: true, filter: (path) => path === source || !excluded.has(path.split(/[\\/]/).at(-1)) });
+  await cp(figureSource, resolve(target, "assets/figures"), { recursive: true });
   return validatePagesStage(target);
 }
 
