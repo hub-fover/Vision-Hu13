@@ -8,6 +8,7 @@ from pypdf import PdfReader
 
 
 ROOT = Path(__file__).resolve().parents[1]
+PUBLIC_IMAGE_BASE = "https://hub-fover.github.io/Vision-Hu13/lab-003/assets/figures/"
 
 
 class GzhParser(HTMLParser):
@@ -44,6 +45,14 @@ def main() -> None:
     assert len(parser.images) == 10
     for source in parser.images:
         assert (clean.parent / source).resolve().is_file(), source
+    copy_page = ROOT / "web" / "article-copy.html"
+    assert copy_page.is_file()
+    copy_html = copy_page.read_text(encoding="utf-8")
+    assert 'id="copy-button"' in copy_html
+    assert "navigator.clipboard" in copy_html and 'execCommand("copy")' in copy_html
+    assert copy_html.count(PUBLIC_IMAGE_BASE) == 10
+    copied_content = copy_html.split('<main id="copy-content">', 1)[1].split("</main>", 1)[0]
+    assert "copy-button" not in copied_content and "copy-toolbar" not in copied_content
     assert "复制到公众号" in preview.read_text(encoding="utf-8")
     pdf = ROOT / "output" / "pdf" / "lab-003-review.pdf"
     reader = PdfReader(str(pdf))

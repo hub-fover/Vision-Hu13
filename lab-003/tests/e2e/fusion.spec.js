@@ -21,6 +21,70 @@ test("sample completes in the real Worker and exposes result actions", async ({ 
   expect(errors).toEqual([]);
 });
 
+test("public article copy writes rich clipboard content and preserves images", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__copyItems = [];
+    window.ClipboardItem = class {
+      constructor(items) { this.items = items; this.types = Object.keys(items); }
+      getType(type) { return Promise.resolve(this.items[type]); }
+    };
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { write: async (items) => { window.__copyItems.push(items[0]); } },
+    });
+  });
+  await page.goto("/article-copy.html");
+  await expect(page.locator("#copy-content img")).toHaveCount(10);
+  await page.locator("#copy-button").click();
+  await expect(page.locator("#copy-status")).toContainText("\u5df2\u590d\u5236");
+  const payload = await page.evaluate(async () => {
+    const item = window.__copyItems[0];
+    return {
+      html: await (await item.getType("text/html")).text(),
+      plain: await (await item.getType("text/plain")).text(),
+    };
+  });
+  expect(payload.html).toContain("https://hub-fover.github.io/Vision-Hu13/lab-003/assets/figures/");
+  expect((payload.html.match(/<img /g) ?? []).length).toBe(10);
+  expect(payload.html).toContain("<h1 style=");
+  expect(payload.html).toContain("<h3 style=");
+  expect(payload.html).not.toContain("copy-toolbar");
+  expect(payload.html).not.toContain("copy-button");
+  expect(payload.plain).toContain("LAB 003");
+  expect(payload.plain).not.toContain("\u590d\u5236\u4e0b\u65b9\u6b63\u6587");
+  const pasted = await page.evaluate((html) => {
+    const target = document.createElement("div");
+    target.contentEditable = "true";
+    target.id = "paste-target";
+    document.body.append(target);
+    target.focus();
+    document.execCommand("insertHTML", false, html);
+    return {
+      images: target.querySelectorAll("img").length,
+      headings: target.querySelectorAll("h1, h3").length,
+      styled: target.querySelectorAll("[style]").length,
+      text: target.textContent,
+    };
+  }, payload.html);
+  expect(pasted.images).toBe(10);
+  expect(pasted.headings).toBe(10);
+  expect(pasted.styled).toBeGreaterThan(20);
+  expect(pasted.text).toContain("\u4e00\u5f20\u7167\u7247\u88c5\u4e0d\u4e0b\u7684\u660e\u6697");
+});
+
+test("public article copy selects the article when clipboard permission fails", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { write: async () => { throw new Error("permission denied"); } },
+    });
+    document.execCommand = () => false;
+  });
+  await page.goto("/article-copy.html");
+  await page.locator("#copy-button").click();
+  await expect(page.locator("#copy-status")).toContainText("\u5df2\u9009\u4e2d\u5168\u6587");
+});
+
 test("gallery validation, camera fallback and cancellation remain usable", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator('input[capture="environment"]')).toHaveCount(3);

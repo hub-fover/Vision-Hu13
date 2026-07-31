@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import json
 import re
 from pathlib import Path
 
@@ -16,6 +17,8 @@ from reportlab.platypus import Image, PageBreak, Paragraph, SimpleDocTemplate, S
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTICLE = ROOT / "article" / "article.md"
+COPY_HTML_OUTPUT = ROOT / "web" / "article-copy.html"
+PUBLIC_IMAGE_BASE = "https://hub-fover.github.io/Vision-Hu13/lab-003/assets/figures/"
 HTML_OUTPUT = ROOT / "article" / "article_排版_石墨极简(graphite-minimal).html"
 PDF_OUTPUT = ROOT / "output" / "pdf" / "lab-003-review.pdf"
 TAGS = ["TRY", "DYNAMIC RANGE", "CAPTURE", "SCENE CHECK", "ALIGNMENT", "WEIGHTS", "PYRAMID", "MOTION", "BOUNDARIES"]
@@ -85,8 +88,11 @@ def section_header(number: int, title: str) -> str:
 </section>'''
 
 
-def build_gzh(blocks) -> str:
+def build_gzh(blocks, *, image_base: str | None = None, include_title: bool = False) -> str:
     output = ['<section style="max-width:677px;margin:0 auto;background:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,\'PingFang SC\',\'Hiragino Sans GB\',\'Microsoft YaHei\',sans-serif;color:#52525B;line-height:1.8;letter-spacing:0;overflow-x:hidden;">']
+    if include_title:
+        title = next(value for kind, value in blocks if kind == "title")
+        output.append(f'<section style="padding:24px 10px 8px;"><h1 style="font-size:28px;line-height:1.4;color:#27272A;margin:0;font-weight:800;">{html.escape(title)}</h1></section>')
     quote = next(value for kind, value in blocks if kind == "quote")
     output.append(f'''<section style="margin:10px 10px 40px;padding:32px 24px 24px;border-top:1px solid #E4E4E7;border-bottom:1px solid #E4E4E7;background:#FFFFFF;">
   <p style="font-size:11px;color:#A1A1AA;letter-spacing:2px;margin:0 0 18px;font-weight:400;"><span leaf="">QUOTE</span></p>
@@ -107,8 +113,9 @@ def build_gzh(blocks) -> str:
             output.append(f'<section style="padding:0 10px;"><p style="margin:0 0 22px;font-size:15px;line-height:1.8;text-align:justify;color:#52525B;letter-spacing:0;">{inline(value)}</p></section>')
         elif kind == "image":
             alt, source = value
+            image_source = f"{image_base}{Path(source).name}" if image_base else source
             output.append(f'''<section style="border:1px solid #E4E4E7;padding:4px;margin:0 10px 8px;">
-  <section style="margin:0;overflow:hidden;"><span leaf=""><img src="{html.escape(source, quote=True)}" style="max-width:100%;height:auto;display:block;margin:0 auto;"></span></section>
+  <section style="margin:0;overflow:hidden;"><span leaf=""><img src="{html.escape(image_source, quote=True)}" style="max-width:100%;height:auto;display:block;margin:0 auto;"></span></section>
 </section>
 <p style="font-size:12px;color:#A1A1AA;text-align:center;margin:0 10px 28px;letter-spacing:0;"><span leaf="">— {html.escape(alt)}</span></p>''')
     output.append('''<section style="padding:0 10px;"><section style="text-align:center;margin:0 0 36px;"><section style="display:flex;align-items:center;justify-content:center;">
@@ -122,6 +129,89 @@ def build_gzh(blocks) -> str:
 </section></section>''')
     output.append("</section>")
     return "\n".join(output) + "\n"
+
+
+def plain_text(blocks) -> str:
+    lines = []
+    for kind, value in blocks:
+        if kind in {"title", "section", "quote", "paragraph"}:
+            lines.append(value)
+        elif kind == "image":
+            lines.append(value[0])
+    return "\n\n".join(lines)
+
+
+def build_copy_page(blocks) -> str:
+    content = build_gzh(blocks, image_base=PUBLIC_IMAGE_BASE, include_title=True)
+    text = json.dumps(plain_text(blocks), ensure_ascii=False)
+    return f'''<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LAB 003｜公众号复制版</title>
+<style>
+body{{margin:0;background:#eef0f2;color:#27272A;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;}}
+.copy-toolbar{{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 16px;background:#fff;border-bottom:1px solid #E4E4E7;}}
+.copy-toolbar p{{margin:0;color:#71717A;font-size:13px;line-height:1.5;}}
+.copy-button{{border:0;border-radius:6px;padding:10px 16px;background:#059669;color:#fff;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;}}
+.copy-button:focus-visible{{outline:3px solid #A7F3D0;outline-offset:2px;}}
+.copy-status{{min-height:22px;margin:10px auto 0;max-width:677px;padding:0 10px;color:#047857;font-size:13px;}}
+@media(max-width:520px){{.copy-toolbar p{{font-size:12px;}}.copy-button{{padding:9px 12px;}}}}
+</style>
+</head>
+<body>
+<header class="copy-toolbar">
+  <p>复制下方正文，直接粘贴到公众号图文编辑器。</p>
+  <button class="copy-button" id="copy-button" type="button">复制到公众号</button>
+</header>
+<p class="copy-status" id="copy-status" role="status" aria-live="polite"></p>
+<main id="copy-content">{content}</main>
+<script>
+(() => {{
+  const button = document.getElementById("copy-button");
+  const status = document.getElementById("copy-status");
+  const content = document.getElementById("copy-content");
+  const plain = {text};
+  const html = content.innerHTML;
+  const announce = (message, failed = false) => {{
+    status.textContent = message;
+    status.style.color = failed ? "#B91C1C" : "#047857";
+  }};
+  const fallback = () => {{
+    const range = document.createRange();
+    range.selectNodeContents(content);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    let copied = false;
+    try {{ copied = document.execCommand("copy"); }} catch {{ copied = false; }}
+    if (copied) {{
+      selection.removeAllRanges();
+      announce("已复制，可直接粘贴到公众号编辑器。");
+    }} else {{
+      announce("已选中全文，请按 Ctrl/Cmd+C 后粘贴。", true);
+    }}
+  }};
+  button.addEventListener("click", async () => {{
+    try {{
+      if (navigator.clipboard?.write && window.ClipboardItem) {{
+        const item = new ClipboardItem({{
+          "text/html": new Blob([html], {{ type: "text/html" }}),
+          "text/plain": new Blob([plain], {{ type: "text/plain" }}),
+        }});
+        await navigator.clipboard.write([item]);
+        announce("已复制，可直接粘贴到公众号编辑器。");
+        return;
+      }}
+    }} catch {{}}
+    fallback();
+  }});
+}})();
+</script>
+</body>
+</html>
+'''
 
 
 def pdf_styles():
@@ -186,6 +276,8 @@ def build_pdf(blocks) -> None:
 def main() -> None:
     blocks = parse_markdown(ARTICLE.read_text(encoding="utf-8"))
     HTML_OUTPUT.write_text(build_gzh(blocks), encoding="utf-8")
+    COPY_HTML_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    COPY_HTML_OUTPUT.write_text(build_copy_page(blocks), encoding="utf-8")
     build_pdf(blocks)
 
 
