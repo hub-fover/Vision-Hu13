@@ -31,13 +31,17 @@ jobs:
             pyproject.toml
             lab-002/pyproject.toml
             lab-002/requirements-lock.txt
+            lab-003/pyproject.toml
+            lab-003/requirements-lock.txt
 
       - name: Set up Node.js for cross-runtime validation
         uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: npm
-          cache-dependency-path: lab-002/web/package-lock.json
+          cache-dependency-path: |
+            lab-002/web/package-lock.json
+            lab-003/web/package-lock.json
 
       - name: Install CJK fonts on Linux
         if: runner.os == 'Linux'
@@ -46,10 +50,13 @@ jobs:
           sudo apt-get install --yes fonts-noto-cjk
 
       - name: Install Python dependencies
-        run: python -m pip install -e ".[dev]" -e "./lab-002[test]"
+        run: python -m pip install -e ".[dev]" -e "./lab-002[test]" -e "./lab-003[test]"
 
       - name: Install LAB 002 Web dependencies
         run: npm ci --prefix lab-002/web
+
+      - name: Install LAB 003 Web dependencies
+        run: npm ci --prefix lab-003/web
 
       - name: Vendor same-origin OpenCV for acceptance
         run: npm --prefix lab-002/web run vendor:opencv
@@ -62,6 +69,12 @@ jobs:
 
       - name: Run LAB 002 cross-runtime acceptance
         run: npm run test:lab002:acceptance
+
+      - name: Run LAB 003 Python tests
+        run: npm run test:lab003:python
+
+      - name: Run LAB 003 cross-runtime acceptance
+        run: npm run test:lab003:acceptance
 
   web:
     name: Web, browser, and release validation
@@ -79,6 +92,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             lab-002/web/package-lock.json
+            lab-003/web/package-lock.json
 
       - name: Set up release-validation Python
         uses: actions/setup-python@v6
@@ -89,6 +103,8 @@ jobs:
             pyproject.toml
             lab-002/pyproject.toml
             lab-002/requirements-lock.txt
+            lab-003/pyproject.toml
+            lab-003/requirements-lock.txt
 
       - name: Install Node dependencies
         run: npm ci
@@ -96,8 +112,11 @@ jobs:
       - name: Install LAB 002 Web dependencies
         run: npm ci --prefix lab-002/web
 
+      - name: Install LAB 003 Web dependencies
+        run: npm ci --prefix lab-003/web
+
       - name: Install release-validation Python dependencies
-        run: python -m pip install -e ".[dev]" -e "./lab-002[test]"
+        run: python -m pip install -e ".[dev]" -e "./lab-002[test]" -e "./lab-003[test]"
 
       - name: Run LAB 001 Node regression tests
         run: npm run test:web
@@ -114,11 +133,23 @@ jobs:
       - name: Run LAB 002 real Worker and Pixel 7 tests
         run: npm run test:lab002:e2e
 
+      - name: Run LAB 003 Web tests
+        run: npm run test:lab003:web
+
+      - name: Run LAB 003 real Worker and Pixel 7 tests
+        run: npm run test:lab003:e2e
+
       - name: Stage LAB 002 Pages artifact
         run: npm run build:lab002
 
       - name: Validate LAB 002 Pages staging
         run: npm run validate:lab002:pages
+
+      - name: Stage LAB 003 Pages artifact
+        run: npm run build:lab003
+
+      - name: Validate LAB 003 release
+        run: npm run validate:lab003:release
 
       - name: Validate cross-runtime, provenance, figures, and Pages
         run: npm run validate:lab002:release
@@ -131,5 +162,6 @@ jobs:
           path: |
             playwright-report/
             lab-002/playwright-report/
+            lab-003/playwright-report/
           if-no-files-found: ignore
           retention-days: 7

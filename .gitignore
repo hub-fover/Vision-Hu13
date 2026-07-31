@@ -15,6 +15,7 @@ test-results/
 playwright-report/
 blob-report/
 web/lab-002/
+web/lab-003/
 .superpowers/
 
 # Editors and operating systems
@@ -28,3 +29,5 @@ perspective-paste.png
 perspective-paste.jpg
 perspective-paste.jpeg
 *.log
+lab-003/artifacts/
+lab-003/tmp/

@@ -1,0 +1,95 @@
+{
+  "downloadDate": "2026-07-31",
+  "assets": [
+    {
+      "id": "peyrou-under",
+      "repository": "arpesenti/exposure_fusion",
+      "commit": "ad19046ddfd266b431a45276c366fe03e107e3cd",
+      "originalPath": "samples/peyrou_under.jpg",
+      "sha256": "fe2070736eb6e9e3a751e63a4c6af0fea7074c246dce192d5af9e6f41d36f2c4",
+      "license": "MIT",
+      "processing": "unaltered source; copied and renamed under.jpg",
+      "usedAt": ["web default sample", "Python packaged sample", "article exposure comparison"]
+    },
+    {
+      "id": "peyrou-mean",
+      "repository": "arpesenti/exposure_fusion",
+      "commit": "ad19046ddfd266b431a45276c366fe03e107e3cd",
+      "originalPath": "samples/peyrou_mean.jpg",
+      "sha256": "3a7e13758eb5181a932d9a68615165acb1ceb443ddd0f22bbbc5101115216a01",
+      "license": "MIT",
+      "processing": "unaltered source; copied and renamed mean.jpg",
+      "usedAt": ["web first viewport", "web default sample", "Python packaged sample", "article comparison"]
+    },
+    {
+      "id": "peyrou-over",
+      "repository": "arpesenti/exposure_fusion",
+      "commit": "ad19046ddfd266b431a45276c366fe03e107e3cd",
+      "originalPath": "samples/peyrou_over.jpg",
+      "sha256": "8b09fe1bd385d4b64a8844b6318977d3256fc5095016653e2479704c5fcd995c",
+      "license": "MIT",
+      "processing": "unaltered source; copied and renamed over.jpg",
+      "usedAt": ["web default sample", "Python packaged sample", "article exposure comparison"]
+    },
+    {
+      "id": "kebun-3",
+      "repository": "ericardomuten/nightmode-exposure-fusion",
+      "commit": "72d64014a27c88aeadff91e3e8255321c316eb37",
+      "originalPath": "Kebun/3.jpg",
+      "sha256": "a5d9bc94437ed287cfa5debaf53d584e4ef9e90b5169cba5203b274765a7c14b",
+      "license": "MIT",
+      "processing": "unaltered source; selected from the 11-frame sequence as the bright bracket",
+      "usedAt": ["Python real-sequence acceptance"]
+    },
+    {
+      "id": "kebun-6",
+      "repository": "ericardomuten/nightmode-exposure-fusion",
+      "commit": "72d64014a27c88aeadff91e3e8255321c316eb37",
+      "originalPath": "Kebun/6.jpg",
+      "sha256": "5fc4349c80089e06f48fb7a03d431cb6f9f61c761d03fa097d59b2e5846c2aa9",
+      "license": "MIT",
+      "processing": "unaltered source; selected from the 11-frame sequence as the middle bracket",
+      "usedAt": ["Python real-sequence acceptance"]
+    },
+    {
+      "id": "kebun-9",
+      "repository": "ericardomuten/nightmode-exposure-fusion",
+      "commit": "72d64014a27c88aeadff91e3e8255321c316eb37",
+      "originalPath": "Kebun/9.jpg",
+      "sha256": "f980f01245b3cb291806cf73d40530ae5160e75af3e371b989571fbaba562543",
+      "license": "MIT",
+      "processing": "unaltered source; selected from the 11-frame sequence as the dark bracket",
+      "usedAt": ["Python real-sequence acceptance"]
+    },
+    {
+      "id": "mobil-1",
+      "repository": "ericardomuten/nightmode-exposure-fusion",
+      "commit": "72d64014a27c88aeadff91e3e8255321c316eb37",
+      "originalPath": "Mobil/1.JPG",
+      "sha256": "14923bb06d7451814647cbfc4c2dcbcd703b3880a2348771ad8b908df68e75e7",
+      "license": "MIT",
+      "processing": "unaltered source; retained as 72MP total-input budget boundary corpus",
+      "usedAt": ["input-budget acceptance"]
+    },
+    {
+      "id": "mobil-4",
+      "repository": "ericardomuten/nightmode-exposure-fusion",
+      "commit": "72d64014a27c88aeadff91e3e8255321c316eb37",
+      "originalPath": "Mobil/4.JPG",
+      "sha256": "86f22d9ed42b49c986793b0340b89de1ff0f8796cfcb04d326c90a540d047867",
+      "license": "MIT",
+      "processing": "unaltered source; retained as 72MP total-input budget boundary corpus",
+      "usedAt": ["input-budget acceptance"]
+    },
+    {
+      "id": "mobil-10",
+      "repository": "ericardomuten/nightmode-exposure-fusion",
+      "commit": "72d64014a27c88aeadff91e3e8255321c316eb37",
+      "originalPath": "Mobil/10.JPG",
+      "sha256": "e40ed580f841aec5eb73ba0d8098a18b54b6a19d4ffb138f15ed4f5aaa39824a",
+      "license": "MIT",
+      "processing": "unaltered source; retained as 72MP total-input budget boundary corpus",
+      "usedAt": ["input-budget acceptance"]
+    }
+  ]
+}
