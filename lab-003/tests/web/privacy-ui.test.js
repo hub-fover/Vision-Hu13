@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const web = new URL("../../web/", import.meta.url);
+const lab = new URL("../../", import.meta.url);
 
 test("Worker lazy-loads same-origin OpenCV and source has no persistence or telemetry APIs", async () => {
   const worker = await readFile(new URL("js/fusion.worker.js", web), "utf8");
@@ -22,4 +23,17 @@ test("mobile capture, gallery, cancellation, result views, download and share ar
     assert.match(html, new RegExp(`id="${id}"`));
   }
   for (const view of ["fusion", "middle", "motion"]) assert.match(html, new RegExp(`data-view="${view}"`));
+});
+
+test("repository contains runtime source but no LAB 003 publication bundle", async () => {
+  for (const path of [
+    "article/",
+    "assets/figures/",
+    "assets/public/",
+    "docs/",
+    "output/",
+    "web/article-copy.html",
+  ]) {
+    await assert.rejects(access(new URL(path, lab)));
+  }
 });

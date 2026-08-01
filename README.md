@@ -28,9 +28,6 @@ npm run validate:lab003:release
 npm run build:lab003
 ```
 
-The article package, real-source manifest, technical figures and review PDF live
-under [`lab-003/article/`](lab-003/article/) and [`lab-003/assets/`](lab-003/assets/).
-
 ![篮球场透视合成](docs/figures/01-before-after.png)
 
 ## 功能

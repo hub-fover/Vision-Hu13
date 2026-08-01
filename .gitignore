@@ -31,3 +31,9 @@ perspective-paste.jpeg
 *.log
 lab-003/artifacts/
 lab-003/tmp/
+lab-003/article/
+lab-003/assets/figures/
+lab-003/assets/public/
+lab-003/docs/
+lab-003/output/
+docs/superpowers/plans/*lab-003*

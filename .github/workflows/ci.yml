@@ -148,7 +148,7 @@ jobs:
       - name: Stage LAB 003 Pages artifact
         run: npm run build:lab003
 
-      - name: Validate LAB 003 release
+      - name: Validate LAB 003 runtime release
         run: npm run validate:lab003:release
 
       - name: Validate cross-runtime, provenance, figures, and Pages

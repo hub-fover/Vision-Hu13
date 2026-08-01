@@ -2,5 +2,3 @@ numpy==2.2.6
 opencv-python==4.12.0.88
 Pillow==11.3.0
 pytest==8.4.2
-pypdf==6.10.0
-reportlab==4.4.9

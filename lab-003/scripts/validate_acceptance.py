@@ -2,18 +2,19 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT / "python") not in sys.path:
+    sys.path.insert(0, str(ROOT / "python"))
 
 from exposure_fusion.contracts import FusionOptions
 from exposure_fusion.fusion import estimate_working_set_mib, fuse_exposures
 from exposure_fusion.pyramid import fuse_pyramids
 from exposure_fusion.weights import compute_quality_weights
-
-
-ROOT = Path(__file__).resolve().parents[1]
-
 
 def fixture() -> np.ndarray:
     width, height = 64, 48

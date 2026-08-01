@@ -9,7 +9,7 @@ All public photographs are real exposure sequences. No generated scene or simula
 - Original files: `samples/peyrou_under.jpg`, `samples/peyrou_mean.jpg`, `samples/peyrou_over.jpg`
 - License: MIT; pinned license copy at `assets/sources/peyrou/LICENSE`
 - Downloaded: 2026-07-31
-- Processing: the three source files are unaltered; only filenames were shortened in packaged copies. Derived fusion and technical figures are documented separately.
+- Processing: the three source files are unaltered; only filenames were shortened in packaged copies.
 
 ## Kebun and Mobil
 
