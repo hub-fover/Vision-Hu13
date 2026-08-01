@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import test from "node:test";
 
 const web = new URL("../../web/", import.meta.url);
-const lab = new URL("../../", import.meta.url);
+const repository = fileURLToPath(new URL("../../../", import.meta.url));
+const run = promisify(execFile);
 
 test("Worker lazy-loads same-origin OpenCV and source has no persistence or telemetry APIs", async () => {
   const worker = await readFile(new URL("js/fusion.worker.js", web), "utf8");
@@ -25,15 +29,17 @@ test("mobile capture, gallery, cancellation, result views, download and share ar
   for (const view of ["fusion", "middle", "motion"]) assert.match(html, new RegExp(`data-view="${view}"`));
 });
 
-test("repository contains runtime source but no LAB 003 publication bundle", async () => {
-  for (const path of [
-    "article/",
-    "assets/figures/",
-    "assets/public/",
-    "docs/",
-    "output/",
-    "web/article-copy.html",
-  ]) {
-    await assert.rejects(access(new URL(path, lab)));
-  }
+test("LAB 003 publication files stay local-only and outside Pages", async () => {
+  const publicationPaths = [
+    "lab-003/article/",
+    "lab-003/assets/figures/",
+    "lab-003/assets/public/",
+    "lab-003/docs/",
+    "lab-003/output/",
+    "lab-003/web/article-copy.html",
+  ];
+  const { stdout } = await run("git", ["ls-files", "--", ...publicationPaths], { cwd: repository });
+  assert.equal(stdout.trim(), "");
+  const staging = await readFile(new URL("../scripts/stage-pages.mjs", web), "utf8");
+  assert.doesNotMatch(staging, /article-copy|assets\/figures|assets\/public/);
 });
