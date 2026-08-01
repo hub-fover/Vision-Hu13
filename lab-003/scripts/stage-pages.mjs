@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const source = resolve(scriptDirectory, "../web");
 const figureSource = resolve(scriptDirectory, "../assets/figures");
+const publicSource = resolve(scriptDirectory, "../assets/public");
 const defaultDestination = resolve(scriptDirectory, "../../web/lab-003");
 const excluded = new Set(["node_modules", "package.json", "package-lock.json", ".gitignore", "README.md", "manifest.local.json", "test-results"]);
 const figures = [
@@ -17,6 +18,7 @@ const required = [
   "index.html", "article-copy.html", "styles.css", "vendor/opencv.js", "assets/samples/manifest.json",
   "assets/samples/peyrou/under.jpg", "assets/samples/peyrou/mean.jpg", "assets/samples/peyrou/over.jpg",
   ...figures.map((name) => `assets/figures/${name}`),
+  "assets/public/lab-003-qr.png",
   ...["alignment", "analysis", "app", "capture", "contracts", "crop", "errors", "fusion", "motion", "opencv-adapter", "pyramid", "state", "weights", "worker-client"].map((name) => `js/${name}.js`),
   "js/fusion.worker.js",
 ];
@@ -73,6 +75,13 @@ export async function validatePagesStage(destination = defaultDestination) {
     try { if (!(await stat(resolve(root, path))).isFile()) throw new Error(); }
     catch { throw new Error(`copy-page figure missing from Pages staging: ${path}`); }
   }
+  const publicQrUrl = "https://hub-fover.github.io/Vision-Hu13/lab-003/assets/public/lab-003-qr.png";
+  if ((copyPage.match(new RegExp(publicQrUrl, "g")) || []).length !== 1) {
+    throw new Error("article-copy.html must reference the public QR code once");
+  }
+  if (!(await stat(resolve(root, "assets/public/lab-003-qr.png"))).isFile()) {
+    throw new Error("copy-page QR code missing from Pages staging");
+  }
   if (/<script[^>]+src=["']https?:\/\//i.test(copyPage)) throw new Error("article-copy.html must not load remote scripts");
   return { files: await files(root), opencvGzipBytes };
 }
@@ -83,6 +92,7 @@ export async function stagePages(destination = defaultDestination) {
   await mkdir(target, { recursive: true });
   await cp(source, target, { recursive: true, filter: (path) => path === source || !excluded.has(path.split(/[\\/]/).at(-1)) });
   await cp(figureSource, resolve(target, "assets/figures"), { recursive: true });
+  await cp(publicSource, resolve(target, "assets/public"), { recursive: true, filter: (path) => path === publicSource || path.split(/[\\/]/).at(-1) === "lab-003-qr.png" });
   return validatePagesStage(target);
 }
 

@@ -4,10 +4,12 @@ import hashlib
 import json
 from pathlib import Path
 
+import cv2
 from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[1]
+LAB_URL = "https://hub-fover.github.io/Vision-Hu13/lab-003/"
 
 
 def digest(path: Path) -> str:
@@ -47,10 +49,14 @@ def main() -> None:
     for name in ("cover.jpg", "share.jpg", "static-comparison.jpg", "lab-003-browser-demo.webm"):
         path = ROOT / "assets" / "public" / name
         assert path.is_file() and path.stat().st_size > 50_000, path
+    qr_path = ROOT / "assets" / "public" / "lab-003-qr.png"
+    assert qr_path.is_file(), qr_path
+    decoded, _, _ = cv2.QRCodeDetector().detectAndDecode(cv2.imread(str(qr_path)))
+    assert decoded == LAB_URL, decoded
     metadata = json.loads((ROOT / "assets" / "public" / "demo-metadata.json").read_text(encoding="utf-8"))
     assert metadata["kind"] == "real-browser-recording"
     assert "not presented as a physical-device" in metadata["disclaimer"]
-    print(f"LAB 003 public assets: PASS ({len(figures)} figures, {len(expected)} pinned sources)")
+    print(f"LAB 003 public assets: PASS ({len(figures)} figures, QR verified, {len(expected)} pinned sources)")
 
 
 if __name__ == "__main__":

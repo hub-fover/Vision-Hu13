@@ -1,32 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>article_排版_石墨极简(graphite-minimal) · 公众号排版预览</title>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LAB 003 · 公众号排版预览</title>
 <style>
-  body{margin:0;background:#eef0f2;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;-webkit-text-size-adjust:100%;}
-  .gzh-toolbar{position:fixed;top:0;left:0;right:0;height:54px;background:#ffffff;box-shadow:0 1px 10px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:99;}
-  .gzh-hint{font-size:13px;color:#6b7280;line-height:1.4;}
-  .gzh-hint b{color:#111827;}
-  .gzh-copy{background:#059669;color:#fff;border:0;border-radius:9px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(5,150,105,.28);white-space:nowrap;transition:transform .08s,background .15s;}
-  .gzh-copy:hover{background:#047857;}
-  .gzh-copy:active{transform:translateY(1px);}
-  .gzh-toast{position:fixed;top:66px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s;z-index:100;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:88vw;text-align:center;}
-  .gzh-toast.show{opacity:1;}
-  .gzh-stage{max-width:700px;margin:78px auto 64px;padding:0 8px;}
-  @media(max-width:520px){.gzh-hint{max-width:150px;}}
-</style>
-</head>
-<body>
-<div class="gzh-toolbar">
-  <span class="gzh-hint">👇 下方是排版效果 · 点右侧 <b>复制</b> 直接粘到公众号</span>
-  <button class="gzh-copy" id="gzhCopyBtn" onclick="gzhCopy()">📋 复制到公众号</button>
-</div>
-<div class="gzh-toast" id="gzhToast"></div>
-<div class="gzh-stage">
-  <div id="gzh-content">
-<section style="max-width:677px;margin:0 auto;background:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:#52525B;line-height:1.8;letter-spacing:0;overflow-x:hidden;">
+body{margin:0;background:#eef0f2;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;}
+.gzh-toolbar{position:fixed;top:0;left:0;right:0;height:54px;background:#fff;box-shadow:0 1px 10px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:99;}
+.gzh-hint{font-size:13px;color:#6b7280;line-height:1.4;} .gzh-copy{background:#059669;color:#fff;border:0;border-radius:9px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;}
+.gzh-stage{max-width:700px;margin:78px auto 64px;padding:0 8px;} .gzh-toast{position:fixed;top:66px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;opacity:0;z-index:100;} .gzh-toast.show{opacity:1;}
+@media(max-width:520px){.gzh-hint{max-width:150px;}}
+</style></head>
+<body><div class="gzh-toolbar"><span class="gzh-hint">下方是排版效果 · 点右侧复制直接粘到公众号</span><button class="gzh-copy" id="gzhCopyBtn" type="button">复制到公众号</button></div><div class="gzh-toast" id="gzhToast"></div><div class="gzh-stage"><div id="gzh-content"><section style="max-width:677px;margin:0 auto;background:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:#52525B;line-height:1.8;letter-spacing:0;overflow-x:hidden;">
 <section style="margin:10px 10px 40px;padding:32px 24px 24px;border-top:1px solid #E4E4E7;border-bottom:1px solid #E4E4E7;background:#FFFFFF;">
   <p style="font-size:11px;color:#A1A1AA;letter-spacing:2px;margin:0 0 18px;font-weight:400;"><span leaf="">QUOTE</span></p>
   <p style="font-size:18px;font-weight:700;color:#27272A;margin:0 0 8px;line-height:1.7;letter-spacing:0;"><span leaf="">一张照片容易顾此失彼。把暗处、正常区域和亮处各拍一张，程序就能从三张里挑出各自更可靠的部分。</span></p>
@@ -47,6 +30,8 @@
 </section>
 <p style="font-size:12px;color:#A1A1AA;text-align:center;margin:0 10px 28px;letter-spacing:0;"><span leaf="">— 偏暗、正常、偏亮与融合结果</span></p>
 <section style="padding:0 10px;"><p style="margin:0 0 22px;font-size:15px;line-height:1.8;text-align:justify;color:#52525B;letter-spacing:0;"><span leaf="">换成自己的照片也不需要专业相机 App。用手机原生相机依次拍三张，保持构图不变，再用系统亮度滑杆让画面明显变暗、恢复正常、明显变亮。网页会自动判断顺序，所以从相册选择时不必手工排序。</span></p></section>
+<section style="padding:0 10px;"><p style="margin:0 0 22px;font-size:15px;line-height:1.8;text-align:justify;color:#52525B;letter-spacing:0;"><span leaf="">第一次尝试，优先选同时有亮处和暗处、主体基本静止、纹理清楚的场景：窗边人物、日落建筑、夜景建筑或灯牌、室内灯光下的静物都可以。先避开行人、车辆、快速摆动的树叶、水面，也避开大面积纯色墙面或天空，以及近距离前后景差异很大的场景。</span></p></section>
+<section style="padding:0 10px;"><p style="margin:0 0 22px;font-size:15px;line-height:1.8;text-align:justify;color:#52525B;letter-spacing:0;"><span leaf="">拍照时用手机原生相机就够了。双手握稳，或把手机靠在栏杆、桌面上；三次拍摄保持机位、方向、焦段和变焦不变。依次拍一张偏暗、一张正常、一张偏亮，中间只用系统亮度滑杆改变画面明暗，不需要精确 EV。按下下一次快门前，等人物和主体重新稳定下来。</span></p></section>
 <section style="padding:0 10px;"><p style="margin:0 0 22px;font-size:15px;line-height:1.8;text-align:justify;color:#52525B;letter-spacing:0;"><span leaf="">照片只留在</span><span style="border-bottom:2px solid #52525B;font-weight:600;color:#27272A;"><span leaf="">当前页面内存</span></span><span leaf="">中。没有上传接口，没有 Cookie，也不会写入浏览器 Storage。处理结束或关闭页面后，临时图像对象会被释放。</span></p></section>
 <section style="margin-top:56px;margin-bottom:32px;padding:0 10px;">
   <section style="position:relative;padding-bottom:20px;border-bottom:1px solid #E4E4E7;">
@@ -173,45 +158,19 @@
 <section style="padding:0 10px;"><p style="margin:0 0 22px;font-size:15px;line-height:1.8;text-align:justify;color:#52525B;letter-spacing:0;"><span leaf="">LAB 003 直接把三张普通照片融合成一张好看的 JPEG，没有根据曝光时间恢复场景的</span><span style="border-bottom:2px solid #52525B;font-weight:600;color:#27272A;"><span leaf="">绝对辐亮度</span></span><span leaf="">，也没有生成可供专业色调映射的 HDR 辐亮度图。</span></p></section>
 <section style="padding:0 10px;"><p style="margin:0 0 22px;font-size:15px;line-height:1.8;text-align:justify;color:#52525B;letter-spacing:0;"><span leaf="">它更不是 Apple、Google 或其他手机厂商的内部 HDR 管线。厂商系统可能同时使用更多帧、传感器 RAW 数据、语义分割、光流、去噪和专用硬件。这个实验刻意只保留可解释、可在浏览器本地运行的一条</span><span style="border-bottom:2px solid #52525B;font-weight:600;color:#27272A;"><span leaf="">教学管线</span></span><span leaf="">。</span></p></section>
 <section style="padding:0 10px;"><p style="margin:0 0 22px;font-size:15px;line-height:1.8;text-align:justify;color:#52525B;letter-spacing:0;"><span leaf="">边界说清楚后，它仍然很好用：普通手机、系统相机、三张 JPEG，就能亲手看见“从不同曝光里挑出更可靠部分”这件事是怎样发生的。</span></p></section>
+<section style="padding:0 10px;"><p style="margin:0 0 22px;font-size:15px;line-height:1.8;text-align:justify;color:#52525B;letter-spacing:0;"><span leaf="">公众号里的外部链接可能失效，建议用手机扫描下方二维码打开 LAB 003。第一次使用可以先点“用样例体验”，确认设备能够运行后，再换成自己的</span><span style="border-bottom:2px solid #52525B;font-weight:600;color:#27272A;"><span leaf="">三张照片</span></span><span leaf="">。</span></p></section>
+<section style="border:1px solid #E4E4E7;padding:4px;margin:0 10px 8px;">
+  <section style="margin:0;overflow:hidden;"><span leaf=""><img src="../assets/public/lab-003-qr.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></span></section>
+</section>
+<p style="font-size:12px;color:#A1A1AA;text-align:center;margin:0 10px 28px;letter-spacing:0;"><span leaf="">— 扫码打开 LAB 003 曝光融合实验</span></p>
+<section style="margin:38px 10px 20px;padding:20px 22px;background:#FAFAFA;border-top:2px solid #27272A;"><p style="font-size:11px;color:#A1A1AA;letter-spacing:2px;margin:0 0 9px;"><span leaf="">LAB 系列承诺</span></p><p style="margin:0;font-size:14px;line-height:1.8;color:#52525B;"><span leaf="">每一期都提供可以运行、可以检查、也会明确失败边界的计算机视觉实验。</span></p></section>
+<section style="margin:0 10px;padding:26px 12px 12px;border-top:1px solid #E4E4E7;text-align:center;"><p style="font-size:15px;font-weight:800;color:#27272A;margin:0;"><span leaf="">我是 Vision Hu13，持续用可运行的实验拆解计算机视觉。</span></p></section>
+<section style="padding:0 22px 24px;text-align:center;"><p style="font-size:13px;color:#64748B;margin:0;line-height:1.8;"><span leaf="">如果这次实验对你有帮助，欢迎点赞、在看、转发，我们下篇见。</span></p></section>
 <section style="padding:0 10px;"><section style="text-align:center;margin:0 0 36px;"><section style="display:flex;align-items:center;justify-content:center;">
   <span style="height:1px;width:48px;background:#E4E4E7;margin-right:16px;"><span leaf=""><br></span></span>
   <span style="font-size:10px;color:#A1A1AA;letter-spacing:4px;font-weight:500;"><span leaf="">END</span></span>
   <span style="height:1px;width:48px;background:#E4E4E7;margin-left:16px;"><span leaf=""><br></span></span>
 </section></section></section>
-<section style="padding:0 10px 24px;"><section style="border-top:1px solid #E4E4E7;padding-top:28px;">
-  <p style="margin:0 0 16px;font-size:15px;line-height:1.8;color:#52525B;text-align:justify;"><span leaf="">我是 {{作者名}}，{{一句话简介}}。</span></p>
-  <p style="margin:0;font-size:15px;line-height:1.8;color:#52525B;text-align:justify;"><span leaf="">如果你觉得今天这篇有收获，欢迎</span><strong style="color:#27272A;"><span leaf="">点赞、在看、转发</span></strong><span leaf="">，我们下篇见。</span></p>
-</section></section>
 </section>
-  </div>
-</div>
-<script>
-  function gzhShowToast(msg){
-    var t=document.getElementById('gzhToast');
-    t.textContent=msg;t.classList.add('show');
-    clearTimeout(t._timer);
-    t._timer=setTimeout(function(){t.classList.remove('show');},2800);
-  }
-  function gzhCopy(){
-    var el=document.getElementById('gzh-content');
-    // 选中渲染后的富文本节点并复制（等价于手动 Ctrl+A / Ctrl+C，保留全部样式）
-    var range=document.createRange();
-    range.selectNodeContents(el);
-    var sel=window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-    var ok=false;
-    try{ok=document.execCommand('copy');}catch(e){ok=false;}
-    sel.removeAllRanges();
-    var btn=document.getElementById('gzhCopyBtn');
-    if(ok){
-      gzhShowToast('✅ 已复制！去公众号编辑器按 Ctrl/⌘+V 粘贴即可');
-      var old=btn.textContent;btn.textContent='✅ 已复制';
-      setTimeout(function(){btn.textContent=old;},2200);
-    }else{
-      gzhShowToast('⚠ 自动复制失败，请手动全选(Ctrl/⌘+A)再复制(Ctrl/⌘+C)');
-    }
-  }
-</script>
-</body>
-</html>
+</div></div>
+<script>function gzhShowToast(message){const toast=document.getElementById("gzhToast");toast.textContent=message;toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),2800);}document.getElementById("gzhCopyBtn").addEventListener("click",()=>{const range=document.createRange();range.selectNodeContents(document.getElementById("gzh-content"));const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);let copied=false;try{copied=document.execCommand("copy");}catch{}selection.removeAllRanges();gzhShowToast(copied?"已复制，可直接粘贴到公众号编辑器。":"自动复制失败，请手动全选后复制。");});</script></body></html>

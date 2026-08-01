@@ -47,7 +47,7 @@ test("public article copy writes rich clipboard content and preserves images", a
     });
   });
   await page.goto("/article-copy.html");
-  await expect(page.locator("#copy-content img")).toHaveCount(10);
+  await expect(page.locator("#copy-content img")).toHaveCount(11);
   await page.locator("#copy-button").click();
   await expect(page.locator("#copy-status")).toContainText("\u5df2\u590d\u5236");
   const payload = await page.evaluate(async () => {
@@ -58,11 +58,13 @@ test("public article copy writes rich clipboard content and preserves images", a
     };
   });
   expect(payload.html).toContain("https://hub-fover.github.io/Vision-Hu13/lab-003/assets/figures/");
-  expect((payload.html.match(/<img /g) ?? []).length).toBe(10);
+  expect(payload.html).toContain("https://hub-fover.github.io/Vision-Hu13/lab-003/assets/public/lab-003-qr.png");
+  expect((payload.html.match(/<img /g) ?? []).length).toBe(11);
   expect(payload.html).toContain("<h1 style=");
   expect(payload.html).toContain("<h3 style=");
   expect(payload.html).not.toContain("copy-toolbar");
   expect(payload.html).not.toContain("copy-button");
+  expect(payload.html).not.toContain("href=");
   expect(payload.plain).toContain("LAB 003");
   expect(payload.plain).not.toContain("\u590d\u5236\u4e0b\u65b9\u6b63\u6587");
   const pasted = await page.evaluate((html) => {
@@ -79,10 +81,11 @@ test("public article copy writes rich clipboard content and preserves images", a
       text: target.textContent,
     };
   }, payload.html);
-  expect(pasted.images).toBe(10);
+  expect(pasted.images).toBe(11);
   expect(pasted.headings).toBe(10);
   expect(pasted.styled).toBeGreaterThan(20);
   expect(pasted.text).toContain("\u4e00\u5f20\u7167\u7247\u88c5\u4e0d\u4e0b\u7684\u660e\u6697");
+  expect(pasted.text).toContain("LAB \u7cfb\u5217\u627f\u8bfa");
 });
 
 test("public article copy selects the article when clipboard permission fails", async ({ page }) => {
