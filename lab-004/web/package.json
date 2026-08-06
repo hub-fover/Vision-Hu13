@@ -1,0 +1,12 @@
+{
+  "name": "camera-pose-lab-004-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:opencv": "python ../scripts/build_opencv.py",
+    "test:opencv": "python -m pytest -c ../pyproject.toml ../tests/python/test_opencv_runtime.py",
+    "test:opencv:smoke": "node ../scripts/smoke_opencv.mjs",
+    "vendor:opencv": "python ../scripts/build_opencv.py"
+  }
+}

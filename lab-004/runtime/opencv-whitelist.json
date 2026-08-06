@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "lab004.opencv-runtime.v1",
+  "source": {
+    "repository": "https://github.com/opencv/opencv.git",
+    "tag": "4.12.0",
+    "commit": "49486f61fb25722cbcf586b7f4320921d46fb38e"
+  },
+  "toolchain": {
+    "image": "emscripten/emsdk:4.0.10",
+    "digest": "sha256:90b757eb11fa9a0e3ce4d2d9f76d932a56018e4accc37b5a28b2783751e60eb7"
+  },
+  "modules": ["core", "imgproc", "video", "calib3d"],
+  "symbolsByModule": {
+    "core": [
+      "Mat", "MatVector", "Point", "Point2f", "Size", "Scalar", "TermCriteria",
+      "matFromArray", "matFromImageData", "matFromVec4i", "matFromPoint",
+      "perspectiveTransform", "convertScaleAbs", "copyMakeBorder", "mean", "norm",
+      "split", "merge", "hconcat", "vconcat", "add", "subtract", "multiply", "divide"
+    ],
+    "imgproc": [
+      "cvtColor", "GaussianBlur", "Laplacian", "resize", "goodFeaturesToTrack",
+      "cornerSubPix", "findChessboardCorners", "drawChessboardCorners", "threshold",
+      "blur", "Sobel", "Canny", "warpPerspective", "getPerspectiveTransform",
+      "fillConvexPoly", "rectangle", "line"
+    ],
+    "video": [
+      "calcOpticalFlowPyrLK", "calcOpticalFlowFarneback", "findTransformECC"
+    ],
+    "calib3d": [
+      "solvePnPGeneric", "solvePnP", "solvePnPRansac", "solvePnPRefineLM",
+      "calibrateCamera", "calibrateCameraExtended", "findHomography", "Rodrigues",
+      "projectPoints", "undistort", "initUndistortRectifyMap", "drawFrameAxes"
+    ]
+  },
+  "build": {
+    "cmakeOptions": [
+      "-DBUILD_LIST=core,imgproc,video,calib3d",
+      "-DBUILD_opencv_world=OFF",
+      "-DBUILD_TESTS=OFF",
+      "-DBUILD_PERF_TESTS=OFF",
+      "-DBUILD_EXAMPLES=OFF",
+      "-DBUILD_DOCS=OFF"
+    ],
+    "emscriptenFlags": [
+      "-s MODULARIZE=1",
+      "-s EXPORT_ES6=1",
+      "-s ENVIRONMENT=web,worker",
+      "-s SINGLE_FILE=1",
+      "-s FILESYSTEM=0",
+      "-s ALLOW_MEMORY_GROWTH=0",
+      "-s INITIAL_MEMORY=134217728",
+      "-s MAXIMUM_MEMORY=268435456"
+    ],
+    "memory": {
+      "initialBytes": 134217728,
+      "maximumBytes": 268435456,
+      "allowGrowth": false,
+      "notes": "128 MiB initial, 256 MiB maximum; fixed memory avoids unpredictable Worker growth."
+    },
+    "gzipTargetBytes": 8388608
+  },
+  "artifact": {
+    "filename": "opencv.js",
+    "pagesRelativePath": "./vendor/opencv.js",
+    "singleFileWasm": true,
+    "sameOrigin": true,
+    "workerLazyLoad": true
+  }
+}
