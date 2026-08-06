@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "lab004.contracts.v1",
+  "cornerOrder": ["TL", "TR", "BR", "BL"],
+  "objectFrame": {
+    "origin": "target-center",
+    "xAxis": "plane-right",
+    "yAxis": "plane-up",
+    "zAxis": "plane-out"
+  },
+  "lengthUnit": "metre",
+  "pixelFrame": "exif-corrected-analysis-image",
+  "analysisMaxSide": 1280,
+  "maxWorkingSetMiB": 320,
+  "quality": {
+    "metric": "normalized-rms",
+    "stableMax": 0.0015,
+    "referenceOnlyMax": 0.0035
+  },
+  "trackingDefaults": {
+    "targetAnalysisFps": 12,
+    "maxTrackedFeatures": 300,
+    "minTrackedFeatures": 12,
+    "minHomographyInlierRatio": 0.60,
+    "maxMedianForwardBackwardErrorPx": 1.5,
+    "maxConsecutiveBadFrames": 3
+  },
+  "calibrationSchema": "lab004.camera-intrinsics.v1",
+  "types": {
+    "PlaneTarget": {
+      "description": "Physical planar rectangle centered at the object-frame origin.",
+      "fields": {"widthM": "positive number", "heightM": "positive number"}
+    },
+    "ImagePoint": {
+      "description": "Pixel coordinate in the EXIF-corrected analysis image.",
+      "fields": {"xPx": "number", "yPx": "number"}
+    },
+    "CameraIntrinsics": {
+      "description": "Pinhole camera matrix, distortion, image size, and provenance.",
+      "fields": {"cameraMatrix": "3x3 numbers", "distortion": "numbers", "imageSizePx": "[width,height]", "source": "calibrated|estimated"}
+    },
+    "CalibrationView": {
+      "description": "One accepted calibration image and its detected object/image correspondences.",
+      "fields": {"imageSizePx": "[width,height]", "objectPointsM": "Nx3 numbers", "imagePointsPx": "Nx2 numbers"}
+    },
+    "CalibrationMetrics": {
+      "description": "Calibration reprojection and view-diversity diagnostics.",
+      "fields": {"rmsPx": "number", "normalizedRms": "number", "acceptedViews": "integer"}
+    },
+    "CalibrationResult": {
+      "description": "Versioned calibrated intrinsics and metrics.",
+      "fields": {"schema": "lab004.camera-intrinsics.v1", "intrinsics": "CameraIntrinsics", "metrics": "CalibrationMetrics"}
+    },
+    "PoseEstimate": {
+      "description": "Object-to-camera rotation and translation with camera-center measurements.",
+      "fields": {"rotationMatrix": "3x3 numbers", "rotationVector": "3 numbers", "translationM": "3 numbers", "cameraCenterM": "3 numbers", "eulerZYXRad": "3 numbers", "normalizedRms": "number", "quality": "stable|reference-only|unstable"}
+    },
+    "TrackingMetrics": {
+      "description": "Per-frame feature tracking acceptance diagnostics.",
+      "fields": {"trackedFeatures": "integer", "homographyInlierRatio": "number", "medianForwardBackwardErrorPx": "number", "consecutiveBadFrames": "integer"}
+    },
+    "MeasurementInterval": {
+      "description": "Central uncertainty interval in metres.",
+      "fields": {"medianM": "number", "lowerM": "number", "upperM": "number", "confidence": "0.90"}
+    },
+    "MeasurementReport": {
+      "description": "Pose-derived distances, offsets, uncertainty, and final quality.",
+      "fields": {"perpendicularDistanceM": "number", "targetCenterDistanceM": "number", "horizontalOffsetM": "number", "verticalOffsetM": "number", "distanceInterval": "MeasurementInterval|null", "quality": "stable|reference-only|unstable"}
+    }
+  },
+  "errorCodes": {
+    "INVALID_DIMENSIONS": "Target or image dimensions are invalid.",
+    "INVALID_QUAD": "The ordered target quadrilateral is invalid.",
+    "TARGET_TOO_SMALL": "The target occupies insufficient analysis-image area.",
+    "TARGET_CLIPPED": "The target touches or extends beyond the analysis image.",
+    "LOW_CONTRAST": "Target contrast is insufficient.",
+    "LOW_TEXTURE": "Trackable target texture is insufficient.",
+    "INSUFFICIENT_VIEW_DIVERSITY": "Calibration views lack geometric diversity.",
+    "CALIBRATION_FAILED": "Camera calibration failed.",
+    "INVALID_CALIBRATION_FILE": "The calibration file is malformed or unsupported.",
+    "INTRINSICS_MISMATCH": "Intrinsics do not match the analysis image or camera.",
+    "POSE_FAILED": "No physically valid pose was found.",
+    "POSE_AMBIGUOUS": "Multiple physically plausible poses remain.",
+    "HIGH_REPROJECTION_ERROR": "Pose reprojection error exceeds the quality gate.",
+    "TRACKING_LOST": "Live target tracking was lost.",
+    "CAMERA_CHANGED": "The active camera no longer matches the pose session.",
+    "PERMISSION_DENIED": "Camera access was denied.",
+    "UNSUPPORTED_CAMERA": "The camera or image format is unsupported.",
+    "CANCELLED": "The operation was cancelled."
+  }
+}
