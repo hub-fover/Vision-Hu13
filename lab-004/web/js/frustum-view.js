@@ -1,0 +1,6 @@
+import * as THREE from '../vendor/three.module.js';
+export class FrustumView { constructor(container){this.container=container;this.scene=new THREE.Scene();this.camera=new THREE.PerspectiveCamera(45,1,.01,100);this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});container?.append(this.renderer.domElement);this.scene.add(new THREE.AxesHelper(1));this.#resize();}
+ #resize(){if(!this.container)return;const r=this.container.getBoundingClientRect();this.renderer.setSize(r.width,Math.max(240,r.width*.56),false);this.camera.aspect=r.width/Math.max(240,r.width*.56);this.camera.position.set(0,0,3);this.camera.lookAt(0,0,0);this.camera.updateProjectionMatrix();}
+ render(result){if(!result)return;this.scene.clear();this.scene.add(new THREE.AxesHelper(1));const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-1,1,0),new THREE.Vector3(1,1,0),new THREE.Vector3(1,-1,0),new THREE.Vector3(-1,-1,0),new THREE.Vector3(-1,1,0)]);this.scene.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:0x22d3ee})));this.renderer.render(this.scene,this.camera);}
+ dispose(){this.scene.traverse(o=>{o.geometry?.dispose();if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material?.dispose();});this.renderer.dispose();this.renderer.domElement.remove();}
+}
