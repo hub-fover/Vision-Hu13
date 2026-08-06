@@ -40,7 +40,7 @@
     },
     "CameraIntrinsics": {
       "description": "Pinhole camera matrix, distortion, image size, and provenance.",
-      "fields": {"cameraMatrix": "3x3 numbers", "distortion": "numbers", "imageSizePx": "[width,height]", "source": "calibrated|estimated"}
+      "fields": {"cameraMatrix": "3x3 numbers", "distortion": "numbers", "imageSizePx": "[width,height]", "source": "quick-calibrated|enhanced-calibrated|estimated"}
     },
     "CalibrationView": {
       "description": "One accepted calibration image and its detected object/image correspondences.",

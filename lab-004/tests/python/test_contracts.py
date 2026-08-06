@@ -92,6 +92,9 @@ def test_contracts_fix_tracking_and_calibration_schema() -> None:
         "maxConsecutiveBadFrames": 3,
     }
     assert contracts["calibrationSchema"] == "lab004.camera-intrinsics.v1"
+    assert contracts["types"]["CameraIntrinsics"]["fields"]["source"] == (
+        "quick-calibrated|enhanced-calibrated|estimated"
+    )
 
 
 def test_contracts_document_all_public_types_and_stable_errors() -> None:

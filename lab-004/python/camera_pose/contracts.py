@@ -11,7 +11,9 @@ from numpy.typing import NDArray
 
 
 Quality = Literal["stable", "reference-only", "unstable"]
-IntrinsicsSource = Literal["calibrated", "estimated"]
+IntrinsicsSource = Literal[
+    "calibrated", "quick-calibrated", "enhanced-calibrated", "estimated"
+]
 
 CORNER_ORDER = ("TL", "TR", "BR", "BL")
 OBJECT_FRAME = MappingProxyType(
