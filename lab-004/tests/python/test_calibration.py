@@ -120,10 +120,9 @@ def test_quick_calibration_rejects_malformed_object_rectangles_before_opencv(
     mutation(object_points)
     captures[-1] = replace(changed, object_points_m=object_points)
 
-    with pytest.raises(CameraPoseError) as caught:
-        api.calibrate_quick(captures)
-
-    assert caught.value.code == code
+    assessment = api.assess_calibration_capture(captures[-1])
+    assert not assessment.accepted
+    assert assessment.reason_code == code
 
 
 def test_quick_calibration_rejects_inconsistent_rectangle_dimensions() -> None:
@@ -134,10 +133,25 @@ def test_quick_calibration_rejects_inconsistent_rectangle_dimensions() -> None:
     object_points[:, 0] *= 0.8
     captures[-1] = replace(changed, object_points_m=object_points)
 
-    with pytest.raises(CameraPoseError) as caught:
-        api.calibrate_quick(captures)
+    result = api.calibrate_quick(captures)
 
-    assert caught.value.code == "INVALID_DIMENSIONS"
+    assert result.metrics.accepted_views == 9
+
+
+def test_quick_calibration_filters_one_malformed_view_when_eight_valid_remain() -> None:
+    api = calibration_api()
+    captures = synthetic_captures(count=9)
+    malformed = captures[-1]
+    object_points = np.asarray(malformed.object_points_m).copy()
+    object_points[0, 2] = 0.01
+    captures[-1] = replace(malformed, object_points_m=object_points, name="malformed")
+
+    result = api.calibrate_quick(captures)
+
+    assessment = api.assess_calibration_capture(captures[-1])
+    assert not assessment.accepted
+    assert assessment.reason_code == "INVALID_DIMENSIONS"
+    assert result.metrics.accepted_views == 8
 
 
 def test_object_plane_tolerance_scales_with_a_small_known_target() -> None:
@@ -287,6 +301,31 @@ def test_calibration_export_rejects_invalid_metric_ranges(tmp_path: Path) -> Non
     invalid = replace(result, metrics=CalibrationMetrics(0.1, 0.1 / math.hypot(1280, 720), -1))
     with pytest.raises(CameraPoseError) as caught:
         api.save_calibration(invalid, tmp_path / "camera.json", synthetic_captures(count=1)[0].identity)
+    assert caught.value.code == "INVALID_CALIBRATION_FILE"
+
+
+@pytest.mark.parametrize("accepted_views", [True, 1.5, "2"])
+def test_calibration_export_requires_true_integer_accepted_views(
+    tmp_path: Path, accepted_views: object
+) -> None:
+    api = calibration_api()
+    result = api.calibrate_quick(synthetic_captures())
+    invalid = replace(
+        result,
+        metrics=CalibrationMetrics(
+            result.metrics.rms_px,
+            result.metrics.normalized_rms,
+            accepted_views,
+        ),
+    )
+
+    with pytest.raises(CameraPoseError) as caught:
+        api.save_calibration(
+            invalid,
+            tmp_path / "camera.json",
+            synthetic_captures(count=1)[0].identity,
+        )
+
     assert caught.value.code == "INVALID_CALIBRATION_FILE"
 
 

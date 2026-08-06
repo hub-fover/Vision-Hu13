@@ -96,9 +96,13 @@ def assess_calibration_capture(capture: CalibrationCapture) -> CalibrationAssess
     ):
         return CalibrationAssessment(capture.name, False, "LOW_TEXTURE", metrics)
     try:
-        _validate_object_rectangle(capture.object_points_m)
+        _, object_width_m, object_height_m = _validate_object_rectangle(
+            capture.object_points_m
+        )
     except CameraPoseError as error:
         return CalibrationAssessment(capture.name, False, error.code, metrics)
+    metrics["objectWidthM"] = object_width_m
+    metrics["objectHeightM"] = object_height_m
     return CalibrationAssessment(capture.name, True, None, metrics)
 
 
@@ -110,36 +114,52 @@ def calibrate_quick(captures: Sequence[CalibrationCapture]) -> CalibrationResult
     _identity_size(identity)
     for capture in captures[1:]:
         _require_same_identity(identity, capture.identity)
-    rectangles = [
-        _validate_object_rectangle(capture.object_points_m) for capture in captures
-    ]
-    reference_points, reference_width, reference_height = rectangles[0]
-    reference_scale = max(reference_width, reference_height)
-    for points, width_m, height_m in rectangles[1:]:
-        if (
-            not math.isclose(
+    assessments = [assess_calibration_capture(capture) for capture in captures]
+    accepted: list[CalibrationCapture] = []
+    reference_points: NDArray[np.float64] | None = None
+    reference_width = reference_height = reference_scale = 0.0
+    for index, (capture, assessment) in enumerate(zip(captures, assessments)):
+        if not assessment.accepted:
+            continue
+        points, width_m, height_m = _validate_object_rectangle(
+            capture.object_points_m
+        )
+        if reference_points is None:
+            reference_points = points
+            reference_width, reference_height = width_m, height_m
+            reference_scale = max(width_m, height_m)
+            accepted.append(capture)
+            continue
+        consistent = (
+            math.isclose(
                 width_m,
                 reference_width,
                 rel_tol=OBJECT_RECTANGLE_RELATIVE_TOLERANCE,
             )
-            or not math.isclose(
+            and math.isclose(
                 height_m,
                 reference_height,
                 rel_tol=OBJECT_RECTANGLE_RELATIVE_TOLERANCE,
             )
-            or not np.allclose(
+            and np.allclose(
                 points,
                 reference_points,
                 rtol=OBJECT_RECTANGLE_RELATIVE_TOLERANCE,
                 atol=OBJECT_RECTANGLE_RELATIVE_TOLERANCE * reference_scale,
             )
-        ):
-            raise CameraPoseError(
-                "INVALID_DIMENSIONS",
-                "All quick-calibration views must use the same ordered rectangle.",
-            )
-    assessments = [assess_calibration_capture(capture) for capture in captures]
-    accepted = [capture for capture, gate in zip(captures, assessments) if gate.accepted]
+        )
+        if consistent:
+            accepted.append(capture)
+            continue
+        metrics = dict(assessment.metrics)
+        metrics["objectWidthM"] = width_m
+        metrics["objectHeightM"] = height_m
+        assessments[index] = CalibrationAssessment(
+            capture.name,
+            False,
+            "INVALID_DIMENSIONS",
+            metrics,
+        )
     if len(accepted) < MIN_QUICK_VIEWS:
         error = CameraPoseError(
             "INSUFFICIENT_VIEW_DIVERSITY",
@@ -453,7 +473,8 @@ def _validate_solution(matrix: NDArray, distortion: NDArray, rms: float, width: 
 
 def _validate_metrics(metrics: CalibrationMetrics, size: tuple[int, int]) -> None:
     if (
-        metrics.accepted_views < 1
+        type(metrics.accepted_views) is not int
+        or metrics.accepted_views < 1
         or not math.isfinite(metrics.normalized_rms)
         or metrics.normalized_rms < 0
         or not math.isclose(
