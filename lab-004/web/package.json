@@ -11,7 +11,9 @@
     "build:opencv": "python ../scripts/build_opencv.py",
     "test:opencv": "python -m pytest -c ../pyproject.toml ../tests/python/test_opencv_runtime.py",
     "test:opencv:smoke": "node ../scripts/smoke_opencv.mjs",
-    "vendor:opencv": "python ../scripts/build_opencv.py"
+    "vendor:opencv": "python ../scripts/build_opencv.py",
+    "build:pages": "node ../scripts/stage-pages.mjs ../../web/lab-004",
+    "validate:pages": "node ../scripts/stage-pages.mjs --validate-only ../../web/lab-004"
   },
   "dependencies": {
     "three": "0.185.1"

@@ -1,0 +1,12 @@
+{
+  "schema": "lab004.samples.v1",
+  "title": "OpenCV checkerboard calibration reference",
+  "sourceRepository": "opencv/opencv",
+  "sourceCommit": "49486f61fb25722cbcf586b7f4320921d46fb38e",
+  "license": "Apache-2.0",
+  "board": { "innerCorners": [9, 6], "squareSizeM": 0.025 },
+  "processing": "The public reference is kept same-origin and is used only to exercise the checkerboard selection flow. It is not a door/window accuracy claim.",
+  "samples": [
+    { "path": "../checkerboard-reference.svg", "sourcePath": "samples/data/left01.jpg", "sha256": "e471dc87caed84c28738022b9499f23250e8a50c04d2fe8b3b58f97bb500237b", "width": 800, "height": 600 }
+  ]
+}

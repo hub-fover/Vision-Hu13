@@ -1,4 +1,4 @@
-export const SAMPLE_MANIFEST={id:'checkerboard-reference',title:'开放许可棋盘格样例',license:'CC0',source:'https://commons.wikimedia.org/wiki/File:Checkerboard_pattern.svg',url:'../assets/checkerboard-reference.svg'};
+export const SAMPLE_MANIFEST={id:'checkerboard-reference',title:'OpenCV checkerboard reference',license:'Apache-2.0',source:'opencv/opencv pinned sample manifest',url:'../assets/checkerboard-reference.svg'};
 export function createImageInput(){const input=document.createElement('input');input.type='file';input.accept='image/*';input.capture='environment';return input;}
 export async function requestRearCamera(){if(!navigator.mediaDevices?.getUserMedia){const e=new Error('UNSUPPORTED_CAMERA');e.code='UNSUPPORTED_CAMERA';throw e;}try{return await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});}catch(e){const x=new Error(e.name==='NotAllowedError'?'PERMISSION_DENIED':'UNSUPPORTED_CAMERA');x.code=x.message;throw x;}}
 export function scaleToAnalysis(width,height,maxSide=1280){const scale=Math.min(1,maxSide/Math.max(width,height));return {width:Math.round(width*scale),height:Math.round(height*scale),scale};}

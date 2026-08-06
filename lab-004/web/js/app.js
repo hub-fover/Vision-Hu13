@@ -15,6 +15,7 @@ let stream;
 let frozenBitmap;
 let liveTimer;
 let lastUnit='mm';
+let imageObjectUrl;
 const canvas = $('overlayCanvas');
 const image = $('photoImage');
 const editor = new QuadEditor(canvas);
@@ -30,7 +31,7 @@ function render() {
   $('estimateButton').disabled = !(state.image && state.quad && state.target.widthM > 0 && state.target.heightM > 0) || state.status === 'running';
   $('status').textContent = state.lastError ? describeError(state.lastError) : '加载样例或照片后，用四角点标记目标。';
   $('acceptedCount').textContent = state.calibration.views.length;
-  if (!state.result) { $('metrics').replaceChildren(); $('shareResult').disabled=true; return; }
+  if (!state.result) { $('metrics').replaceChildren(); $('shareResult').disabled=true; canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height); return; }
   const interval=state.result.distanceInterval;
   const items = [['垂直距离', state.result.perpendicularDistanceM], ['中心距离', state.result.targetCenterDistanceM], ['水平偏移', state.result.horizontalOffsetM], ['垂直偏移', state.result.verticalOffsetM], ['中央 90% 区间',interval?`${interval.lowerM.toFixed(3)}–${interval.upperM.toFixed(3)} m`:'—'], ['质量', state.result.quality], ['重投影 RMS', `${state.result.reprojectionRmsPx} px`], ['内参来源',state.result.calibrationSource]];
   $('metrics').innerHTML = items.map(([key, value]) => `<div class="metric"><small>${key}</small><br><strong>${typeof value === 'number' ? value.toFixed(3) : value}</strong></div>`).join('');
@@ -40,7 +41,9 @@ function render() {
 }
 
 async function loadFile(file) {
+  if (imageObjectUrl) URL.revokeObjectURL(imageObjectUrl);
   const url = URL.createObjectURL(file);
+  imageObjectUrl = url;
   image.src = url;
   await image.decode();
   canvas.width = image.naturalWidth;
@@ -92,7 +95,7 @@ $('acceptView').onclick = async () => { if(!state.quad||!frozenBitmap){$('calibr
 $('exportCalibration').onclick = () => { const result=state.calibration.result;if(!result){$('calibrationStatus').textContent='至少接受八个有效视角后才能导出。';return;}const blob=new Blob([JSON.stringify(result)],{type:'application/json'}); const anchor=document.createElement('a'); anchor.href=URL.createObjectURL(blob);anchor.download='camera-intrinsics.json';anchor.click(); };
 $('importCalibration').onchange = async event => { try { const value=JSON.parse(await event.target.files[0].text()); if(value.schema!=='lab004.camera-intrinsics.v1'||!value.intrinsics||!value.metrics) throw new Error(); dispatch({type:'CAL_RESULT',result:value});$('calibrationStatus').textContent='标定文件已导入（仅内存）。'; } catch { $('calibrationStatus').textContent='标定文件格式无效。'; } };
 $('shareResult').onclick=async()=>{const text=JSON.stringify(state.result,null,2);if(navigator.share)try{await navigator.share({title:'LAB004 相机姿态结果',text});return;}catch{}const blob=new Blob([text],{type:'application/json'});const anchor=document.createElement('a');anchor.href=URL.createObjectURL(blob);anchor.download='camera-pose-result.json';anchor.click();};
-window.addEventListener('pagehide',()=>{stream?.getTracks().forEach(track=>track.stop());workerClient?.terminate();frustum.dispose();});
+window.addEventListener('pagehide',()=>{clearTimeout(liveTimer);stream?.getTracks().forEach(track=>track.stop());frozenBitmap?.close?.();if(imageObjectUrl)URL.revokeObjectURL(imageObjectUrl);workerClient?.terminate();frustum.dispose();});
 render();
 
 async function initLiveTrack(){workerClient??=new WorkerClient();const frame=await createImageBitmap(frozenBitmap);const quad=state.quad||[[0,0],[frame.width,0],[frame.width,frame.height],[0,frame.height]];activeRequest=workerClient.request('initTrack',{bitmap:frame,quad,imageSizePx:[frame.width,frame.height],target:state.target},[frame]);try{const result=await activeRequest;dispatch({type:'TRACK_INIT'});dispatch({type:'TRACK_GOOD',result});$('reinitializeTrack').disabled=false;}catch(error){dispatch({type:'TRACK_BAD'});if(state.tracking.badFrames>=3)$('reinitializeTrack').disabled=false;}}

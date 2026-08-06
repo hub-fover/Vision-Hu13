@@ -9,6 +9,36 @@ permissions:
   contents: read
 
 jobs:
+  opencv-lab004:
+    name: Build pinned LAB 004 OpenCV.js runtime
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Check out pinned OpenCV source
+        uses: actions/checkout@v6
+        with:
+          repository: opencv/opencv
+          ref: 49486f61fb25722cbcf586b7f4320921d46fb38e
+          path: opencv-src
+          fetch-depth: 1
+      - name: Build runtime in pinned Emscripten image
+        run: python lab-004/scripts/build_opencv.py --source-dir opencv-src --output-dir lab-004/web/vendor --manifest lab-004/web/vendor/manifest.json
+      - name: Run runtime symbol and numerical smoke checks
+        run: |
+          python -m pytest -c lab-004/pyproject.toml lab-004/tests/python/test_opencv_runtime.py
+          test -f lab-004/web/vendor/opencv.js
+          node lab-004/scripts/smoke_opencv.mjs lab-004/web/vendor/opencv.js
+      - name: Upload LAB 004 runtime artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lab004-opencv-${{ github.sha }}
+          path: |
+            lab-004/web/vendor/opencv.js
+            lab-004/web/vendor/manifest.json
+          if-no-files-found: error
+          retention-days: 14
+
   python:
     name: Python ${{ matrix.python-version }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -33,6 +63,8 @@ jobs:
             lab-002/requirements-lock.txt
             lab-003/pyproject.toml
             lab-003/requirements-lock.txt
+            lab-004/pyproject.toml
+            lab-004/requirements-lock.txt
 
       - name: Set up Node.js for cross-runtime validation
         uses: actions/setup-node@v6
@@ -42,6 +74,7 @@ jobs:
           cache-dependency-path: |
             lab-002/web/package-lock.json
             lab-003/web/package-lock.json
+            lab-004/web/package-lock.json
 
       - name: Install CJK fonts on Linux
         if: runner.os == 'Linux'
@@ -50,7 +83,7 @@ jobs:
           sudo apt-get install --yes fonts-noto-cjk
 
       - name: Install Python dependencies
-        run: python -m pip install -e ".[dev]" -e "./lab-002[test]" -e "./lab-003[test]"
+        run: python -m pip install -e ".[dev]" -e "./lab-002[test]" -e "./lab-003[test]" -e "./lab-004[test]"
 
       - name: Install LAB 002 Web dependencies
         run: npm ci --prefix lab-002/web
@@ -76,8 +109,15 @@ jobs:
       - name: Run LAB 003 cross-runtime acceptance
         run: npm run test:lab003:acceptance
 
+      - name: Run LAB 004 Python tests
+        run: npm run test:lab004:python
+
+      - name: Run LAB 004 cross-runtime contract checks
+        run: npm run test:lab004:cross-runtime
+
   web:
     name: Web, browser, and release validation
+    needs: opencv-lab004
     runs-on: ubuntu-latest
 
     steps:
@@ -93,6 +133,7 @@ jobs:
             package-lock.json
             lab-002/web/package-lock.json
             lab-003/web/package-lock.json
+            lab-004/web/package-lock.json
 
       - name: Set up release-validation Python
         uses: actions/setup-python@v6
@@ -105,6 +146,8 @@ jobs:
             lab-002/requirements-lock.txt
             lab-003/pyproject.toml
             lab-003/requirements-lock.txt
+            lab-004/pyproject.toml
+            lab-004/requirements-lock.txt
 
       - name: Install Node dependencies
         run: npm ci
@@ -115,8 +158,17 @@ jobs:
       - name: Install LAB 003 Web dependencies
         run: npm ci --prefix lab-003/web
 
+      - name: Install LAB 004 Web dependencies
+        run: npm ci --prefix lab-004/web
+
+      - name: Download the CI-built LAB 004 runtime
+        uses: actions/download-artifact@v4
+        with:
+          name: lab004-opencv-${{ github.sha }}
+          path: lab-004/web/vendor
+
       - name: Install release-validation Python dependencies
-        run: python -m pip install -e ".[dev]" -e "./lab-002[test]" -e "./lab-003[test]"
+        run: python -m pip install -e ".[dev]" -e "./lab-002[test]" -e "./lab-003[test]" -e "./lab-004[test]"
 
       - name: Run LAB 001 Node regression tests
         run: npm run test:web
@@ -139,6 +191,12 @@ jobs:
       - name: Run LAB 003 real Worker and Pixel 7 tests
         run: npm run test:lab003:e2e
 
+      - name: Run LAB 004 Web tests
+        run: npm run test:lab004:web
+
+      - name: Run LAB 004 real Worker and Pixel 7 tests
+        run: npm run test:lab004:e2e
+
       - name: Stage LAB 002 Pages artifact
         run: npm run build:lab002
 
@@ -150,6 +208,12 @@ jobs:
 
       - name: Validate LAB 003 runtime release
         run: npm run validate:lab003:release
+
+      - name: Stage LAB 004 Pages artifact
+        run: npm run build:lab004
+
+      - name: Validate LAB 004 Pages staging
+        run: npm run validate:lab004:release
 
       - name: Validate cross-runtime, provenance, figures, and Pages
         run: npm run validate:lab002:release
