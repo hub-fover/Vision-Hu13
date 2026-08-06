@@ -28,6 +28,12 @@ MIN_LAPLACIAN_VARIANCE = 50.0
 MIN_GRAYSCALE_STDDEV = 12.0
 MAX_CORNER_UNCERTAINTY_PX = 2.0
 MIN_NORMAL_SPAN_DEG = 20.0
+OBJECT_RECTANGLE_RELATIVE_TOLERANCE = 1e-4
+_CALIBRATION_SOURCES = {
+    "estimated",
+    "quick-calibrated",
+    "enhanced-calibrated",
+}
 
 
 @dataclass(frozen=True)
@@ -90,7 +96,7 @@ def assess_calibration_capture(capture: CalibrationCapture) -> CalibrationAssess
     ):
         return CalibrationAssessment(capture.name, False, "LOW_TEXTURE", metrics)
     try:
-        _object_points(capture.object_points_m, expected=4)
+        _validate_object_rectangle(capture.object_points_m)
     except CameraPoseError as error:
         return CalibrationAssessment(capture.name, False, error.code, metrics)
     return CalibrationAssessment(capture.name, True, None, metrics)
@@ -104,6 +110,34 @@ def calibrate_quick(captures: Sequence[CalibrationCapture]) -> CalibrationResult
     _identity_size(identity)
     for capture in captures[1:]:
         _require_same_identity(identity, capture.identity)
+    rectangles = [
+        _validate_object_rectangle(capture.object_points_m) for capture in captures
+    ]
+    reference_points, reference_width, reference_height = rectangles[0]
+    reference_scale = max(reference_width, reference_height)
+    for points, width_m, height_m in rectangles[1:]:
+        if (
+            not math.isclose(
+                width_m,
+                reference_width,
+                rel_tol=OBJECT_RECTANGLE_RELATIVE_TOLERANCE,
+            )
+            or not math.isclose(
+                height_m,
+                reference_height,
+                rel_tol=OBJECT_RECTANGLE_RELATIVE_TOLERANCE,
+            )
+            or not np.allclose(
+                points,
+                reference_points,
+                rtol=OBJECT_RECTANGLE_RELATIVE_TOLERANCE,
+                atol=OBJECT_RECTANGLE_RELATIVE_TOLERANCE * reference_scale,
+            )
+        ):
+            raise CameraPoseError(
+                "INVALID_DIMENSIONS",
+                "All quick-calibration views must use the same ordered rectangle.",
+            )
     assessments = [assess_calibration_capture(capture) for capture in captures]
     accepted = [capture for capture, gate in zip(captures, assessments) if gate.accepted]
     if len(accepted) < MIN_QUICK_VIEWS:
@@ -198,6 +232,8 @@ def calibrate_enhanced_checkerboard(
 def save_calibration(result: CalibrationResult, path: str | Path, identity: CameraIdentity) -> None:
     """Write canonical, finite calibration JSON."""
     _identity_size(identity)
+    if result.intrinsics.source not in _CALIBRATION_SOURCES:
+        raise CameraPoseError("INVALID_CALIBRATION_FILE")
     if result.intrinsics.image_size_px != identity.image_size_px:
         raise CameraPoseError("INTRINSICS_MISMATCH")
     _validate_solution(
@@ -240,10 +276,17 @@ def load_calibration(path: str | Path, identity: CameraIdentity) -> CalibrationR
         distortion = np.asarray(intrinsics_data["distortion"], np.float64).reshape(-1)
         old_size = _json_image_size(intrinsics_data["imageSizePx"])
         source = intrinsics_data["source"]
-        if source not in {"quick-calibrated", "enhanced-calibrated", "calibrated"}:
+        if source not in _CALIBRATION_SOURCES:
             raise ValueError("source")
         metrics_data = data["metrics"]
-        metrics = CalibrationMetrics(float(metrics_data["rmsPx"]), float(metrics_data["normalizedRms"]), int(metrics_data["acceptedViews"]))
+        accepted_views = metrics_data["acceptedViews"]
+        if type(accepted_views) is not int:
+            raise ValueError("acceptedViews")
+        metrics = CalibrationMetrics(
+            float(metrics_data["rmsPx"]),
+            float(metrics_data["normalizedRms"]),
+            accepted_views,
+        )
         _validate_solution(matrix, distortion, metrics.rms_px, *old_size)
         _validate_metrics(metrics, old_size)
     except CameraPoseError:
@@ -293,6 +336,66 @@ def _object_points(value: ArrayLike, expected: int) -> NDArray[np.float64]:
     return points
 
 
+def _validate_object_rectangle(
+    value: ArrayLike,
+) -> tuple[NDArray[np.float64], float, float]:
+    """Validate TL,TR,BR,BL object points within a 1e-4 relative tolerance."""
+    points = _object_points(value, expected=4)
+    scale = max(
+        float(np.ptp(points[:, 0])),
+        float(np.ptp(points[:, 1])),
+        np.finfo(np.float64).eps,
+    )
+    absolute_tolerance = OBJECT_RECTANGLE_RELATIVE_TOLERANCE * scale
+    if (
+        np.ptp(points[:, 2]) > absolute_tolerance
+        or np.max(np.abs(points[:, 2])) > absolute_tolerance
+    ):
+        raise CameraPoseError("INVALID_DIMENSIONS", "Object points must lie on z=0.")
+
+    planar = points[:, :2]
+    distances = np.asarray(
+        [
+            np.linalg.norm(planar[first] - planar[second])
+            for first in range(4)
+            for second in range(first + 1, 4)
+        ],
+        dtype=np.float64,
+    )
+    if float(distances.min()) <= absolute_tolerance:
+        raise CameraPoseError("INVALID_QUAD", "Object corners must be unique.")
+
+    edges = np.roll(planar, -1, axis=0) - planar
+    lengths = np.linalg.norm(edges, axis=1)
+    if (
+        np.any(lengths <= absolute_tolerance)
+        or not math.isclose(
+            float(lengths[0]),
+            float(lengths[2]),
+            rel_tol=OBJECT_RECTANGLE_RELATIVE_TOLERANCE,
+        )
+        or not math.isclose(
+            float(lengths[1]),
+            float(lengths[3]),
+            rel_tol=OBJECT_RECTANGLE_RELATIVE_TOLERANCE,
+        )
+    ):
+        raise CameraPoseError("INVALID_QUAD", "Object edge cycle is not rectangular.")
+    for index in range(4):
+        adjacent = float(np.dot(edges[index], edges[(index + 1) % 4]))
+        if abs(adjacent) > (
+            OBJECT_RECTANGLE_RELATIVE_TOLERANCE
+            * lengths[index]
+            * lengths[(index + 1) % 4]
+        ):
+            raise CameraPoseError("INVALID_QUAD", "Object edges are not perpendicular.")
+    following = np.roll(edges, -1, axis=0)
+    crosses = edges[:, 0] * following[:, 1] - edges[:, 1] * following[:, 0]
+    if not (np.all(crosses > 0) or np.all(crosses < 0)):
+        raise CameraPoseError("INVALID_QUAD", "Object corner order is invalid.")
+    return points, float(lengths[0]), float(lengths[1])
+
+
 def _identity_size(identity: CameraIdentity) -> tuple[int, int]:
     width, height = identity.image_size_px
     if not identity.camera_id or not identity.lens_id or not identity.crop_id or identity.orientation not in range(1, 9) or width <= 0 or height <= 0 or not math.isfinite(identity.zoom) or identity.zoom <= 0:
@@ -315,7 +418,12 @@ def _require_diversity(object_points: Sequence[NDArray], image_points: Sequence[
     normals: list[NDArray[np.float64]] = []
     centers = []
     for obj, image in zip(object_points, image_points):
-        solved, rvec, _ = cv2.solvePnP(obj, image, matrix, np.zeros(8), flags=cv2.SOLVEPNP_IPPE)
+        try:
+            solved, rvec, _ = cv2.solvePnP(
+                obj, image, matrix, np.zeros(8), flags=cv2.SOLVEPNP_IPPE
+            )
+        except cv2.error as error:
+            raise CameraPoseError("INVALID_QUAD") from error
         if solved:
             normals.append(cv2.Rodrigues(rvec)[0][:, 2])
         centers.append(np.mean(image, axis=0) / np.asarray(size))

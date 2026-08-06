@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -50,6 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
     track.add_argument("--camera", type=int, default=0)
     _target_arguments(track)
     track.add_argument("--calibration")
+    track.add_argument("--debug-dir")
     return parser
 
 
@@ -133,6 +135,10 @@ def _run_estimate(args: argparse.Namespace, collector: CornerCollector | None) -
 
 def _run_track(args: argparse.Namespace, collector: CornerCollector | None) -> None:
     capture = cv2.VideoCapture(args.camera)
+    debug = DebugWriter(args.debug_dir) if args.debug_dir else None
+    frame_index = 0
+    outcome = "error"
+    last_metrics: dict[str, object] | None = None
     if not capture.isOpened():
         capture.release()
         raise CameraPoseError("UNSUPPORTED_CAMERA")
@@ -149,16 +155,41 @@ def _run_track(args: argparse.Namespace, collector: CornerCollector | None) -> N
         while True:
             ok, frame = capture.read()
             if not ok:
+                outcome = "stream-ended"
                 break
+            frame_index += 1
             state = tracker.update(frame)
+            last_metrics = _tracking_metrics_payload(state.metrics)
+            if debug:
+                debug.write_json(
+                    f"tracking-frame-{frame_index:04d}",
+                    {
+                        "frame": frame_index,
+                        "metrics": last_metrics,
+                        "status": state.status,
+                    },
+                )
             canvas = frame.copy()
             cv2.polylines(canvas, [np.rint(state.quad_px).astype(np.int32)], True, (0, 220, 0) if state.status == "tracking" else (120, 120, 120), 2)
             cv2.imshow("LAB 004 tracking", canvas)
-            if state.status == "lost" or cv2.waitKey(1) & 0xFF in (27, ord("q")):
+            if state.status == "lost":
+                outcome = "lost"
+                break
+            if cv2.waitKey(1) & 0xFF in (27, ord("q")):
+                outcome = "exit"
                 break
     finally:
         capture.release()
         cv2.destroyAllWindows()
+        if debug:
+            debug.write_json(
+                "tracking-summary",
+                {
+                    "frames": frame_index,
+                    "lastMetrics": last_metrics,
+                    "outcome": outcome,
+                },
+            )
 
 
 def _opencv_collector(image: NDArray[np.uint8], labels: Sequence[str]) -> ArrayLike | None:
@@ -213,6 +244,20 @@ def _target_arguments(parser: argparse.ArgumentParser) -> None:
 
 def _calibration_summary(result: object) -> dict[str, object]:
     return {"acceptedViews": result.metrics.accepted_views, "normalizedRms": result.metrics.normalized_rms, "rmsPx": result.metrics.rms_px, "schema": result.schema, "source": result.intrinsics.source}
+
+
+def _tracking_metrics_payload(metrics: object) -> dict[str, object]:
+    def finite_or_none(value: float) -> float | None:
+        return float(value) if math.isfinite(float(value)) else None
+
+    return {
+        "consecutiveBadFrames": int(metrics.consecutive_bad_frames),
+        "homographyInlierRatio": finite_or_none(metrics.homography_inlier_ratio),
+        "medianForwardBackwardErrorPx": finite_or_none(
+            metrics.median_forward_backward_error_px
+        ),
+        "trackedFeatures": int(metrics.tracked_features),
+    }
 
 
 def _action(code: str) -> str:

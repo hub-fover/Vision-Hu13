@@ -9,7 +9,14 @@ import cv2
 import numpy as np
 import pytest
 
-from camera_pose import CalibrationMetrics, CameraPoseError, PlaneTarget
+from camera_pose import (
+    CALIBRATION_SCHEMA,
+    CalibrationMetrics,
+    CalibrationResult,
+    CameraIntrinsics,
+    CameraPoseError,
+    PlaneTarget,
+)
 from camera_pose.geometry import plane_object_points
 
 
@@ -92,6 +99,57 @@ def test_quick_calibration_requires_eight_accepted_diverse_views() -> None:
     with pytest.raises(CameraPoseError) as caught:
         calibration_api().calibrate_quick(synthetic_captures(count=7))
     assert caught.value.code == "INSUFFICIENT_VIEW_DIVERSITY"
+
+
+@pytest.mark.parametrize(
+    ("mutation", "code"),
+    [
+        (lambda points: points.__setitem__((0, 2), 0.01), "INVALID_DIMENSIONS"),
+        (lambda points: points.__setitem__(1, points[0]), "INVALID_QUAD"),
+        (lambda points: points.__setitem__((1, 1), points[1, 1] + 0.1), "INVALID_QUAD"),
+        (lambda points: points.__setitem__([1, 2], points[[2, 1]]), "INVALID_QUAD"),
+    ],
+)
+def test_quick_calibration_rejects_malformed_object_rectangles_before_opencv(
+    mutation: object, code: str
+) -> None:
+    api = calibration_api()
+    captures = synthetic_captures()
+    changed = captures[-1]
+    object_points = np.asarray(changed.object_points_m).copy()
+    mutation(object_points)
+    captures[-1] = replace(changed, object_points_m=object_points)
+
+    with pytest.raises(CameraPoseError) as caught:
+        api.calibrate_quick(captures)
+
+    assert caught.value.code == code
+
+
+def test_quick_calibration_rejects_inconsistent_rectangle_dimensions() -> None:
+    api = calibration_api()
+    captures = synthetic_captures()
+    changed = captures[-1]
+    object_points = np.asarray(changed.object_points_m).copy()
+    object_points[:, 0] *= 0.8
+    captures[-1] = replace(changed, object_points_m=object_points)
+
+    with pytest.raises(CameraPoseError) as caught:
+        api.calibrate_quick(captures)
+
+    assert caught.value.code == "INVALID_DIMENSIONS"
+
+
+def test_object_plane_tolerance_scales_with_a_small_known_target() -> None:
+    api = calibration_api()
+    capture = synthetic_captures(count=1)[0]
+    object_points = plane_object_points(PlaneTarget(.001, .002))
+    object_points[0, 2] = 5e-5
+    assessment = api.assess_calibration_capture(
+        replace(capture, object_points_m=object_points)
+    )
+
+    assert assessment.reason_code == "INVALID_DIMENSIONS"
 
 
 def test_quick_calibration_rejects_views_concentrated_in_one_image_region() -> None:
@@ -178,6 +236,49 @@ def test_calibration_json_round_trip_and_exact_aspect_scaling(tmp_path: Path) ->
     assert loaded.intrinsics.image_size_px == (640, 360)
     assert loaded.intrinsics.camera_matrix[0, 0] == pytest.approx(result.intrinsics.camera_matrix[0, 0] / 2)
     assert loaded.intrinsics.source == "quick-calibrated"
+
+
+def test_estimated_calibration_json_round_trip_preserves_source(tmp_path: Path) -> None:
+    api = calibration_api()
+    size = (1280, 720)
+    focal = 900.0
+    result = CalibrationResult(
+        CALIBRATION_SCHEMA,
+        CameraIntrinsics(
+            np.asarray([[focal, 0, 640], [0, focal, 360], [0, 0, 1.0]]),
+            np.zeros(5),
+            size,
+            "estimated",
+            "horizontal-fov-60",
+        ),
+        CalibrationMetrics(1.0, 1.0 / math.hypot(*size), 1),
+    )
+    identity = api.CameraIdentity("camera-a", "wide", 1.0, 1, size)
+    path = tmp_path / "estimated.json"
+
+    api.save_calibration(result, path, identity)
+    loaded = api.load_calibration(path, identity)
+
+    assert loaded.intrinsics.source == "estimated"
+    assert loaded.intrinsics.estimation_method == "horizontal-fov-60"
+
+
+def test_calibration_export_rejects_source_outside_public_contract(
+    tmp_path: Path,
+) -> None:
+    api = calibration_api()
+    result = api.calibrate_quick(synthetic_captures())
+    legacy = replace(
+        result,
+        intrinsics=replace(result.intrinsics, source="calibrated"),
+    )
+
+    with pytest.raises(CameraPoseError) as caught:
+        api.save_calibration(
+            legacy, tmp_path / "legacy.json", synthetic_captures(count=1)[0].identity
+        )
+
+    assert caught.value.code == "INVALID_CALIBRATION_FILE"
 
 
 def test_calibration_export_rejects_invalid_metric_ranges(tmp_path: Path) -> None:
@@ -273,6 +374,39 @@ def test_calibration_json_rejects_invalid_ranges(tmp_path: Path, mutation: objec
     path.write_text(json.dumps(data, allow_nan=True), encoding="utf-8")
     with pytest.raises(CameraPoseError) as caught:
         api.load_calibration(path, identity)
+    assert caught.value.code == "INVALID_CALIBRATION_FILE"
+
+
+@pytest.mark.parametrize("value", [True, "2", 1.5])
+def test_calibration_json_requires_true_integer_accepted_views(
+    tmp_path: Path, value: object
+) -> None:
+    api = calibration_api()
+    path = tmp_path / "camera.json"
+    identity = synthetic_captures(count=1)[0].identity
+    api.save_calibration(api.calibrate_quick(synthetic_captures()), path, identity)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["metrics"]["acceptedViews"] = value
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+    with pytest.raises(CameraPoseError) as caught:
+        api.load_calibration(path, identity)
+
+    assert caught.value.code == "INVALID_CALIBRATION_FILE"
+
+
+def test_calibration_json_rejects_legacy_calibrated_source(tmp_path: Path) -> None:
+    api = calibration_api()
+    path = tmp_path / "camera.json"
+    identity = synthetic_captures(count=1)[0].identity
+    api.save_calibration(api.calibrate_quick(synthetic_captures()), path, identity)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["intrinsics"]["source"] = "calibrated"
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+    with pytest.raises(CameraPoseError) as caught:
+        api.load_calibration(path, identity)
+
     assert caught.value.code == "INVALID_CALIBRATION_FILE"
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+from typing import get_args
 
 from camera_pose import contracts
 
@@ -30,6 +31,11 @@ def test_camera_pose_package_exposes_documented_types_and_errors() -> None:
 
 
 def test_python_runtime_constants_match_public_json_contract() -> None:
+    assert set(get_args(contracts.IntrinsicsSource)) == {
+        "estimated",
+        "quick-calibrated",
+        "enhanced-calibrated",
+    }
     assert contracts.CORNER_ORDER == ("TL", "TR", "BR", "BL")
     assert contracts.ANALYSIS_MAX_SIDE == 1280
     assert contracts.MAX_WORKING_SET_MIB == 320

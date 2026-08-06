@@ -56,9 +56,15 @@ class PlanarTracker:
         gray = _gray(frame)
         quad = validate_quad(quad_px, gray.shape[1], gray.shape[0])
         points = initialize_tracking_points(gray, quad)
+        self._pose = None
+        pose = self._estimate(quad)
+        if pose is None:
+            self._gray, self._points, self._quad = None, None, quad
+            self._bad, self._lost = 3, True
+            raise CameraPoseError("POSE_FAILED", "Initial live pose could not be estimated.")
         self._gray, self._points, self._quad = gray, points, quad
         self._bad, self._lost = 0, False
-        self._pose = self._estimate(quad)
+        self._pose = pose
         return self._state("tracking", len(points), 1.0, 0.0)
 
     def update(self, frame: ArrayLike) -> TrackingState:
@@ -92,11 +98,14 @@ class PlanarTracker:
             quad = validate_quad(projected, current.shape[1], current.shape[0])
         except (cv2.error, CameraPoseError):
             return self._bad_state(current, locals().get("tracked", 0), locals().get("ratio", 0.0), locals().get("median", float("inf")))
+        pose = self._estimate(quad)
+        if pose is None:
+            return self._bad_state(current, tracked, ratio, median)
         self._gray = current
         self._points = new[mask.reshape(-1).astype(bool)].reshape(-1, 1, 2).astype(np.float32)
         self._quad = quad
         self._bad = 0
-        self._pose = self._estimate(quad)
+        self._pose = pose
         return self._state("tracking", tracked, ratio, median)
 
     def _bad_state(self, current: NDArray[np.uint8], tracked: int, ratio: float, median: float) -> TrackingState:
@@ -117,14 +126,21 @@ class PlanarTracker:
     def _state(self, status: Literal["tracking", "lost"], tracked: int, ratio: float, median: float) -> TrackingState:
         metrics = TrackingMetrics(int(tracked), float(ratio), float(median), self._bad)
         measurements = None
-        if self._pose is not None and status == "tracking":
+        if self._pose is not None and status == "tracking" and self._bad == 0:
             pose = self._pose
             measurements = MeasurementReport(pose.perpendicular_distance_m, pose.target_center_distance_m, pose.horizontal_offset_m, pose.vertical_offset_m, None, pose.quality)
-        return TrackingState(status, self._quad.copy(), self._pose if status == "tracking" else None, measurements, metrics)  # type: ignore[union-attr]
+        visible_pose = self._pose if status == "tracking" and self._bad == 0 else None
+        return TrackingState(status, self._quad.copy(), visible_pose, measurements, metrics)  # type: ignore[union-attr]
 
 
 def _gray(frame: ArrayLike) -> NDArray[np.uint8]:
     values = np.asarray(frame)
+    try:
+        finite = bool(np.isfinite(values).all())
+    except TypeError as error:
+        raise CameraPoseError("UNSUPPORTED_CAMERA") from error
+    if not finite:
+        raise CameraPoseError("UNSUPPORTED_CAMERA")
     if values.ndim == 3 and values.shape[2] in (3, 4):
         values = cv2.cvtColor(values, cv2.COLOR_BGR2GRAY if values.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)
     if values.ndim != 2 or values.size == 0:
