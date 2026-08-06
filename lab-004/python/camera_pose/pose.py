@@ -10,6 +10,8 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from .contracts import (
+    POSE_AMBIGUITY_MAX_ABSOLUTE_DIFFERENCE_PX,
+    POSE_AMBIGUITY_MAX_RELATIVE_DIFFERENCE,
     REFERENCE_ONLY_MAX_NORMALIZED_RMS,
     STABLE_MAX_NORMALIZED_RMS,
     CameraIntrinsics,
@@ -110,7 +112,9 @@ def estimate_pose(
     if best.quality == "unstable":
         raise CameraPoseError("HIGH_REPROJECTION_ERROR")
 
-    similarly_plausible = [value for value in candidates if value.quality == best.quality]
+    similarly_plausible = [
+        value for value in candidates if _similarly_plausible(best, value)
+    ]
     if len(similarly_plausible) > 1:
         if not live_mode or prior_pose is None:
             raise CameraPoseError("POSE_AMBIGUOUS")
@@ -208,6 +212,15 @@ def _continuity_cost(candidate: _Candidate, prior_pose: tuple[ArrayLike, ArrayLi
     angle = math.acos(cosine)
     translation_scale = max(float(np.linalg.norm(prior_translation)), 1e-9)
     return angle + float(np.linalg.norm(candidate.translation - prior_translation)) / translation_scale
+
+
+def _similarly_plausible(best: _Candidate, candidate: _Candidate) -> bool:
+    difference = max(0.0, candidate.rms_px - best.rms_px)
+    if difference <= POSE_AMBIGUITY_MAX_ABSOLUTE_DIFFERENCE_PX:
+        return True
+    if best.rms_px <= np.finfo(float).eps:
+        return False
+    return difference / best.rms_px <= POSE_AMBIGUITY_MAX_RELATIVE_DIFFERENCE
 
 
 def _points(value: ArrayLike, shape: tuple[int, int]) -> NDArray[np.float64]:

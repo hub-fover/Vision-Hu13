@@ -63,6 +63,11 @@ def test_validate_quad_rejects_target_below_minimum_area() -> None:
     assert_code("TARGET_TOO_SMALL", lambda: validate_quad(quad, 640, 480))
 
 
+def test_validate_quad_rejects_high_area_target_with_extreme_edge_ratio() -> None:
+    quad = [[100, 100], [600, 100], [600, 105], [100, 105]]
+    assert_code("INVALID_QUAD", lambda: validate_quad(quad, 1000, 1000))
+
+
 def test_plane_object_points_use_center_origin_and_user_axes() -> None:
     points = plane_object_points(PlaneTarget(width_m=0.4, height_m=0.2))
     np.testing.assert_allclose(

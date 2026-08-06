@@ -16,6 +16,10 @@
     "stableMax": 0.0015,
     "referenceOnlyMax": 0.0035
   },
+  "poseAmbiguity": {
+    "maxAbsoluteReprojectionDifferencePx": 0.25,
+    "maxRelativeReprojectionDifference": 0.10
+  },
   "trackingDefaults": {
     "targetAnalysisFps": 12,
     "maxTrackedFeatures": 300,

@@ -64,6 +64,9 @@ def validate_quad(
         raise CameraPoseError("INVALID_QUAD")
     if _signed_area(quad) < max(256.0, 0.001 * width_f * height_f):
         raise CameraPoseError("TARGET_TOO_SMALL")
+    edge_lengths = np.linalg.norm(edges, axis=1)
+    if float(edge_lengths.min() / edge_lengths.max()) < 0.02:
+        raise CameraPoseError("INVALID_QUAD")
     return quad.copy()
 
 

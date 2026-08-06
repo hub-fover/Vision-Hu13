@@ -35,6 +35,8 @@ def test_python_runtime_constants_match_public_json_contract() -> None:
     assert contracts.MAX_WORKING_SET_MIB == 320
     assert contracts.STABLE_MAX_NORMALIZED_RMS == 0.0015
     assert contracts.REFERENCE_ONLY_MAX_NORMALIZED_RMS == 0.0035
+    assert contracts.POSE_AMBIGUITY_MAX_ABSOLUTE_DIFFERENCE_PX == 0.25
+    assert contracts.POSE_AMBIGUITY_MAX_RELATIVE_DIFFERENCE == 0.10
     assert contracts.CALIBRATION_SCHEMA == "lab004.camera-intrinsics.v1"
     assert contracts.TRACKING_DEFAULTS == {
         "targetAnalysisFps": 12,

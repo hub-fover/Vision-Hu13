@@ -75,16 +75,45 @@ def estimate_uncalibrated_intrinsics(
     metadata = exif or {}
     physical = _positive_number(metadata.get("FocalLength"))
     equivalent = _positive_number(metadata.get("FocalLengthIn35mmFilm"))
-    sensor_width = _positive_number(metadata.get("SensorWidthMm"))
+    sensor_metadata_present = any(
+        key in metadata
+        for key in (
+            "SensorWidthMm",
+            "SensorHeightMm",
+            "FocalPlaneXResolution",
+            "FocalPlaneYResolution",
+            "FocalPlaneResolutionUnit",
+        )
+    )
+    sensor_dimensions = _sensor_dimensions_mm(metadata)
 
     focal_px: float | None = None
     method: str | None = None
-    if physical is not None and sensor_width is not None:
-        sensor_focal = physical * width / sensor_width
-        predicted_equivalent = physical * 36.0 / sensor_width
-        if equivalent is None or _relative_close(equivalent, predicted_equivalent, 0.10):
-            focal_px = sensor_focal
-            method = "exif-sensor-width"
+    if physical is not None and sensor_metadata_present:
+        if sensor_dimensions is not None:
+            sensor_width, sensor_height = sensor_dimensions
+            image_aspect = max(width, height) / min(width, height)
+            sensor_aspect = max(sensor_width, sensor_height) / min(
+                sensor_width, sensor_height
+            )
+            crop_factor = math.hypot(36.0, 24.0) / math.hypot(
+                sensor_width, sensor_height
+            )
+            equivalent_consistent = equivalent is None or _relative_close(
+                equivalent, physical * crop_factor, 0.10
+            )
+            if (
+                _relative_close(image_aspect, sensor_aspect, 0.05)
+                and 0.5 <= crop_factor <= 20.0
+                and equivalent_consistent
+            ):
+                sensor_axis = (
+                    max(sensor_width, sensor_height)
+                    if width >= height
+                    else min(sensor_width, sensor_height)
+                )
+                focal_px = physical * width / sensor_axis
+                method = "exif-sensor-size"
     elif physical is not None and equivalent is not None:
         crop_factor = equivalent / physical
         if 0.5 <= crop_factor <= 20.0:
@@ -140,3 +169,32 @@ def _positive_number(value: object) -> float | None:
 
 def _relative_close(first: float, second: float, tolerance: float) -> bool:
     return abs(first - second) <= tolerance * max(abs(first), abs(second))
+
+
+def _sensor_dimensions_mm(
+    metadata: Mapping[str, object],
+) -> tuple[float, float] | None:
+    explicit_width = _positive_number(metadata.get("SensorWidthMm"))
+    explicit_height = _positive_number(metadata.get("SensorHeightMm"))
+    if explicit_width is not None and explicit_height is not None:
+        return explicit_width, explicit_height
+
+    x_resolution = _positive_number(metadata.get("FocalPlaneXResolution"))
+    y_resolution = _positive_number(metadata.get("FocalPlaneYResolution"))
+    pixel_width = _positive_number(
+        metadata.get("PixelXDimension", metadata.get("ExifImageWidth"))
+    )
+    pixel_height = _positive_number(
+        metadata.get("PixelYDimension", metadata.get("ExifImageHeight"))
+    )
+    try:
+        resolution_unit = int(metadata.get("FocalPlaneResolutionUnit", 0))
+    except (TypeError, ValueError, OverflowError):
+        return None
+    unit_mm = {2: 25.4, 3: 10.0, 4: 1.0, 5: 0.001}.get(resolution_unit)
+    if None in (x_resolution, y_resolution, pixel_width, pixel_height, unit_mm):
+        return None
+    return (
+        float(pixel_width) / float(x_resolution) * float(unit_mm),
+        float(pixel_height) / float(y_resolution) * float(unit_mm),
+    )

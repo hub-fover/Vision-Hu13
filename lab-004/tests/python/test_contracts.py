@@ -75,6 +75,10 @@ def test_contracts_fix_coordinates_units_limits_and_quality_thresholds() -> None
         "stableMax": 0.0015,
         "referenceOnlyMax": 0.0035,
     }
+    assert contracts["poseAmbiguity"] == {
+        "maxAbsoluteReprojectionDifferencePx": 0.25,
+        "maxRelativeReprojectionDifference": 0.10,
+    }
 
 
 def test_contracts_fix_tracking_and_calibration_schema() -> None:

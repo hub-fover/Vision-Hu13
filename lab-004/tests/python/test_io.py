@@ -68,13 +68,48 @@ def test_uncalibrated_intrinsics_use_joint_physical_and_35mm_focal_metadata() ->
     assert intrinsics.estimation_method == "exif-35mm-equivalent"
 
 
+def test_35mm_focal_path_allows_ordinary_image_dimension_metadata() -> None:
+    intrinsics = io_api().estimate_uncalibrated_intrinsics(
+        (1200, 800),
+        {
+            "FocalLength": 5.0,
+            "FocalLengthIn35mmFilm": 30.0,
+            "PixelXDimension": 1200,
+            "PixelYDimension": 800,
+        },
+    )
+    assert intrinsics.camera_matrix[0, 0] == 1000.0
+    assert intrinsics.estimation_method == "exif-35mm-equivalent"
+
+
 def test_uncalibrated_intrinsics_use_consistent_sensor_width_metadata() -> None:
     intrinsics = io_api().estimate_uncalibrated_intrinsics(
         (1200, 800),
-        {"FocalLength": 5.0, "SensorWidthMm": 6.0, "FocalLengthIn35mmFilm": 30.0},
+        {
+            "FocalLength": 5.0,
+            "SensorWidthMm": 6.0,
+            "SensorHeightMm": 4.0,
+            "FocalLengthIn35mmFilm": 30.0,
+        },
     )
     assert intrinsics.camera_matrix[0, 0] == 1000.0
-    assert intrinsics.estimation_method == "exif-sensor-width"
+    assert intrinsics.estimation_method == "exif-sensor-size"
+
+
+def test_uncalibrated_intrinsics_use_complete_focal_plane_sensor_metadata() -> None:
+    intrinsics = io_api().estimate_uncalibrated_intrinsics(
+        (1200, 800),
+        {
+            "FocalLength": 5.0,
+            "FocalPlaneXResolution": 200.0,
+            "FocalPlaneYResolution": 200.0,
+            "FocalPlaneResolutionUnit": 4,
+            "PixelXDimension": 1200,
+            "PixelYDimension": 800,
+        },
+    )
+    assert intrinsics.camera_matrix[0, 0] == 1000.0
+    assert intrinsics.estimation_method == "exif-sensor-size"
 
 
 def test_uncalibrated_intrinsics_ignore_incomplete_or_inconsistent_exif() -> None:
@@ -84,7 +119,25 @@ def test_uncalibrated_intrinsics_ignore_incomplete_or_inconsistent_exif() -> Non
     )
     inconsistent = api.estimate_uncalibrated_intrinsics(
         (1200, 800),
-        {"FocalLength": 5.0, "SensorWidthMm": 6.0, "FocalLengthIn35mmFilm": 50.0},
+        {
+            "FocalLength": 5.0,
+            "SensorWidthMm": 6.0,
+            "SensorHeightMm": 4.0,
+            "FocalLengthIn35mmFilm": 50.0,
+        },
     )
     assert incomplete.estimation_method == "horizontal-fov-60"
     assert inconsistent.estimation_method == "horizontal-fov-60"
+
+
+def test_uncalibrated_intrinsics_ignore_lone_sensor_width_and_bad_aspect() -> None:
+    api = io_api()
+    lone_width = api.estimate_uncalibrated_intrinsics(
+        (1200, 800), {"FocalLength": 5.0, "SensorWidthMm": 6.0}
+    )
+    bad_aspect = api.estimate_uncalibrated_intrinsics(
+        (1200, 800),
+        {"FocalLength": 5.0, "SensorWidthMm": 6.0, "SensorHeightMm": 6.0},
+    )
+    assert lone_width.estimation_method == "horizontal-fov-60"
+    assert bad_aspect.estimation_method == "horizontal-fov-60"

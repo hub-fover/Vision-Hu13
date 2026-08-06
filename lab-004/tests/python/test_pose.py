@@ -94,6 +94,17 @@ def test_similarly_plausible_planar_candidates_are_ambiguous_for_still_pose() ->
     assert caught.value.code == "POSE_AMBIGUOUS"
 
 
+def test_clearly_worse_stable_candidate_does_not_make_pose_ambiguous() -> None:
+    rotation_vector = np.asarray([math.pi - 0.05, 0.02, 0.01])
+    translation = np.asarray([0.01, 0.01, 2.0])
+    object_points, image_points = projected_pose(rotation_vector, translation)
+
+    estimate = pose_api().estimate_pose(object_points, image_points, intrinsics())
+
+    np.testing.assert_allclose(estimate.translation_m, translation, atol=1e-6)
+    assert estimate.quality == "stable"
+
+
 def test_live_pose_uses_supplied_prior_to_resolve_planar_ambiguity() -> None:
     rotation_vector = np.asarray([math.pi - 0.003, 0.02, 0.01])
     translation = np.asarray([0.01, 0.01, 2.0])
