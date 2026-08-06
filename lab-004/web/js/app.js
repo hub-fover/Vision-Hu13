@@ -1,5 +1,6 @@
 import { createState, reducer, MODES } from './state.js';
-import { SAMPLE_MANIFEST, requestRearCamera } from './capture.js';
+import { SAMPLE_MANIFEST, requestRearCamera, prepareAnalysisBitmap, toAnalysisQuad } from './capture.js';
+import { buildObjectPoints } from './contracts.js';
 import { QuadEditor, validateQuad } from './quad-editor.js';
 import { describeError } from './errors.js';
 import { FrustumView } from './frustum-view.js';
@@ -9,7 +10,11 @@ import { drawOverlay } from './overlay.js';
 const $ = id => document.getElementById(id);
 let state = createState();
 let workerClient;
+let activeRequest;
 let stream;
+let frozenBitmap;
+let liveTimer;
+let lastUnit='mm';
 const canvas = $('overlayCanvas');
 const image = $('photoImage');
 const editor = new QuadEditor(canvas);
@@ -60,7 +65,8 @@ $('galleryInput').onchange = event => event.target.files[0] && loadFile(event.ta
 document.querySelectorAll('[data-mode]').forEach(button => button.onclick = () => dispatch({ type:'SET_MODE', mode:button.dataset.mode }));
 for (const id of ['widthInput','heightInput','unitInput']) $(id).oninput = event => {
   const divisor = {mm:1000,cm:100,m:1}[$('unitInput').value];
-  const target = id === 'widthInput' ? {widthM:Number(event.target.value)/divisor} : id === 'heightInput' ? {heightM:Number(event.target.value)/divisor} : {unit:event.target.value};
+  if(id==='unitInput'){const next=event.target.value;const factor={mm:1000,cm:100,m:1}[next];$('widthInput').value=(state.target.widthM*factor).toFixed(3);$('heightInput').value=(state.target.heightM*factor).toFixed(3);lastUnit=next;dispatch({type:'SET_TARGET',target:{unit:next}});return;}
+  const target = id === 'widthInput' ? {widthM:Number(event.target.value)/divisor} : {heightM:Number(event.target.value)/divisor};
   dispatch({ type:'SET_TARGET', target });
 };
 $('estimateButton').onclick = async () => {
@@ -70,21 +76,24 @@ $('estimateButton').onclick = async () => {
     workerClient ??= new WorkerClient();
     await workerClient.request('load');
     const quad = validateQuad(state.quad, canvas.width, canvas.height);
-    const result=await workerClient.request('estimate', {quad,imageSizePx:[canvas.width,canvas.height],target:state.target});
+    const prepared=await prepareAnalysisBitmap(image);const analysisQuad=toAnalysisQuad(state.quad,prepared.transform);activeRequest=workerClient.request('estimate', {quad:analysisQuad,imageSizePx:[prepared.transform.width,prepared.transform.height],target:state.target,bitmap:prepared.bitmap},[prepared.bitmap]);const result=await activeRequest;
     dispatch({ type:'RESULT', result });
   } catch (error) { dispatch({ type:'ERROR', error }); }
   finally {$('cancelButton').disabled=true;}
 };
-$('cancelButton').onclick=()=>{workerClient?.terminate();workerClient=null;dispatch({type:'ERROR',error:Object.assign(new Error('CANCELLED'),{code:'CANCELLED'})});};
+$('cancelButton').onclick=()=>{activeRequest?.cancel?.();dispatch({type:'ERROR',error:Object.assign(new Error('CANCELLED'),{code:'CANCELLED'})});};
 $('startCamera').onclick = async () => { try { stream=await requestRearCamera(); $('cameraVideo').srcObject=stream; $('liveStatus').textContent='相机已启动。请冻结画面以初始化。'; $('freezeCamera').disabled=false; } catch(error) { $('liveStatus').textContent=describeError(error); } };
-$('freezeCamera').onclick = () => { $('liveStatus').textContent='画面已冻结。'; $('resumeCamera').disabled=false; };
-$('resumeCamera').onclick = () => { $('liveStatus').textContent='实时画面已恢复。'; };
-$('reinitializeTrack').onclick=()=>{$('liveStatus').textContent='请冻结一个新画面并重新标记四角。';$('reinitializeTrack').disabled=true;};
+$('freezeCamera').onclick = async () => { $('cameraVideo').pause(); frozenBitmap=await createImageBitmap($('cameraVideo')); $('liveStatus').textContent='画面已冻结。'; $('resumeCamera').disabled=false; if(state.quad) await initLiveTrack(); };
+$('resumeCamera').onclick = () => { $('cameraVideo').play(); $('liveStatus').textContent='实时画面已恢复。'; startLiveLoop(); };
+$('reinitializeTrack').onclick=async()=>{if(frozenBitmap)await initLiveTrack();$('liveStatus').textContent='请冻结一个新画面并重新标记四角。';$('reinitializeTrack').disabled=true;};
 $('quickPath').onclick=()=>{$('quickPath').setAttribute('aria-pressed','true');$('enhancedPath').setAttribute('aria-pressed','false');};
 $('enhancedPath').onclick=()=>{$('quickPath').setAttribute('aria-pressed','false');$('enhancedPath').setAttribute('aria-pressed','true');};
-$('acceptView').onclick = () => { if (state.quad) dispatch({type:'CAL_ACCEPT',view:{quad:state.quad,imageSizePx:[canvas.width,canvas.height],coverage:.5,tilt:state.calibration.views.length*.1}}); $('calibrationStatus').textContent=state.calibration.views.length>=8?'已达到最少八个视角。':'请改变距离、位置和倾斜后继续。'; };
-$('exportCalibration').onclick = () => { const blob=new Blob([JSON.stringify({schema:'lab004.camera-intrinsics.v1',version:1,views:state.calibration.views})],{type:'application/json'}); const anchor=document.createElement('a'); anchor.href=URL.createObjectURL(blob);anchor.download='camera-intrinsics.json';anchor.click(); };
-$('importCalibration').onchange = async event => { try { const value=JSON.parse(await event.target.files[0].text()); if(value.schema!=='lab004.camera-intrinsics.v1') throw new Error(); $('calibrationStatus').textContent='标定文件已导入（仅内存）。'; } catch { $('calibrationStatus').textContent='标定文件格式无效。'; } };
+$('acceptView').onclick = async () => { if(!state.quad||!frozenBitmap){$('calibrationStatus').textContent='请先冻结并标记当前视图。';return;}const view={objectPointsM:buildObjectPoints(state.target.widthM||.21,state.target.heightM||.297),imagePointsPx:state.quad,imageSizePx:[canvas.width,canvas.height]};const next=[...state.calibration.views,view];try{workerClient??=new WorkerClient();const result=next.length>=8?await workerClient.request($('enhancedPath').getAttribute('aria-pressed')==='true'?'calibrateEnhanced':'calibrateQuick',{views:next}):null;dispatch({type:'CAL_ACCEPT',view});if(result)dispatch({type:'CAL_RESULT',result});$('calibrationStatus').textContent=next.length>=8?'已达到最少八个视角。':'请改变距离、位置和倾斜后继续。';}catch(error){dispatch({type:'CAL_REJECT',reason:error.code||'CALIBRATION_FAILED'});$('calibrationStatus').textContent=describeError(error);}};
+$('exportCalibration').onclick = () => { const result=state.calibration.result;if(!result){$('calibrationStatus').textContent='至少接受八个有效视角后才能导出。';return;}const blob=new Blob([JSON.stringify(result)],{type:'application/json'}); const anchor=document.createElement('a'); anchor.href=URL.createObjectURL(blob);anchor.download='camera-intrinsics.json';anchor.click(); };
+$('importCalibration').onchange = async event => { try { const value=JSON.parse(await event.target.files[0].text()); if(value.schema!=='lab004.camera-intrinsics.v1'||!value.intrinsics||!value.metrics) throw new Error(); dispatch({type:'CAL_RESULT',result:value});$('calibrationStatus').textContent='标定文件已导入（仅内存）。'; } catch { $('calibrationStatus').textContent='标定文件格式无效。'; } };
 $('shareResult').onclick=async()=>{const text=JSON.stringify(state.result,null,2);if(navigator.share)try{await navigator.share({title:'LAB004 相机姿态结果',text});return;}catch{}const blob=new Blob([text],{type:'application/json'});const anchor=document.createElement('a');anchor.href=URL.createObjectURL(blob);anchor.download='camera-pose-result.json';anchor.click();};
 window.addEventListener('pagehide',()=>{stream?.getTracks().forEach(track=>track.stop());workerClient?.terminate();frustum.dispose();});
 render();
+
+async function initLiveTrack(){workerClient??=new WorkerClient();const frame=await createImageBitmap(frozenBitmap);const quad=state.quad||[[0,0],[frame.width,0],[frame.width,frame.height],[0,frame.height]];activeRequest=workerClient.request('initTrack',{bitmap:frame,quad,imageSizePx:[frame.width,frame.height],target:state.target},[frame]);try{const result=await activeRequest;dispatch({type:'TRACK_INIT'});dispatch({type:'TRACK_GOOD',result});$('reinitializeTrack').disabled=false;}catch(error){dispatch({type:'TRACK_BAD'});if(state.tracking.badFrames>=3)$('reinitializeTrack').disabled=false;}}
+function startLiveLoop(){clearTimeout(liveTimer);const tick=async()=>{if($('cameraVideo').paused)return;try{const bitmap=await createImageBitmap($('cameraVideo'));const quad=state.quad||[[0,0],[bitmap.width,0],[bitmap.width,bitmap.height],[0,bitmap.height]];activeRequest=workerClient?.request('updateTrack',{bitmap,quad,imageSizePx:[bitmap.width,bitmap.height],target:state.target},[bitmap]);const result=await activeRequest;if(result?.valid===false)dispatch({type:'TRACK_BAD'});else dispatch({type:'TRACK_GOOD',result});}catch(error){dispatch({type:'TRACK_BAD'});if(state.tracking.badFrames>=3){$('liveStatus').textContent='跟踪已丢失，请重新初始化。';$('reinitializeTrack').disabled=false;}}liveTimer=setTimeout(tick,1000/12);};tick();}

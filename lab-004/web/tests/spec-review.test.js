@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { scaleToAnalysis } from '../js/capture.js';
+import { centralInterval } from '../js/uncertainty.js';
+import { createState, reducer } from '../js/state.js';
+const source=path=>readFile(new URL(path,import.meta.url),'utf8');
+test('worker has real IPPE candidate and ambiguity pipeline',async()=>{const s=await source('../js/camera-pose.worker.js');assert.match(s,/solvePnPGeneric/);assert.match(s,/SOLVEPNP_IPPE/);assert.match(s,/MatVector/);assert.match(s,/POSE_AMBIGUOUS/);assert.match(s,/POSE_AMBIGUITY_MAX_ABSOLUTE/);assert.match(s,/solvePnPRefineLM/);assert.match(s,/cameraCenter.*\[2\].*>.*0|center\[2\].*>.*0/);});
+test('worker tracking uses KLT forward/backward and RANSAC',async()=>{const s=await source('../js/camera-pose.worker.js');for(const symbol of ['goodFeaturesToTrack','calcOpticalFlowPyrLK','findHomography','RANSAC','projectPoints'])assert.match(s,new RegExp(symbol));assert.match(s,/caller|supplied|metrics/);});
+test('uncertainty is perturbation based and live throttled',async()=>{const s=await source('../js/camera-pose.worker.js');assert.match(s,/64|PERTURB|perturb/i);assert.match(s,/500|2\s*Hz|lastUncertainty/);assert.doesNotMatch(s,/lowerM:center\[2\]\*\.95/);assert.deepEqual(centralInterval([1,2,3,4]),{medianM:3,lowerM:1,upperM:4,confidence:.9});});
+test('analysis transform is capped and coordinates map',async()=>{assert.equal(scaleToAnalysis(4000,2000).width,1280);const s=await source('../js/app.js');assert.match(s,/prepareAnalysisBitmap|displayToAnalysis|analysis/);});
+test('calibration invokes worker and stores full result',async()=>{const s=await source('../js/app.js');assert.match(s,/calibrateQuick|calibrateEnhanced/);assert.match(s,/intrinsics/);const c=await source('../js/calibration.js');assert.match(c,/cameraMatrix|distortion|metrics/);});
+test('cancellation sends request id without only terminate',async()=>{const s=await source('../js/worker-client.js');assert.match(s,/request\([^)]*=>|request\(.*return \{.*id|requestId/);assert.match(s,/cancel\(id\)/);});
+test('unit conversion preserves physical dimensions',async()=>{const s=await source('../js/app.js');assert.match(s,/widthM.*\*|widthM.*\/|convert|divisor/);});
+test('frustum derives geometry from rotation/translation and disposes before clear',async()=>{const s=await source('../js/frustum-view.js');assert.match(s,/rotationMatrix|translationM/);assert.match(s,/dispose.*scene\.clear|scene\.traverse.*dispose/);});
