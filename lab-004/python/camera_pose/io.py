@@ -117,7 +117,7 @@ def estimate_uncalibrated_intrinsics(
     elif physical is not None and equivalent is not None:
         crop_factor = equivalent / physical
         if 0.5 <= crop_factor <= 20.0:
-            focal_px = equivalent * width / 36.0
+            focal_px = equivalent * max(width, height) / 36.0
             method = "exif-35mm-equivalent"
 
     if focal_px is None or not math.isfinite(focal_px) or focal_px <= 0:

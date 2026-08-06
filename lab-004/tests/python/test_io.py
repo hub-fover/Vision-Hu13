@@ -4,6 +4,7 @@ import math
 from pathlib import Path
 
 import numpy as np
+import pytest
 from PIL import Image
 
 
@@ -46,6 +47,35 @@ def test_load_analysis_image_resizes_long_side_and_preserves_scale_mapping(
     np.testing.assert_allclose(loaded.corrected_to_analysis([[1000, 500]]), [[640, 320]])
 
 
+def test_load_analysis_image_supports_webp(tmp_path: Path) -> None:
+    source = tmp_path / "sample.webp"
+    Image.new("RGB", (30, 20), (12, 34, 56)).save(source, format="WEBP", lossless=True)
+
+    loaded = io_api().load_analysis_image(source)
+
+    assert loaded.corrected_size_px == (30, 20)
+    assert loaded.analysis_size_px == (30, 20)
+    np.testing.assert_array_equal(np.asarray(loaded.image)[5, 5], [12, 34, 56])
+
+
+def test_load_analysis_image_applies_png_exif_orientation(tmp_path: Path) -> None:
+    source = tmp_path / "oriented.png"
+    image = Image.new("RGB", (40, 20), "black")
+    for x in range(20):
+        image.putpixel((x, 0), (255, 0, 0))
+    exif = Image.Exif()
+    exif[274] = 6
+    image.save(source, format="PNG", exif=exif)
+    with Image.open(source) as persisted:
+        if persisted.getexif().get(274) != 6:
+            pytest.skip("This Pillow build cannot persist PNG EXIF orientation")
+
+    loaded = io_api().load_analysis_image(source)
+
+    assert loaded.corrected_size_px == (20, 40)
+    np.testing.assert_array_equal(np.asarray(loaded.image)[0, -1], [255, 0, 0])
+
+
 def test_uncalibrated_intrinsics_fall_back_to_sixty_degree_horizontal_fov() -> None:
     intrinsics = io_api().estimate_uncalibrated_intrinsics((1200, 800), {})
     expected_focal = 1200 / (2 * math.tan(math.radians(60) / 2))
@@ -66,6 +96,16 @@ def test_uncalibrated_intrinsics_use_joint_physical_and_35mm_focal_metadata() ->
     assert intrinsics.camera_matrix[0, 0] == intrinsics.camera_matrix[1, 1] == 1000.0
     assert intrinsics.source == "estimated"
     assert intrinsics.estimation_method == "exif-35mm-equivalent"
+
+
+def test_35mm_equivalent_uses_sensor_long_axis_for_corrected_portrait_image() -> None:
+    intrinsics = io_api().estimate_uncalibrated_intrinsics(
+        (800, 1200),
+        {"FocalLength": 5.0, "FocalLengthIn35mmFilm": 30.0},
+    )
+    assert intrinsics.camera_matrix[0, 0] == intrinsics.camera_matrix[1, 1] == 1000.0
+    assert intrinsics.camera_matrix[0, 2] == 400.0
+    assert intrinsics.camera_matrix[1, 2] == 600.0
 
 
 def test_35mm_focal_path_allows_ordinary_image_dimension_metadata() -> None:
