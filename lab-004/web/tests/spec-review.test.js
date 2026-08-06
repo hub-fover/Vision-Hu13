@@ -13,3 +13,10 @@ test('calibration invokes worker and stores full result',async()=>{const s=await
 test('cancellation sends request id without only terminate',async()=>{const s=await source('../js/worker-client.js');assert.match(s,/request\([^)]*=>|request\(.*return \{.*id|requestId/);assert.match(s,/cancel\(id\)/);});
 test('unit conversion preserves physical dimensions',async()=>{const s=await source('../js/app.js');assert.match(s,/widthM.*\*|widthM.*\/|convert|divisor/);});
 test('frustum derives geometry from rotation/translation and disposes before clear',async()=>{const s=await source('../js/frustum-view.js');assert.match(s,/rotationMatrix|translationM/);assert.match(s,/dispose.*scene\.clear|scene\.traverse.*dispose/);});
+test('visible copy is UTF-8 Chinese and no legacy sample attribution remains',async()=>{const s=(await source('../index.html'))+'\n'+await source('../js/app.js')+'\n'+await source('../js/capture.js');
+  for(const bad of ['CC0','Wikimedia Commons','â','锟斤拷','Ã']) assert.doesNotMatch(s,new RegExp(bad));
+  assert.match(s,/棋盘格|标定/);
+});
+test('photo estimate passes imported calibration intrinsics',async()=>{const s=await source('../js/app.js');assert.match(s,/intrinsics:\s*state\.calibration\.result\?\.intrinsics/);});
+test('enhanced calibration receives the frozen image and chessboard pattern',async()=>{const s=await source('../js/app.js');assert.match(s,/bitmap:\s*.*frozenBitmap|bitmap:\s*.*frame/);assert.match(s,/patternSize/);});
+test('fallback pose never advertises zero reprojection as stable',async()=>{const s=await source('../js/pose.js');assert.doesNotMatch(s,/reprojectionRmsPx:0/);assert.doesNotMatch(s,/quality:qualityFromNormalizedRms\(0\)/);assert.match(s,/BUILD_PREREQUISITE|reference-only|POSE_FAILED/);});

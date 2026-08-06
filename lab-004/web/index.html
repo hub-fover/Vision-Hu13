@@ -5,7 +5,7 @@
   <header class="topbar"><div class="brand">相机姿态测量 · LAB 004</div><nav class="modes" aria-label="模式"><button data-mode="photo" aria-pressed="true">照片估计</button><button data-mode="live" aria-pressed="false">实时跟踪</button><button data-mode="calibration" aria-pressed="false">相机标定</button></nav></header>
   <section class="tool">
     <div class="panel" id="photoPanel">
-      <div class="dropzone"><strong>棋盘格参考图</strong><span id="sampleLicense">CC0 · Wikimedia Commons</span><button id="sampleButton">用样例体验</button><label>拍照或选择图片<input id="fileInput" type="file" accept="image/*" capture="environment"></label><label>从图库选择<input id="galleryInput" type="file" accept="image/*"></label></div>
+      <div class="dropzone"><strong id="sampleTitle">棋盘格标定样例</strong><span id="sampleLicense">正在读取样例来源…</span><button id="sampleButton">用样例体验</button><label>拍照或选择图片<input id="fileInput" type="file" accept="image/*" capture="environment"></label><label>从图库选择<input id="galleryInput" type="file" accept="image/*"></label></div>
       <div class="stage"><img id="photoImage" alt="待测目标图像"><canvas id="overlayCanvas"></canvas></div>
       <div class="form-grid"><label>目标宽度<input id="widthInput" type="number" min="0" step="any" placeholder="例如 210"></label><label>目标高度<input id="heightInput" type="number" min="0" step="any" placeholder="例如 297"></label><label>单位<select id="unitInput"><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option></select></label></div>
       <div class="modes"><button id="estimateButton" disabled>估计姿态</button><button id="cancelButton" disabled>取消</button></div>
