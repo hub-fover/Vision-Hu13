@@ -65,6 +65,19 @@ class CameraIntrinsics:
             raise DefocusDepthError("INTRINSICS_MISMATCH")
 
 
+def undistort_stack(frames: list[np.ndarray] | tuple[np.ndarray, ...], camera: CameraIntrinsics) -> list[np.ndarray]:
+    """Validate calibration compatibility and undistort every analysis frame."""
+    corrected: list[np.ndarray] = []
+    distortion = np.asarray(camera.distortion, dtype=np.float64).ravel()
+    if distortion.size == 0:
+        distortion = np.zeros(5, dtype=np.float64)
+    for frame in frames:
+        height, width = frame.shape[:2]
+        camera.validate_for_image(width, height)
+        corrected.append(cv2.undistort(frame, camera.matrix, distortion, None, camera.matrix))
+    return corrected
+
+
 def calibrate_intrinsics(folder: str | Path, pattern: tuple[int, int] = (9, 6), square_size: float = 0.025) -> CameraIntrinsics:
     paths = sorted(p for p in Path(folder).iterdir() if p.suffix.lower() in SUPPORTED_SUFFIXES)
     if not paths:

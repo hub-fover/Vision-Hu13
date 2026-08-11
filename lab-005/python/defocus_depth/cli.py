@@ -10,9 +10,9 @@ from .alignment import align_stack
 from .depth import estimate_relative_depth
 from .errors import DefocusDepthError
 from .focus_metrics import focus_curve, local_focus_scores
-from .intrinsics import calibrate_intrinsics
+from .intrinsics import CameraIntrinsics, calibrate_intrinsics, undistort_stack
 from .io import load_stack, write_png
-from .scale import calibrate_scale
+from .scale import calibrate_scale, calibrate_scale_from_folder
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -32,7 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
     cs = sub.add_parser("calibrate-scale")
     cs.add_argument("scale_folder")
     cs.add_argument("--distances", nargs=3, type=float, required=True)
-    cs.add_argument("--focus-indices", nargs=3, type=float, default=[0.0, 0.5, 1.0])
+    cs.add_argument("--focus-indices", nargs=3, type=float, help="manual override; otherwise derive from the three focus stacks")
     cs.add_argument("--output", required=True)
     return parser
 
@@ -49,6 +49,9 @@ def _write_debug(path: str | None, name: str, value) -> None:
 
 def estimate_command(args: argparse.Namespace) -> int:
     frames = load_stack(args.stack_folder)
+    if args.calibration:
+        camera = CameraIntrinsics.from_dict(json.loads(Path(args.calibration).read_text(encoding="utf-8")))
+        frames = undistort_stack(frames, camera)
     aligned = align_stack(frames)
     curve = focus_curve(aligned.frames)
     scores = local_focus_scores(aligned.frames)
@@ -62,9 +65,6 @@ def estimate_command(args: argparse.Namespace) -> int:
         from .scale import FocusDepthScale
         scale = FocusDepthScale.from_dict(json.loads(Path(args.scale_calibration).read_text(encoding="utf-8")))
         payload["metricDepthM"] = scale.distance_for_focus(result.peak_index / 4.0).tolist()
-    if args.calibration:
-        from .intrinsics import CameraIntrinsics
-        CameraIntrinsics.from_dict(json.loads(Path(args.calibration).read_text(encoding="utf-8")))
     Path(args.output).with_suffix(".json").write_text(json.dumps(payload), encoding="utf-8")
     _write_debug(args.debug_dir, "focus_curve", curve)
     _write_debug(args.debug_dir, "alignment", {"errors": aligned.errors, "inlierRatios": aligned.inlier_ratios})
@@ -83,7 +83,7 @@ def main(argv: list[str] | None = None) -> int:
             Path(args.output).write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
             return 0
         if args.command == "calibrate-scale":
-            result = calibrate_scale(args.focus_indices, args.distances)
+            result = calibrate_scale(args.focus_indices, args.distances) if args.focus_indices else calibrate_scale_from_folder(args.scale_folder, args.distances)
             Path(args.output).write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
             return 0
     except DefocusDepthError as exc:
