@@ -28,6 +28,33 @@ test('runtime prerequisite probe reports calibration support honestly', async ({
   test.setTimeout(120_000);
   await page.goto('/');
   const result = await page.evaluate(() => new Promise((resolve, reject) => { const worker = new Worker('./js/runtime-smoke.worker.js'); const timeout = setTimeout(() => reject(new Error('runtime smoke timeout')), 12_000); worker.onerror = event => { clearTimeout(timeout); reject(new Error(`worker error: ${event.message}`)); }; worker.onmessage = event => { if (event.data.id !== 77) return; clearTimeout(timeout); worker.terminate(); resolve(event.data); }; worker.postMessage({ id: 77 }); }));
-  if (result.error) expect(result.error.code).toBe('RUNTIME_MISSING');
-  else expect(result.result).toEqual({ Mat: true, findChessboardCorners: true, calibrateCamera: true, undistort: true });
+  expect(result.error).toBeUndefined();
+  expect(result.result).toMatchObject({ Mat: true, findChessboardCorners: false, calibrateCamera: false, calibrateCameraExtended: true, checkerboardFallback: true, undistort: true });
+});
+
+test('browser fallback detects a synthetic chessboard and calibrates real intrinsics', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'one calibration fixture is sufficient');
+  test.setTimeout(120_000);
+  await page.goto('/');
+  const result = await page.evaluate(async () => {
+    const frames = [];
+    for (let view = 0; view < 4; view++) {
+      const canvas = document.createElement('canvas'); canvas.width = 320; canvas.height = 240;
+      const context = canvas.getContext('2d'); context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height);
+      context.save(); context.translate(20 + view * 10, 20 + view * 3); context.transform(1, view * 0.03, view * 0.02, 1, 0, 0);
+      for (let row = 0; row < 7; row++) for (let col = 0; col < 10; col++) { context.fillStyle = (row + col) % 2 ? '#fff' : '#000'; context.fillRect(col * 22, row * 22, 22, 22); }
+      context.restore(); frames.push({ bitmap: await createImageBitmap(canvas), width: 320, height: 240 });
+    }
+    const worker = new Worker('./js/defocus.bootstrap.js');
+    return await new Promise(resolve => {
+      const timeout = setTimeout(() => resolve({ error: { code: 'TIMEOUT' } }), 60_000);
+      worker.onmessage = event => { if (!event.data.error && !event.data.result) return; clearTimeout(timeout); worker.terminate(); resolve(event.data); };
+      worker.onerror = event => { clearTimeout(timeout); worker.terminate(); resolve({ error: { code: 'WORKER_ERROR', message: event.message } }); };
+      worker.postMessage({ id: 1, type: 'calibrateIntrinsics', payload: { frames, pattern: { cols: 9, rows: 6, squareSize: 0.025 } } }, frames.map(frame => frame.bitmap));
+    });
+  });
+  expect(result.error).toBeUndefined();
+  expect(result.result.viewsAccepted).toBeGreaterThanOrEqual(3);
+  expect(result.result.intrinsics.matrix[0][0]).toBeGreaterThan(0);
+  expect(result.result.rmsErrorPx).toBeLessThan(2);
 });

@@ -7,7 +7,9 @@ self.loadLab005OpenCv = function loadLab005OpenCv(runtimeUrl = '../vendor/opencv
   openCvPromise = new Promise((resolve, reject) => {
     let poll; let settled = false;
     const finish = (callback, value) => { if (settled) return; settled = true; clearTimeout(timeout); clearInterval(poll); callback(value); };
-    const ready = value => { const runtime = value || self.cv; if (runtime?.Mat) finish(resolve, runtime); };
+    // Emscripten exposes `cv` as a thenable during startup. Never resolve
+    // with that thenable itself or Promise assimilation waits forever.
+    const ready = value => { const runtime = value || self.cv; if (runtime && typeof runtime.then === 'function') { if (!runtime.Mat) return; const stable = Object.create(runtime); Object.defineProperty(stable, 'then', { value: undefined, configurable: true }); finish(resolve, stable); return; } if (runtime?.Mat) finish(resolve, runtime); };
     const timeout = setTimeout(() => finish(reject, Object.assign(new Error('OpenCV.js initialization timed out'), { code: 'RUNTIME_MISSING' })), 9_000);
     self.Module = { onRuntimeInitialized() { ready(self.cv); } };
     try {

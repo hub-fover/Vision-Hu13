@@ -3,8 +3,8 @@ self.onmessage = () => {
   let finished = false;
   const finish = message => { if (finished) return; finished = true; clearInterval(timer); clearTimeout(timeout); self.postMessage({ id: 77, ...message }); };
   const done = value => {
-    const result = { Mat: typeof value?.Mat === 'function', findChessboardCorners: typeof value?.findChessboardCorners === 'function', calibrateCamera: typeof value?.calibrateCamera === 'function', undistort: typeof value?.undistort === 'function' };
-    const missing = Object.entries(result).filter(([, available]) => !available).map(([name]) => name);
+    const result = { Mat: typeof value?.Mat === 'function', findChessboardCorners: typeof value?.findChessboardCorners === 'function', findChessboardCornersSB: typeof value?.findChessboardCornersSB === 'function', calibrateCamera: typeof value?.calibrateCamera === 'function', calibrateCameraExtended: typeof value?.calibrateCameraExtended === 'function', checkerboardFallback: typeof value?.threshold === 'function' && typeof value?.connectedComponentsWithStats === 'function' && typeof value?.matFromArray === 'function', undistort: typeof value?.undistort === 'function' };
+    const missing = ['Mat', 'undistort', 'calibrateCameraExtended', 'checkerboardFallback'].filter(name => !result[name]);
     if (missing.length) finish({ error: { code: 'RUNTIME_MISSING', message: `OpenCV.js calibration APIs missing: ${missing.join(', ')}` }, result });
     else finish({ result });
   };

@@ -10,11 +10,10 @@ const packageJson = JSON.parse(await readFile(resolve(packageDirectory, 'package
 const artifact = await readFile(source); const gzipBytes = gzipSync(artifact, { level: 9, mtime: 0 }).byteLength; if (gzipBytes > GZIP_TARGET_BYTES) throw new Error(`OpenCV.js gzip size ${gzipBytes} exceeds 8MiB`);
 await mkdir(dirname(destination), { recursive: true }); await copyFile(source, destination);
 
-// The published 4.12 package is the default OpenCV.js build. Its TypeScript
-// declarations mention calib3d, but the distributed runtime does not export
-// the calib3d entry points needed by the browser checkerboard workflow. Keep
-// this fact in the generated provenance instead of advertising a module that
-// cannot run. The Worker reports RUNTIME_MISSING for that optional feature.
+// The published 4.12 package omits the high-level chessboard detector and
+// calibrateCamera wrapper, but it does export calibrateCameraExtended and the
+// imgproc primitives used by our conservative browser detector. Record the
+// actual capability rather than relying on TypeScript declarations.
 const manifest = {
   package: '@techstark/opencv-js',
   version: VERSION,
@@ -24,14 +23,16 @@ const manifest = {
   gzipBytes,
   gzipTargetBytes: GZIP_TARGET_BYTES,
   sha256: createHash('sha256').update(artifact).digest('hex'),
-  requiredModules: ['core', 'imgproc'],
-  optionalModules: ['calib3d'],
+  requiredModules: ['core', 'imgproc', 'calib3d.calibrateCameraExtended'],
+  optionalModules: ['calib3d.findChessboardCorners'],
   capabilities: {
-    chessboardCalibration: false,
+    chessboardCalibration: true,
     calibrateCamera: false,
     findChessboardCorners: false,
+    calibrateCameraExtended: true,
+    checkerboardFallback: true,
     undistort: true,
   },
-  calibrationFallback: 'python-cli',
+  calibrationFallback: 'python-cli-for-unsupported-board-images',
 };
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8'); process.stdout.write(`${JSON.stringify(manifest)}\n`);

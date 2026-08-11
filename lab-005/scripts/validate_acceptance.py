@@ -48,15 +48,13 @@ def main() -> None:
             errors.append("unexpected OpenCV.js runtime provenance")
         if runtime_manifest.get("sha256") != digest:
             errors.append("OpenCV.js runtime manifest does not match the artifact")
-        if runtime_manifest.get("requiredModules") != ["core", "imgproc"]:
-            errors.append("runtime must not claim calib3d in the pinned default build")
-        if "calib3d" not in runtime_manifest.get("optionalModules", []):
-            errors.append("runtime manifest must record calib3d as optional")
+        if runtime_manifest.get("requiredModules") != ["core", "imgproc", "calib3d.calibrateCameraExtended"]:
+            errors.append("runtime must declare the extended calibration primitive used by the browser path")
+        if "calib3d.findChessboardCorners" not in runtime_manifest.get("optionalModules", []):
+            errors.append("runtime manifest must record the optional high-level chessboard API")
         capabilities = runtime_manifest.get("capabilities", {})
-        if capabilities.get("chessboardCalibration") is not False or capabilities.get("calibrateCamera") is not False:
-            errors.append("runtime manifest must declare browser chessboard calibration unavailable")
-        if runtime_manifest.get("calibrationFallback") != "python-cli":
-            errors.append("runtime manifest must point to the Python calibration fallback")
+        if capabilities.get("chessboardCalibration") is not True or capabilities.get("calibrateCameraExtended") is not True or capabilities.get("checkerboardFallback") is not True:
+            errors.append("runtime manifest must declare the browser checkerboard fallback")
         if gzip_bytes > 8 * 1024 * 1024:
             errors.append(f"OpenCV.js exceeds 8MiB gzip limit: {gzip_bytes}")
     manifest_path = web / "assets" / "samples" / "manifest.json"
