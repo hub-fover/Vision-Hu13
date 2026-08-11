@@ -1,0 +1,11 @@
+{
+  "name": "defocus-depth-lab-005-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test ../tests/web/*.test.js",
+    "test:e2e": "node ../../node_modules/@playwright/test/cli.js test -c ../playwright.config.js",
+    "build:pages": "node ../scripts/stage-pages.mjs ../../web/lab-005"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "lab005.samples.v1",
+  "title": "五帧合成焦点样例",
+  "description": "确定性本地样例，用于演示近焦到远焦的清晰度变化。",
+  "license": "MIT",
+  "source": "LAB 005 deterministic sample generator",
+  "generated": true,
+  "frames": [
+    {"id": "focus-near", "label": "近焦", "focusPosition": "near", "path": "focus-near.svg", "sha256": "23FA1848E6EF2467D40252DEEE9816441A04EE4CAFD1E1E7D2A9531B1C81CFFA"},
+    {"id": "focus-near-mid", "label": "近中焦", "focusPosition": "near-mid", "path": "focus-near-mid.svg", "sha256": "E3E531121A4B733B758826DD4AA43AF54CB6DAAED9EABB83440186549E249FA9"},
+    {"id": "focus-mid", "label": "中焦", "focusPosition": "mid", "path": "focus-mid.svg", "sha256": "48B53802F052901F532771D21A22FBA687F59E9B23C3FD8A7B015B82A19F401E"},
+    {"id": "focus-far-mid", "label": "远中焦", "focusPosition": "far-mid", "path": "focus-far-mid.svg", "sha256": "BF2A4BFB259C2EAF13C3F9EDC9E7F620D584EC16E5998C62334A742338EA389F"},
+    {"id": "focus-far", "label": "远焦", "focusPosition": "far", "path": "focus-far.svg", "sha256": "0962AFB35A538BD11EED0EA1E55178D9D991EA6082167F7AA223DB64ED9239D2"}
+  ]
+}
