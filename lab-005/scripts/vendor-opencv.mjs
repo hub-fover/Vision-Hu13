@@ -8,4 +8,30 @@ const VERSION = '4.12.0-release.1'; const GZIP_TARGET_BYTES = 8 * 1024 * 1024;
 const scriptDirectory = dirname(fileURLToPath(import.meta.url)); const webDirectory = resolve(scriptDirectory, '../web'); const packageDirectory = resolve(webDirectory, 'node_modules/@techstark/opencv-js'); const source = resolve(packageDirectory, 'dist/opencv.js'); const destination = resolve(webDirectory, 'vendor/opencv.js'); const manifestPath = resolve(webDirectory, 'vendor/manifest.local.json');
 const packageJson = JSON.parse(await readFile(resolve(packageDirectory, 'package.json'), 'utf8')); if (packageJson.version !== VERSION || packageJson.license !== 'Apache-2.0') throw new Error(`Unexpected OpenCV package: ${packageJson.version} / ${packageJson.license}`);
 const artifact = await readFile(source); const gzipBytes = gzipSync(artifact, { level: 9, mtime: 0 }).byteLength; if (gzipBytes > GZIP_TARGET_BYTES) throw new Error(`OpenCV.js gzip size ${gzipBytes} exceeds 8MiB`);
-await mkdir(dirname(destination), { recursive: true }); await copyFile(source, destination); const manifest = { package: '@techstark/opencv-js', version: VERSION, license: 'Apache-2.0', source: 'node_modules/@techstark/opencv-js/dist/opencv.js', rawBytes: (await stat(destination)).size, gzipBytes, gzipTargetBytes: GZIP_TARGET_BYTES, sha256: createHash('sha256').update(artifact).digest('hex'), requiredModules: ['core', 'imgproc', 'calib3d'] }; await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8'); process.stdout.write(`${JSON.stringify(manifest)}\n`);
+await mkdir(dirname(destination), { recursive: true }); await copyFile(source, destination);
+
+// The published 4.12 package is the default OpenCV.js build. Its TypeScript
+// declarations mention calib3d, but the distributed runtime does not export
+// the calib3d entry points needed by the browser checkerboard workflow. Keep
+// this fact in the generated provenance instead of advertising a module that
+// cannot run. The Worker reports RUNTIME_MISSING for that optional feature.
+const manifest = {
+  package: '@techstark/opencv-js',
+  version: VERSION,
+  license: 'Apache-2.0',
+  source: 'node_modules/@techstark/opencv-js/dist/opencv.js',
+  rawBytes: (await stat(destination)).size,
+  gzipBytes,
+  gzipTargetBytes: GZIP_TARGET_BYTES,
+  sha256: createHash('sha256').update(artifact).digest('hex'),
+  requiredModules: ['core', 'imgproc'],
+  optionalModules: ['calib3d'],
+  capabilities: {
+    chessboardCalibration: false,
+    calibrateCamera: false,
+    findChessboardCorners: false,
+    undistort: true,
+  },
+  calibrationFallback: 'python-cli',
+};
+await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8'); process.stdout.write(`${JSON.stringify(manifest)}\n`);

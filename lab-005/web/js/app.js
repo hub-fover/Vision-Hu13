@@ -71,7 +71,8 @@ async function displayResult(result) {
   $('#result-preview').src = depthUrl; $('#confidence-preview').src = confidenceUrl; $('#middle-preview').src = state.frames[2].url;
   const metrics = resultMetrics(result); const bestIndex = metrics.length ? metrics.indexOf(Math.max(...metrics)) : 2; $('#best-preview').src = state.frames[bestIndex].url; renderFocusCurve(metrics);
   const metricText = result.metricDepthM ? '已应用尺度标定，米制值仅供参考。' : '未完成尺度标定，仅显示相对深度。'; const intrinsicsText = result.intrinsicsApplied ? '已应用镜头内参。' : '';
-  $('#result-summary').textContent = `整体置信度 ${(result.quality * 100).toFixed(0)}%。${intrinsicsText}${metricText} 当前浏览器版只做相机移动筛查，没有逐像素对齐。`;
+  const alignmentText = result.alignment?.applied ? `已执行五帧轻量平移对齐，最大位移 ${Number(result.alignment.maxErrorPx || 0).toFixed(1)} px。` : '仅完成相机移动筛查。';
+  $('#result-summary').textContent = `整体置信度 ${(result.quality * 100).toFixed(0)}%。${intrinsicsText}${metricText}${alignmentText}`;
 }
 
 async function runEstimate() {

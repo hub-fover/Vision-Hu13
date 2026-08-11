@@ -73,6 +73,10 @@ export async function validatePagesStage(destination = defaultDestination) {
   const gzipBytes = gzipSync(runtime, { level: 9, mtime: 0 }).byteLength;
   if (runtimeManifest.package !== "@techstark/opencv-js" || runtimeManifest.version !== "4.12.0-release.1" || runtimeManifest.license !== "Apache-2.0") throw new Error("unexpected OpenCV.js runtime provenance");
   if (runtimeManifest.sha256 !== sha256 || runtimeManifest.gzipBytes !== gzipBytes) throw new Error("OpenCV.js runtime manifest does not match staged artifact");
+  if (JSON.stringify(runtimeManifest.requiredModules) !== JSON.stringify(["core", "imgproc"])) throw new Error("pinned default OpenCV.js build must not claim calib3d");
+  if (!Array.isArray(runtimeManifest.optionalModules) || !runtimeManifest.optionalModules.includes("calib3d")) throw new Error("runtime manifest must record calib3d as optional");
+  if (runtimeManifest.capabilities?.chessboardCalibration !== false || runtimeManifest.capabilities?.calibrateCamera !== false) throw new Error("runtime manifest must declare browser chessboard calibration unavailable");
+  if (runtimeManifest.calibrationFallback !== "python-cli") throw new Error("runtime manifest must point to the Python calibration fallback");
   if (gzipBytes > 8 * 1024 * 1024) throw new Error(`OpenCV.js exceeds 8MiB gzip limit: ${gzipBytes}`);
   return { files: await files(root), sampleCount: manifest.frames.length, opencvGzipBytes: gzipBytes };
 }

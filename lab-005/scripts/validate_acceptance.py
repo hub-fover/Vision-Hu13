@@ -48,6 +48,15 @@ def main() -> None:
             errors.append("unexpected OpenCV.js runtime provenance")
         if runtime_manifest.get("sha256") != digest:
             errors.append("OpenCV.js runtime manifest does not match the artifact")
+        if runtime_manifest.get("requiredModules") != ["core", "imgproc"]:
+            errors.append("runtime must not claim calib3d in the pinned default build")
+        if "calib3d" not in runtime_manifest.get("optionalModules", []):
+            errors.append("runtime manifest must record calib3d as optional")
+        capabilities = runtime_manifest.get("capabilities", {})
+        if capabilities.get("chessboardCalibration") is not False or capabilities.get("calibrateCamera") is not False:
+            errors.append("runtime manifest must declare browser chessboard calibration unavailable")
+        if runtime_manifest.get("calibrationFallback") != "python-cli":
+            errors.append("runtime manifest must point to the Python calibration fallback")
         if gzip_bytes > 8 * 1024 * 1024:
             errors.append(f"OpenCV.js exceeds 8MiB gzip limit: {gzip_bytes}")
     manifest_path = web / "assets" / "samples" / "manifest.json"
