@@ -6,10 +6,10 @@
   "source": "LAB 005 deterministic sample generator",
   "generated": true,
   "frames": [
-    {"id": "focus-near", "label": "近焦", "focusPosition": "near", "path": "focus-near.svg", "sha256": "1C18E4B84433CB4181F6C2EAC6355E9F23E4B9B9F8F8695B35594D01E21D0EA8"},
-    {"id": "focus-near-mid", "label": "近中焦", "focusPosition": "near-mid", "path": "focus-near-mid.svg", "sha256": "BDFEE5CE858D701B2F88675C420CE615D8F23879A6B66C11D55532B3477660CD"},
-    {"id": "focus-mid", "label": "中焦", "focusPosition": "mid", "path": "focus-mid.svg", "sha256": "5FF2C5BE172A75DD89332DD70FC3F4A99445036C86004CA4B83C54E2318A2E6F"},
-    {"id": "focus-far-mid", "label": "远中焦", "focusPosition": "far-mid", "path": "focus-far-mid.svg", "sha256": "FCE72349EBE4D999D36C2AAF4543B9E3D74A910530381D7F9C34E01EEF7BBB29"},
-    {"id": "focus-far", "label": "远焦", "focusPosition": "far", "path": "focus-far.svg", "sha256": "77ED8CEF968343EE4336763E90DB6E9A7E164515ECE2FD82003388FC0A9CB908"}
+    {"id": "focus-near", "label": "NEAR", "focusPosition": "near", "path": "focus-near.svg", "sha256": "C8438ABFB9B4012FA299AB053A7274208C49131EE918990568E8321631E19DE7"},
+    {"id": "focus-near-mid", "label": "NEAR MID", "focusPosition": "near-mid", "path": "focus-near-mid.svg", "sha256": "68EE615CCDF3F33D2852D9551E605902F7E11812CCBEAB814542C7516350E4E4"},
+    {"id": "focus-mid", "label": "MID", "focusPosition": "mid", "path": "focus-mid.svg", "sha256": "FB72A843F87761ECBBB781718C6B967E3F696330A9D2AFD229CCA7ACBD14C2B9"},
+    {"id": "focus-far-mid", "label": "FAR MID", "focusPosition": "far-mid", "path": "focus-far-mid.svg", "sha256": "09DE75A70390AB4249A7963FFA1764AEBB1D63558A3E52549CA78288D1697B23"},
+    {"id": "focus-far", "label": "FAR", "focusPosition": "far", "path": "focus-far.svg", "sha256": "5FA600DEC68968490A10A757337BE483244BBBD83FAED8A10AEFDC8D0B81499C"}
   ]
 }

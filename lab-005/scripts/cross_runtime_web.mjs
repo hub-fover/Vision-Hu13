@@ -7,61 +7,36 @@ const contract = JSON.parse(await readFile(resolve(root, "shared/contracts.json"
 const webRoot = resolve(root, "web");
 
 function syntheticStack() {
+  const width = 40;
+  const height = 8;
   const frames = [];
   for (let frame = 0; frame < 5; frame += 1) {
-    const values = new Float32Array(16);
-    for (let i = 0; i < values.length; i += 1) {
-      const distance = Math.abs(frame - (i % 5));
-      values[i] = Math.max(0, 1 - distance * 0.4);
+    const gray = new Float32Array(width * height);
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const target = Math.floor(x / 8);
+        const amplitude = Math.max(0.05, 1 - Math.abs(frame - target) * 0.3);
+        gray[y * width + x] = ((Math.floor(x / 2) + Math.floor(y / 2)) % 2) * amplitude;
+      }
     }
-    frames.push(values);
+    frames.push({ width, height, gray });
   }
   return frames;
 }
 
-function referenceDepth(frames) {
-  const pixels = frames[0].length;
-  const depth = [];
-  for (let pixel = 0; pixel < pixels; pixel += 1) {
-    let best = 0;
-    for (let frame = 1; frame < frames.length; frame += 1) {
-      if (frames[frame][pixel] > frames[best][pixel]) best = frame;
-    }
-    depth.push(best / (frames.length - 1));
-  }
-  return depth;
-}
-
-async function loadWebDepth() {
-  const candidates = ["js/depth.js", "js/focus-metrics.js", "js/focus_metrics.js"];
-  for (const candidate of candidates) {
-    try {
-      return await import(pathToFileURL(resolve(webRoot, candidate)).href);
-    } catch {
-      // The browser implementation may keep depth estimation in the Worker.
-    }
-  }
-  return null;
-}
-
 const frames = syntheticStack();
-const expected = referenceDepth(frames);
-const module = await loadWebDepth();
-let javascriptDepth = expected;
-if (module?.estimateRelativeDepth) {
-  try {
-    const result = module.estimateRelativeDepth(frames, { tileSizePx: 1 });
-    const values = result?.depth ?? result;
-    if (values?.length === expected.length) javascriptDepth = Array.from(values);
-  } catch {
-    // Keep the deterministic control fixture; runtime smoke remains useful.
-  }
-}
+const expected = [0, 0.25, 0.5, 0.75, 1];
+const depthModule = await import(pathToFileURL(resolve(webRoot, "js/depth.js")).href);
+if (typeof depthModule.estimateDepth !== "function") throw new Error("web/js/depth.js must export estimateDepth");
+const result = depthModule.estimateDepth(frames, { tileSize: 8, minTexture: 0, minPeakProminence: 0 });
+const javascriptDepth = Array.from(result.depth);
+if (javascriptDepth.length !== expected.length) throw new Error(`unexpected depth fixture size: ${javascriptDepth.length}`);
+
 const maxDepthDifference = Math.max(...expected.map((value, index) => Math.abs(value - javascriptDepth[index])));
 const report = {
   schema: contract.schema,
   frameCount: frames.length,
-  depthOrder: javascriptDepth.slice(0, 5).map((value) => Math.round(value * 4)),
+  depthOrder: javascriptDepth.map((value) => Math.round(value * 4)),
   maxDepthDifference,
   maxControlPointErrorPx: 0,
   errors: contract.errorCodes,
