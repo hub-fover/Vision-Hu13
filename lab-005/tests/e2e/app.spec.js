@@ -58,3 +58,64 @@ test('browser fallback detects a synthetic chessboard and calibrates real intrin
   expect(result.result.intrinsics.matrix[0][0]).toBeGreaterThan(0);
   expect(result.result.rmsErrorPx).toBeLessThan(2);
 });
+
+test('camera permission denial keeps the album fallback available', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: async () => { const error = new Error('permission denied'); error.name = 'NotAllowedError'; throw error; } } });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: '用相机拍摄' }).click();
+  await expect(page.locator('#camera-status')).toContainText('相册');
+  await expect(page.getByText('从相册选择五张', { exact: true })).toBeVisible();
+  await expect(page.locator('#camera-preview')).toBeHidden();
+});
+
+test('camera preview can capture without hardware focus controls', async ({ page }) => {
+  await page.addInitScript(() => {
+    const stream = document.createElement('canvas').captureStream(); const track = stream.getVideoTracks()[0]; const nativeStop = track.stop.bind(track);
+    Object.defineProperty(track, 'getCapabilities', { configurable: true, value: () => ({}) });
+    Object.defineProperty(track, 'stop', { configurable: true, value: () => { window.__trackStopped = true; nativeStop(); } });
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: async () => stream } });
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', { configurable: true, value: async function () { this.readyState = 4; } });
+    Object.defineProperty(HTMLVideoElement.prototype, 'videoWidth', { configurable: true, get: () => 640 });
+    Object.defineProperty(HTMLVideoElement.prototype, 'videoHeight', { configurable: true, get: () => 480 });
+    HTMLCanvasElement.prototype.toBlob = function (callback) { callback(new Blob(['camera'], { type: 'image/jpeg' })); };
+    window.createImageBitmap = async () => ({ width: 640, height: 480, close() {} });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: '用相机拍摄' }).click();
+  await expect(page.locator('#camera-preview')).toBeVisible();
+  await expect(page.locator('#focus-distance-control')).toBeHidden();
+  await expect(page.locator('#camera-status')).toContainText('调焦');
+  await page.getByRole('button', { name: '拍下一张' }).click();
+  await expect(page.locator('.capture-slot').first()).toContainText('已选择');
+});
+
+test('supported focus distance is surfaced and every camera exit releases its stream', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: async () => {
+      const stream = document.createElement('canvas').captureStream(); const track = stream.getVideoTracks()[0]; const nativeStop = track.stop.bind(track);
+      Object.defineProperty(track, 'getCapabilities', { configurable: true, value: () => ({ focusDistance: { min: 0.1, max: 4, step: 0.1 } }) });
+      Object.defineProperty(track, 'applyConstraints', { configurable: true, value: async constraints => { window.__focusConstraint = constraints; } });
+      Object.defineProperty(track, 'stop', { configurable: true, value: () => { window.__stoppedTracks = (window.__stoppedTracks || 0) + 1; nativeStop(); } });
+      return stream;
+    } } });
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', { configurable: true, value: async function () { this.readyState = 4; } });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: '用相机拍摄' }).click();
+  await expect(page.locator('#focus-distance-control')).toBeVisible();
+  await expect(page.locator('#focus-distance')).toHaveAttribute('min', '0.1');
+  await expect(page.locator('#focus-distance')).toHaveAttribute('max', '4');
+  await page.locator('#focus-distance').fill('2');
+  await expect.poll(() => page.evaluate(() => window.__focusConstraint?.advanced?.[0]?.focusDistance)).toBe(2);
+  await page.getByRole('button', { name: '关闭相机' }).click();
+  await expect.poll(() => page.evaluate(() => window.__stoppedTracks)).toBe(1);
+  await page.getByRole('button', { name: '用相机拍摄' }).click();
+  await page.getByRole('button', { name: '清空' }).click();
+  await expect.poll(() => page.evaluate(() => window.__stoppedTracks)).toBe(2);
+  await page.getByRole('button', { name: '用相机拍摄' }).click();
+  await page.getByRole('tab', { name: '镜头标定' }).click();
+  await expect(page.locator('#camera-preview')).toBeHidden();
+  await expect.poll(() => page.evaluate(() => window.__stoppedTracks)).toBe(3);
+});

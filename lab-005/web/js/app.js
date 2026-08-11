@@ -1,5 +1,5 @@
 import { createInitialState, moveFrame, readyFrames, resetFrames } from './state.js';
-import { addFileToSlot, decodeFile, FOCUS_LABELS, loadSampleManifest, resolveSampleUrl } from './capture.js';
+import { addFileToSlot, captureVideoFrame, decodeFile, FOCUS_LABELS, getFocusCapabilities, loadSampleManifest, requestCamera, resolveSampleUrl, setFocusDistance, stopMediaStream } from './capture.js';
 import { validateCalibration, validateScale } from './calibration.js';
 import { messageFor } from './errors.js';
 import { DefocusWorkerClient } from './worker-client.js';
@@ -9,18 +9,95 @@ const client = new DefocusWorkerClient();
 const resultUrls = new Set();
 const $ = selector => document.querySelector(selector);
 const slots = $('#capture-slots');
+let cameraStream = null;
+let cameraTrack = null;
+let focusCapabilities = null;
+let cameraRequestToken = 0;
+
+function nextEmptySlot() { return state.frames.findIndex(frame => !(frame.file || frame.bitmap)); }
+
+function releaseCamera() {
+  cameraRequestToken += 1;
+  stopMediaStream(cameraStream);
+  cameraStream = null;
+  cameraTrack = null;
+  focusCapabilities = null;
+  const video = $('#camera-preview');
+  if (video) { video.pause?.(); video.srcObject = null; video.hidden = true; }
+  const session = $('#camera-session'); if (session) session.hidden = true;
+  const focusControl = $('#focus-distance-control'); if (focusControl) focusControl.hidden = true;
+  const captureButton = $('#capture-frame'); if (captureButton) captureButton.disabled = true;
+}
+
+function setCameraStatus(message) { const node = $('#camera-status'); if (node) node.textContent = message; }
+
+async function startCamera() {
+  releaseCamera();
+  const token = cameraRequestToken;
+  const session = $('#camera-session'); session.hidden = false;
+  setCameraStatus('正在请求相机权限…');
+  try {
+    const stream = await requestCamera();
+    if (token !== cameraRequestToken) { stopMediaStream(stream); return; }
+    cameraStream = stream; cameraTrack = stream.getVideoTracks?.()[0] || stream.getTracks?.()[0] || null;
+    const video = $('#camera-preview'); video.srcObject = stream; video.hidden = false;
+    await video.play?.().catch(() => {});
+    focusCapabilities = await getFocusCapabilities(cameraTrack);
+    const focusControl = $('#focus-distance-control'); const input = $('#focus-distance');
+    if (focusCapabilities.supported) {
+      focusControl.hidden = false; input.disabled = false; input.min = String(focusCapabilities.min); input.max = String(focusCapabilities.max); input.step = String(focusCapabilities.step || 'any'); input.value = String((focusCapabilities.min + focusCapabilities.max) / 2); $('#focus-distance-value').textContent = input.value;
+      setCameraStatus('相机已就绪。可拖动焦点滑杆，按当前焦点拍入下一个空槽。');
+    } else {
+      focusControl.hidden = true;
+      setCameraStatus('相机预览已开启，但浏览器不支持网页调焦；可继续拍当前画面，或改用系统相机后从相册选择五张。');
+    }
+    const captureButton = $('#capture-frame'); captureButton.disabled = nextEmptySlot() < 0 || !(video.videoWidth || video.clientWidth); video.addEventListener('loadedmetadata', updateReady, { once: true }); updateReady();
+  } catch (error) {
+    releaseCamera();
+    const permission = error?.name === 'NotAllowedError' || error?.name === 'SecurityError';
+    setCameraStatus(permission ? '相机权限被拒绝，请改用下方“从相册选择五张”继续。' : '当前浏览器或设备不支持相机，请改用下方“从相册选择五张”继续。');
+    $('#camera-session').hidden = false;
+  }
+}
+
+async function captureNextFrame() {
+  const index = nextEmptySlot();
+  if (index < 0 || !cameraStream) return;
+  try {
+    const file = await captureVideoFrame($('#camera-preview'));
+    await addFileToSlot(state, index, file);
+    renderSlots(); updateReady();
+    const next = nextEmptySlot();
+    if (next < 0) { $('#capture-frame').disabled = true; setCameraStatus('五个拍摄位已完成，可以开始分析。'); }
+    else setCameraStatus(`已拍入“${FOCUS_LABELS[index]}”，下一张建议：${FOCUS_LABELS[next]}。`);
+  } catch (error) { showError(error); }
+}
+
+async function applyFocusFromInput(event) {
+  if (!cameraTrack || !focusCapabilities?.supported) return;
+  const value = Number(event.target.value); $('#focus-distance-value').textContent = String(value);
+  try { await setFocusDistance(cameraTrack, value); } catch { setCameraStatus('设备拒绝了网页调焦，请使用系统相机或相册继续。'); }
+}
 
 function renderSlots() {
-  slots.innerHTML = state.frames.map((frame, index) => `<label class="capture-slot" data-slot="${index}"><input class="camera-input" type="file" accept="image/*" capture="environment" data-index="${index}"><span class="exposure-mark">${FOCUS_LABELS[index]}</span><span class="slot-action">${frame.file ? '已选择' : '拍摄 / 选择'}</span>${frame.url ? `<img src="${frame.url}" alt="${FOCUS_LABELS[index]}样例">` : ''}${frame.file || frame.bitmap ? `<span class="slot-order"><button type="button" class="move-left" data-from="${index}" data-to="${index - 1}" aria-label="向近焦移动" ${index === 0 ? 'disabled' : ''}>←</button><button type="button" class="move-right" data-from="${index}" data-to="${index + 1}" aria-label="向远焦移动" ${index === 4 ? 'disabled' : ''}>→</button></span>` : ''}</label>`).join('');
+  slots.innerHTML = state.frames.map((frame, index) => `<label class="capture-slot" data-slot="${index}" draggable="${Boolean(frame.file || frame.bitmap)}"><input class="camera-input" type="file" accept="image/*" capture="environment" data-index="${index}"><span class="exposure-mark">${FOCUS_LABELS[index]}</span><span class="slot-action">${frame.file ? '已选择' : '拍摄 / 选择'}</span>${frame.url ? `<img src="${frame.url}" alt="${FOCUS_LABELS[index]}样例">` : ''}${frame.file || frame.bitmap ? `<span class="slot-order"><button type="button" class="move-left" data-from="${index}" data-to="${index - 1}" aria-label="向近焦移动" ${index === 0 ? 'disabled' : ''}>←</button><button type="button" class="move-right" data-from="${index}" data-to="${index + 1}" aria-label="向远焦移动" ${index === 4 ? 'disabled' : ''}>→</button></span>` : ''}</label>`).join('');
   slots.querySelectorAll('.camera-input').forEach(input => input.addEventListener('change', async event => {
     const file = event.target.files?.[0]; if (!file) return;
+    releaseCamera();
     try { await addFileToSlot(state, Number(input.dataset.index), file); renderSlots(); updateReady(); } catch (error) { showError(error); }
   }));
   slots.querySelectorAll('.slot-order button').forEach(button => button.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); moveFrame(state, Number(button.dataset.from), Number(button.dataset.to)); renderSlots(); updateReady(); }));
+  slots.querySelectorAll('.capture-slot').forEach(slot => {
+    slot.addEventListener('dragstart', event => { event.dataTransfer?.setData('text/plain', slot.dataset.slot); slot.classList.add('dragging'); });
+    slot.addEventListener('dragend', () => slot.classList.remove('dragging'));
+    slot.addEventListener('dragover', event => { if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'; event.preventDefault(); });
+    slot.addEventListener('drop', event => { event.preventDefault(); const from = Number(event.dataTransfer?.getData('text/plain')); const to = Number(slot.dataset.slot); if (Number.isInteger(from) && moveFrame(state, from, to)) { renderSlots(); updateReady(); } });
+  });
 }
 
 function updateReady() {
   const ready = readyFrames(state); $('#run-button').disabled = !ready;
+  const video = $('#camera-preview'); const captureButton = $('#capture-frame'); if (captureButton) captureButton.disabled = !cameraStream || nextEmptySlot() < 0 || !(video?.videoWidth || video?.clientWidth);
   $('#analysis-status').textContent = ready ? '五张照片已准备好，可以开始分析。' : `已准备 ${state.frames.filter(frame => frame.file || frame.bitmap).length}/5 张照片`;
 }
 
@@ -76,7 +153,7 @@ async function displayResult(result) {
 }
 
 async function runEstimate() {
-  clearError(); hideResult(); setProgress(0, '读取五张照片');
+  releaseCamera(); clearError(); hideResult(); setProgress(0, '读取五张照片');
   const frames = state.frames.map(frame => ({ bitmap: frame.bitmap, width: frame.bitmap.width, height: frame.bitmap.height }));
   try {
     const result = await client.run('estimate', { frames, calibration: state.calibration, scaleCalibration: state.scaleCalibration, options: { tileSize: 8, minTexture: 0.02, minPeakProminence: 0.08, maxAlignmentErrorPx: 2 } }, value => setProgress(value, '计算焦点评分'));
@@ -85,7 +162,7 @@ async function runEstimate() {
 }
 
 async function useSample() {
-  clearError(); $('#sample-status').textContent = '正在读取样例…';
+  releaseCamera(); clearError(); $('#sample-status').textContent = '正在读取样例…';
   try {
     const manifest = await loadSampleManifest('./assets/samples/manifest.json');
     for (let index = 0; index < Math.min(5, manifest.frames.length); index++) { const frame = manifest.frames[index]; const response = await fetch(resolveSampleUrl(frame.path)); const blob = await response.blob(); await addFileToSlot(state, index, new File([blob], `${frame.id}.svg`, { type: blob.type || 'image/svg+xml' })); }
@@ -93,8 +170,8 @@ async function useSample() {
   } catch (error) { showError(error); $('#sample-status').textContent = ''; }
 }
 
-function reset() { client.cancel(); resetFrames(state); hideResult(); renderSlots(); updateReady(); $('#sample-status').textContent = ''; clearError(); }
-function activateMode(mode) { state.mode = mode; document.querySelectorAll('.mode-tab').forEach(tab => { const active = tab.dataset.mode === mode; tab.classList.toggle('active', active); tab.setAttribute('aria-selected', String(active)); }); $('#relative-panel').hidden = mode !== 'relative'; $('#intrinsics-panel').hidden = mode !== 'intrinsics'; $('#scale-panel').hidden = mode !== 'scale'; if (mode !== 'relative') hideResult(); }
+function reset() { client.cancel(); releaseCamera(); resetFrames(state); hideResult(); renderSlots(); updateReady(); $('#sample-status').textContent = ''; clearError(); }
+function activateMode(mode) { if (mode !== 'relative') releaseCamera(); state.mode = mode; document.querySelectorAll('.mode-tab').forEach(tab => { const active = tab.dataset.mode === mode; tab.classList.toggle('active', active); tab.setAttribute('aria-selected', String(active)); }); $('#relative-panel').hidden = mode !== 'relative'; $('#intrinsics-panel').hidden = mode !== 'intrinsics'; $('#scale-panel').hidden = mode !== 'scale'; if (mode !== 'relative') hideResult(); }
 
 async function importJson(file, validator) { const value = JSON.parse(await file.text()); return validator(value); }
 function updateCalibrationStatus() { $('#calibration-import-status').textContent = `${state.calibration ? '已导入镜头内参' : '未导入内参'}；${state.scaleCalibration ? '已导入尺度标定' : '未导入尺度标定'}`; }
@@ -122,8 +199,9 @@ async function calibrateScale() {
 function bind() {
   renderSlots(); updateReady();
   $('#focus-support').textContent = typeof ImageCapture === 'function' ? '本机浏览器可能支持网页调焦；实际能力取决于摄像头。若无调焦滑杆，请使用系统相机逐张拍摄后导入。' : '本机浏览器不支持网页调焦，请使用系统相机逐张拍摄后导入。';
-  $('#sample-button').addEventListener('click', useSample); $('#gallery-input').addEventListener('change', async event => { const files = [...(event.target.files || [])].slice(0, 5); resetFrames(state); for (let index = 0; index < files.length; index++) await addFileToSlot(state, index, files[index]); renderSlots(); updateReady(); });
-  $('#reset-button').addEventListener('click', reset); $('#again-button').addEventListener('click', reset); $('#run-button').addEventListener('click', runEstimate); $('#cancel-button').addEventListener('click', () => { client.cancel(); $('#progress-panel').hidden = true; showError(Object.assign(new Error('Cancelled'), { code: 'CANCELLED' })); });
+  $('#start-camera').addEventListener('click', startCamera); $('#capture-frame').addEventListener('click', captureNextFrame); $('#close-camera').addEventListener('click', () => { releaseCamera(); setCameraStatus('相机已关闭，可从相册选择照片。'); $('#camera-session').hidden = false; }); $('#focus-distance').addEventListener('input', applyFocusFromInput);
+  $('#sample-button').addEventListener('click', useSample); $('#gallery-input').addEventListener('change', async event => { releaseCamera(); const files = [...(event.target.files || [])].slice(0, 5); resetFrames(state); for (let index = 0; index < files.length; index++) await addFileToSlot(state, index, files[index]); renderSlots(); updateReady(); });
+  $('#reset-button').addEventListener('click', reset); $('#again-button').addEventListener('click', reset); $('#run-button').addEventListener('click', runEstimate); $('#cancel-button').addEventListener('click', () => { client.cancel(); releaseCamera(); $('#progress-panel').hidden = true; showError(Object.assign(new Error('Cancelled'), { code: 'CANCELLED' })); });
   document.querySelectorAll('.mode-tab').forEach(tab => tab.addEventListener('click', () => activateMode(tab.dataset.mode)));
   document.querySelectorAll('.view-tabs button').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('.view-tabs button').forEach(item => item.classList.toggle('active', item === tab)); ['depth', 'confidence', 'best', 'middle'].forEach(kind => { $(`#${kind === 'depth' ? 'result' : kind}-preview`).hidden = tab.dataset.view !== kind; }); }));
   $('#intrinsics-import').addEventListener('change', async event => { try { state.calibration = await importJson(event.target.files[0], validateCalibration); updateCalibrationStatus(); } catch (error) { showError(error); } });
@@ -136,6 +214,7 @@ function bind() {
 }
 
 bind();
+window.addEventListener('pagehide', releaseCamera, { once: true });
 $('#result-preview').addEventListener('click', event => {
   if (!state.result) return; const rect = event.currentTarget.getBoundingClientRect(); const x = Math.max(0, Math.min(state.result.width - 1, Math.round((event.clientX - rect.left) / rect.width * state.result.width))); const y = Math.max(0, Math.min(state.result.height - 1, Math.round((event.clientY - rect.top) / rect.height * state.result.height))); const tile = Math.min(state.result.rows - 1, Math.floor(y / state.result.tileSize)) * state.result.cols + Math.min(state.result.cols - 1, Math.floor(x / state.result.tileSize)); $('#sample-query').hidden = false;
   if (state.result.invalid[tile]) $('#query-value').textContent = '该区域纹理不足'; else { const metric = state.result.metricDepthM ? `，参考距离 ${state.result.metricDepthM[tile].toFixed(2)} m` : ''; $('#query-value').textContent = `相对深度 ${(state.result.depth[tile] * 100).toFixed(0)}%，置信度 ${(state.result.confidence[tile] * 100).toFixed(0)}%${metric}`; }

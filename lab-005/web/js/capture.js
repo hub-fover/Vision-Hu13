@@ -14,6 +14,20 @@ export async function decodeFile(file, maxSide = 1280) {
   const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(bitmap.width * scale)); canvas.height = Math.max(1, Math.round(bitmap.height * scale)); canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height); bitmap.close(); return { bitmap: await createImageBitmap(canvas), width: canvas.width, height: canvas.height };
 }
 export async function addFileToSlot(state, index, file) { const decoded = await decodeFile(file); const url = URL.createObjectURL(file); return setFrame(state, index, file, decoded.bitmap, url); }
+export async function captureVideoFrame(video, name = `lab005-camera-${Date.now()}.jpg`) {
+  const width = video?.videoWidth || video?.clientWidth;
+  const height = video?.videoHeight || video?.clientHeight;
+  if (!width || !height) throw makeError('DECODE_FAILED', 'camera frame is not ready');
+  const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+  const context = canvas.getContext('2d', { alpha: false });
+  if (!context) throw makeError('DECODE_FAILED', 'canvas unavailable');
+  context.drawImage(video, 0, 0, width, height);
+  const blob = await new Promise((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(makeError('DECODE_FAILED')), 'image/jpeg', 0.92));
+  return new File([blob], name, { type: blob.type || 'image/jpeg' });
+}
+export function stopMediaStream(stream) {
+  stream?.getTracks?.().forEach(track => { try { track.stop?.(); } catch { /* a stopped track is already released */ } });
+}
 export async function loadSampleManifest(base = '../assets/samples/manifest.json') { const response = await fetch(base); if (!response.ok) throw makeError('DECODE_FAILED'); return response.json(); }
 export function resolveSampleUrl(path) { return path.includes('/') ? `./${path.replace(/^\.\//, '')}` : `./assets/samples/${path}`; }
 export async function requestCamera() { if (!navigator.mediaDevices?.getUserMedia) throw makeError('RUNTIME_MISSING', 'camera unavailable'); return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }); }

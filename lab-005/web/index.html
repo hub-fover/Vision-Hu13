@@ -24,6 +24,21 @@
       <div class="section-heading"><span>01</span><div><h2>准备五个焦点位置</h2><p>保持构图和相机位置不变，依次从近焦到远焦。</p></div></div>
       <div id="capture-slots" class="capture-slots"></div>
       <template id="capture-slot-template"><label class="capture-slot"><input type="file" accept="image/*" capture="environment"></label></template>
+      <div class="camera-tools" aria-label="相机拍摄">
+        <button id="start-camera" class="secondary" type="button">用相机拍摄</button>
+        <div id="camera-session" class="camera-session" hidden>
+          <video id="camera-preview" autoplay muted playsinline aria-label="本地相机预览"></video>
+          <div class="camera-actions">
+            <button id="capture-frame" class="primary" type="button" disabled>拍下一张</button>
+            <button id="close-camera" class="text-button" type="button">关闭相机</button>
+          </div>
+          <label id="focus-distance-control" class="focus-control" hidden>当前焦点
+            <input id="focus-distance" type="range" min="0" max="1" step="any" value="0" disabled>
+            <output id="focus-distance-value">--</output>
+          </label>
+          <p id="camera-status" class="quiet" aria-live="polite"></p>
+        </div>
+      </div>
       <div class="actions"><label class="secondary file-label"><input id="gallery-input" type="file" accept="image/jpeg,image/png,image/webp" multiple>从相册选择五张</label><button id="reset-button" class="text-button" type="button">清空</button></div><div class="import-row"><label class="secondary file-label"><input id="intrinsics-import" type="file" accept="application/json">导入镜头内参</label><label class="secondary file-label"><input id="scale-import" type="file" accept="application/json">导入尺度标定</label><span id="calibration-import-status" class="quiet">未使用标定文件</span></div>
       <p id="focus-support" class="quiet camera-note">正在检查网页调焦能力…</p>
       <div id="analysis-status" class="status" aria-live="polite">等待五张照片</div><p id="error-message" class="error" role="alert" hidden></p>

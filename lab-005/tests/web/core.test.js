@@ -4,7 +4,7 @@ import { fitPeak, estimateDepth } from '../../web/js/depth.js';
 import { fitScale, mapDepthToMeters, validateCalibration, validateScale } from '../../web/js/calibration.js';
 import { checkAlignment, alignFrames } from '../../web/js/alignment.js';
 import { createInitialState, moveFrame, readyFrames } from '../../web/js/state.js';
-import { resolveSampleUrl } from '../../web/js/capture.js';
+import { getFocusCapabilities, resolveSampleUrl, setFocusDistance, stopMediaStream } from '../../web/js/capture.js';
 import { collectTransfers } from '../../web/js/worker-client.js';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -22,6 +22,18 @@ test('scale mapping is versioned and monotonic', () => { const scale = fitScale(
 test('calibration import validates schema', () => assert.throws(() => validateCalibration({ schema: 'wrong', intrinsics: {} }), error => error.code === 'INTRINSICS_MISMATCH'));
 test('initial state has five empty capture slots', () => { const state = createInitialState(); assert.equal(state.frames.length, 5); assert.equal(readyFrames(state), false); });
 test('sample paths resolve relative to the sample manifest', () => { assert.equal(resolveSampleUrl('focus-near.svg'), './assets/samples/focus-near.svg'); assert.equal(resolveSampleUrl('assets/samples/focus-near.svg'), './assets/samples/focus-near.svg'); });
+test('hardware focus range is exposed only when the track supports it', async () => {
+  assert.deepEqual(await getFocusCapabilities({ getCapabilities: () => ({}) }), { supported: false, min: null, max: null, step: null });
+  assert.deepEqual(await getFocusCapabilities({ getCapabilities: () => ({ focusDistance: { min: 0.1, max: 3, step: 0.1 } }) }), { supported: true, min: 0.1, max: 3, step: 0.1 });
+});
+test('manual focus applies a numeric constraint and media release stops every track', async () => {
+  let constraints; const stopped = [];
+  const track = { getCapabilities: () => ({ focusDistance: { min: 0.1, max: 3, step: 0.1 } }), applyConstraints: async value => { constraints = value; } };
+  assert.equal(await setFocusDistance(track, '1.5'), true);
+  assert.equal(constraints.advanced[0].focusDistance, 1.5);
+  stopMediaStream({ getTracks: () => [{ stop: () => stopped.push(1) }, { stop: () => stopped.push(2) }] });
+  assert.deepEqual(stopped, [1, 2]);
+});
 test('worker transfer collection includes nested scale frames', () => { const a = {}, b = {}, c = {}; const payload = { frames: [{ bitmap: a }, { bitmap: b }], groups: [{ frames: [{ bitmap: c }] }] }; assert.deepEqual(collectTransfers('estimate', payload), [a, b]); assert.deepEqual(collectTransfers('calibrateScale', payload), [a, b, c]); });
 test('enhanced calibration calls OpenCV chessboard and calibrateCamera APIs', () => { const source = readFileSync(join(ROOT, 'web/js/defocus.worker.js'), 'utf8'); assert.match(source, /findChessboardCorners/); assert.match(source, /cornerSubPix/); assert.match(source, /calibrateCamera/); assert.doesNotMatch(source, /fx:\s*first\.width/); });
 test('browser calibration has a real checkerboard fallback and extended calibrator', () => { const calibration = readFileSync(join(ROOT, 'web/js/calibration.js'), 'utf8'); const worker = readFileSync(join(ROOT, 'web/js/defocus.worker.js'), 'utf8'); assert.match(calibration, /connectedComponentsWithStats/); assert.match(calibration, /THRESH_OTSU/); assert.match(calibration, /matFromArray/); assert.match(worker, /calibrateCameraExtended/); assert.match(worker, /canvasToRgbaMat/); assert.doesNotMatch(worker, /cv\.imread\(canvas\)/); });
