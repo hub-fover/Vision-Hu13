@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "test": "node --test ../tests/web/*.test.js",
+    "pretest:e2e": "npm run vendor:opencv",
     "test:e2e": "node ../../node_modules/@playwright/test/cli.js test -c ../playwright.config.js",
+    "vendor:opencv": "node ../scripts/vendor-opencv.mjs",
     "build:pages": "node ../scripts/stage-pages.mjs ../../web/lab-005"
-  }
+  },
+  "dependencies": { "@techstark/opencv-js": "4.12.0-release.1" }
 }

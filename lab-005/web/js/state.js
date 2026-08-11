@@ -27,3 +27,7 @@ export function setFrame(state, index, file, bitmap, url = '') {
 }
 
 export function readyFrames(state) { return state.frames.every(frame => frame.file || frame.bitmap); }
+export function moveFrame(state, fromIndex, toIndex) {
+  if (fromIndex < 0 || fromIndex >= state.frames.length || toIndex < 0 || toIndex >= state.frames.length || fromIndex === toIndex) return false;
+  const [frame] = state.frames.splice(fromIndex, 1); state.frames.splice(toIndex, 0, frame); state.frames.forEach((item, index) => { item.index = index; item.label = ['近焦', '近中焦', '中焦', '远中焦', '远焦'][index]; }); return true;
+}
