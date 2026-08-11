@@ -1,4 +1,4 @@
-import { createInitialState, resetFrames, setFrame, readyFrames } from './state.js';
+import { createInitialState, resetFrames, readyFrames } from './state.js';
 import { addFileToSlot, decodeFile, loadSampleManifest, resolveSampleUrl, FOCUS_LABELS } from './capture.js';
 import { DefocusWorkerClient } from './worker-client.js';
 import { messageFor } from './errors.js';
