@@ -4,6 +4,7 @@ import { fitPeak, estimateDepth } from '../../web/js/depth.js';
 import { fitScale, validateCalibration } from '../../web/js/calibration.js';
 import { checkAlignment } from '../../web/js/alignment.js';
 import { createInitialState, readyFrames } from '../../web/js/state.js';
+import { resolveSampleUrl } from '../../web/js/capture.js';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,4 +19,5 @@ test('alignment rejects a moved stack', () => assert.throws(() => checkAlignment
 test('scale mapping is versioned and monotonic', () => { const scale = fitScale([0.8, 0.2, 0.5], [1, 0.3, 0.6]); assert.equal(scale.schema, 'lab005.focus-depth-scale.v1'); assert.deepEqual(scale.samples.map(item => item.focus), [0.2, 0.5, 0.8]); });
 test('calibration import validates schema', () => assert.throws(() => validateCalibration({ schema: 'wrong', intrinsics: {} }), error => error.code === 'INTRINSICS_MISMATCH'));
 test('initial state has five empty capture slots', () => { const state = createInitialState(); assert.equal(state.frames.length, 5); assert.equal(readyFrames(state), false); });
+test('sample paths resolve relative to the sample manifest', () => { assert.equal(resolveSampleUrl('focus-near.svg'), './assets/samples/focus-near.svg'); assert.equal(resolveSampleUrl('assets/samples/focus-near.svg'), './assets/samples/focus-near.svg'); });
 test('web app stays local-only and exposes five capture positions', () => { const html = readFileSync(join(ROOT, 'web/index.html'), 'utf8'); assert.match(html, /capture="environment"/); const source = readFileSync(join(ROOT, 'web/js/app.js'), 'utf8'); assert.doesNotMatch(source, /fetch\(['"]https?:|navigator\.sendBeacon|localStorage|indexedDB|document\.cookie/); });
