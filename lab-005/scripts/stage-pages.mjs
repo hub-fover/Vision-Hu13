@@ -2,13 +2,15 @@ import { cp, mkdir, readFile, readdir, rm, stat } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const labRoot = resolve(scriptDir, "..");
 const source = resolve(labRoot, "web");
 const defaultDestination = resolve(scriptDir, "../../web/lab-005");
 const excluded = new Set(["node_modules", "package.json", "package-lock.json", ".gitignore", "README.md", "test-results"]);
-const required = ["index.html", "styles.css", "js/app.js", "js/state.js", "js/worker-client.js", "js/defocus.worker.js", "assets/samples/manifest.json"];
+const required = ["index.html", "styles.css", "js/app.js", "js/state.js", "js/worker-client.js", "js/defocus.worker.js", "assets/samples/manifest.json", "vendor/opencv.js", "vendor/manifest.local.json"];
 
 async function files(root, current = root) {
   const result = [];
@@ -61,7 +63,17 @@ export async function validatePagesStage(destination = defaultDestination) {
   }
   const html = await readFile(resolve(root, "index.html"), "utf8");
   if (!/<meta[^>]+charset=["']?utf-8/i.test(html)) throw new Error("index.html must declare UTF-8");
-  return { files: await files(root), sampleCount: manifest.frames.length };
+  if (/<script[^>]+opencv\.js/i.test(html)) throw new Error("OpenCV.js must remain Worker-lazy-loaded");
+  const worker = await readFile(resolve(root, "js/defocus.worker.js"), "utf8");
+  if (!worker.includes("../vendor/opencv.js")) throw new Error("Worker must lazy-load same-origin ../vendor/opencv.js");
+  const runtime = await readFile(resolve(root, "vendor/opencv.js"));
+  const runtimeManifest = JSON.parse(await readFile(resolve(root, "vendor/manifest.local.json"), "utf8"));
+  const sha256 = createHash("sha256").update(runtime).digest("hex");
+  const gzipBytes = gzipSync(runtime, { level: 9, mtime: 0 }).byteLength;
+  if (runtimeManifest.package !== "@techstark/opencv-js" || runtimeManifest.version !== "4.12.0-release.1" || runtimeManifest.license !== "Apache-2.0") throw new Error("unexpected OpenCV.js runtime provenance");
+  if (runtimeManifest.sha256 !== sha256 || runtimeManifest.gzipBytes !== gzipBytes) throw new Error("OpenCV.js runtime manifest does not match staged artifact");
+  if (gzipBytes > 8 * 1024 * 1024) throw new Error(`OpenCV.js exceeds 8MiB gzip limit: ${gzipBytes}`);
+  return { files: await files(root), sampleCount: manifest.frames.length, opencvGzipBytes: gzipBytes };
 }
 
 export async function stagePages(destination = defaultDestination) {
@@ -77,7 +89,7 @@ async function main() {
   const validateOnly = args[0] === "--validate-only";
   const destination = resolve(scriptDir, args[validateOnly ? 1 : 0] || "../../web/lab-005");
   const report = validateOnly ? await validatePagesStage(destination) : await stagePages(destination);
-  process.stdout.write(`LAB 005 Pages: PASS (${report.files.length} files, ${report.sampleCount} samples)\n`);
+  process.stdout.write(`LAB 005 Pages: PASS (${report.files.length} files, ${report.sampleCount} samples, OpenCV gzip ${report.opencvGzipBytes} bytes)\n`);
 }
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) await main();

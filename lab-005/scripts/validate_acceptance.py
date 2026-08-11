@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import gzip
+import hashlib
 import subprocess
 from pathlib import Path
 
@@ -26,6 +28,24 @@ def main() -> None:
     for relative in REQUIRED_WEB:
         if not (web / relative).is_file():
             errors.append(f"missing web runtime file: {relative}")
+    worker_path = web / "js" / "defocus.worker.js"
+    if worker_path.is_file() and "../vendor/opencv.js" not in worker_path.read_text(encoding="utf-8"):
+        errors.append("Worker must lazy-load same-origin ../vendor/opencv.js")
+    runtime_path = web / "vendor" / "opencv.js"
+    runtime_manifest_path = web / "vendor" / "manifest.local.json"
+    if not runtime_path.is_file() or not runtime_manifest_path.is_file():
+        errors.append("missing vendored OpenCV.js runtime or provenance manifest")
+    else:
+        runtime = runtime_path.read_bytes()
+        runtime_manifest = json.loads(runtime_manifest_path.read_text(encoding="utf-8"))
+        digest = hashlib.sha256(runtime).hexdigest()
+        gzip_bytes = len(gzip.compress(runtime, compresslevel=9, mtime=0))
+        if runtime_manifest.get("version") != "4.12.0-release.1" or runtime_manifest.get("license") != "Apache-2.0":
+            errors.append("unexpected OpenCV.js runtime provenance")
+        if runtime_manifest.get("sha256") != digest:
+            errors.append("OpenCV.js runtime manifest does not match the artifact")
+        if gzip_bytes > 8 * 1024 * 1024:
+            errors.append(f"OpenCV.js exceeds 8MiB gzip limit: {gzip_bytes}")
     manifest_path = web / "assets" / "samples" / "manifest.json"
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -40,6 +60,8 @@ def main() -> None:
             errors.append(f"missing sample frame: {frame.get('path')}")
 
     for path in web.rglob("*"):
+        if "node_modules" in path.parts or "vendor" in path.parts:
+            continue
         if not path.is_file() or path.suffix.lower() not in {".html", ".css", ".js", ".json"}:
             continue
         try:

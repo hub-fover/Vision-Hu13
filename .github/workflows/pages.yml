@@ -7,6 +7,7 @@ on:
     types: [completed]
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -40,7 +41,6 @@ jobs:
           cache-dependency-path: |
             lab-002/web/package-lock.json
             lab-003/web/package-lock.json
-            lab-005/web/package-lock.json
 
       - name: Install LAB 002 Web dependencies
         run: npm ci --prefix lab-002/web
@@ -48,8 +48,13 @@ jobs:
       - name: Install LAB 003 Web dependencies
         run: npm ci --prefix lab-003/web
 
-      - name: Install LAB 005 Web dependencies
-        run: npm ci --prefix lab-005/web
+      - name: Download LAB 005 runtime validated by CI
+        uses: actions/download-artifact@v4
+        with:
+          name: lab005-opencv-${{ github.event.workflow_run.head_sha }}
+          path: lab-005/web/vendor
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Stage LAB 002 with its same-origin OpenCV runtime
         run: npm run build:lab002
@@ -64,7 +69,7 @@ jobs:
         run: npm run validate:lab003:pages
 
       - name: Stage LAB 005 static application
-        run: npm run build:lab005
+        run: node lab-005/scripts/stage-pages.mjs
 
       - name: Validate LAB 005 staged static resources
         run: npm run validate:lab005:pages

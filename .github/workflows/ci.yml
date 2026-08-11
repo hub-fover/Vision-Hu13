@@ -67,6 +67,9 @@ jobs:
       - name: Vendor same-origin OpenCV for acceptance
         run: npm --prefix lab-002/web run vendor:opencv
 
+      - name: Vendor LAB 005 same-origin OpenCV runtime
+        run: npm --prefix lab-005/web run vendor:opencv
+
       - name: Run LAB 001 Python regression tests
         run: python -m pytest
 
@@ -134,6 +137,9 @@ jobs:
       - name: Install LAB 005 Web dependencies
         run: npm ci --prefix lab-005/web
 
+      - name: Vendor LAB 005 same-origin OpenCV runtime
+        run: npm --prefix lab-005/web run vendor:opencv
+
       - name: Install release-validation Python dependencies
         run: python -m pip install -e ".[dev]" -e "./lab-002[test]" -e "./lab-003[test]" -e "./lab-005[dev]"
 
@@ -181,6 +187,16 @@ jobs:
 
       - name: Validate LAB 005 runtime release
         run: npm run validate:lab005:release
+
+      - name: Upload validated LAB 005 OpenCV runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: lab005-opencv-${{ github.sha }}
+          path: |
+            lab-005/web/vendor/opencv.js
+            lab-005/web/vendor/manifest.local.json
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Validate cross-runtime, provenance, figures, and Pages
         run: npm run validate:lab002:release
