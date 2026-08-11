@@ -41,11 +41,20 @@ class FocusDepthScale:
         if data.get("schema") != "lab005.focus-depth-scale.v1":
             raise DefocusDepthError("DEPTH_SCALE_UNCALIBRATED")
         try:
-            focus = np.asarray(data["focusIndices"], dtype=np.float64)
-            distance = np.asarray(data["distancesM"], dtype=np.float64)
+            if "focusIndices" in data and "distancesM" in data:
+                focus = np.asarray(data["focusIndices"], dtype=np.float64).ravel()
+                distance = np.asarray(data["distancesM"], dtype=np.float64).ravel()
+            else:
+                samples = sorted(data["samples"], key=lambda sample: float(sample["focus"]))
+                focus = np.asarray([sample["focus"] for sample in samples], dtype=np.float64).ravel()
+                distance = np.asarray([sample["distance"] for sample in samples], dtype=np.float64).ravel()
         except (KeyError, TypeError, ValueError) as exc:
             raise DefocusDepthError("DEPTH_SCALE_UNCALIBRATED") from exc
-        if focus.size < 2 or focus.size != distance.size or np.any(np.diff(focus) <= 0):
+        if (
+            focus.size < 2 or focus.size != distance.size
+            or not np.isfinite(focus).all() or not np.isfinite(distance).all()
+            or np.any(np.diff(focus) <= 0) or np.any(distance <= 0)
+        ):
             raise DefocusDepthError("DEPTH_SCALE_UNCALIBRATED")
         return cls(
             focus, distance, float(data.get("residualM", 0.0)),

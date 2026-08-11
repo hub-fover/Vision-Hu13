@@ -49,12 +49,24 @@ class CameraIntrinsics:
             raise DefocusDepthError("INTRINSICS_MISMATCH")
         value = data.get("intrinsics", data)
         try:
-            matrix = np.asarray(value["matrix"], dtype=np.float64).reshape(3, 3)
+            if "matrix" in value:
+                matrix = np.asarray(value["matrix"], dtype=np.float64).reshape(3, 3)
+            else:
+                fx, fy = float(value["fx"]), float(value["fy"])
+                cx, cy = float(value["cx"]), float(value["cy"])
+                matrix = np.array([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]], dtype=np.float64)
             distortion = np.asarray(value.get("distortion", []), dtype=np.float64)
-            width, height = map(int, value["imageSize"])
+            image = value.get("imageSize", data.get("image"))
+            if isinstance(image, dict):
+                width, height = int(image["width"]), int(image["height"])
+            else:
+                width, height = map(int, image)
         except (KeyError, TypeError, ValueError) as exc:
             raise DefocusDepthError("INTRINSICS_MISMATCH") from exc
-        return cls(matrix, distortion, (width, height), float(data.get("rmsErrorPx", 0.0)), data["schema"], data.get("lensId"), int(data.get("orientation", 1)), data.get("zoom"))
+        if not np.isfinite(matrix).all() or matrix[0, 0] <= 0 or matrix[1, 1] <= 0 or width <= 0 or height <= 0:
+            raise DefocusDepthError("INTRINSICS_MISMATCH")
+        rms = data.get("rmsErrorPx", data.get("reprojectionRmsPx", 0.0))
+        return cls(matrix, distortion, (width, height), float(rms), data["schema"], data.get("lensId"), int(data.get("orientation", 1)), data.get("zoom"))
 
     def validate_for_image(self, width: int, height: int, *, lens_id: str | None = None, orientation: int = 1, zoom: float | None = None) -> None:
         if self.image_size != (width, height) or self.orientation != orientation:
