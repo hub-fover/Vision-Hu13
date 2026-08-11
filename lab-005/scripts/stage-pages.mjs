@@ -10,7 +10,7 @@ const labRoot = resolve(scriptDir, "..");
 const source = resolve(labRoot, "web");
 const defaultDestination = resolve(scriptDir, "../../web/lab-005");
 const excluded = new Set(["node_modules", "package.json", "package-lock.json", ".gitignore", "README.md", "test-results"]);
-const required = ["index.html", "styles.css", "js/app.js", "js/state.js", "js/worker-client.js", "js/defocus.worker.js", "assets/samples/manifest.json", "vendor/opencv.js", "vendor/manifest.local.json"];
+const required = ["index.html", "styles.css", "js/app.js", "js/state.js", "js/worker-client.js", "js/defocus.bootstrap.js", "js/defocus.worker.js", "assets/samples/manifest.json", "vendor/opencv.js", "vendor/manifest.local.json"];
 
 async function files(root, current = root) {
   const result = [];
@@ -66,6 +66,7 @@ export async function validatePagesStage(destination = defaultDestination) {
   if (/<script[^>]+opencv\.js/i.test(html)) throw new Error("OpenCV.js must remain Worker-lazy-loaded");
   const worker = await readFile(resolve(root, "js/defocus.worker.js"), "utf8");
   if (!worker.includes("../vendor/opencv.js")) throw new Error("Worker must lazy-load same-origin ../vendor/opencv.js");
+  if (!worker.includes("importScripts(runtimeUrl)")) throw new Error("Worker must load the UMD OpenCV runtime with importScripts");
   const runtime = await readFile(resolve(root, "vendor/opencv.js"));
   const runtimeManifest = JSON.parse(await readFile(resolve(root, "vendor/manifest.local.json"), "utf8"));
   const sha256 = createHash("sha256").update(runtime).digest("hex");

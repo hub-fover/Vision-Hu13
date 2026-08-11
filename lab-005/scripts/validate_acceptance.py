@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOJIBAKE = ("锛�", "绔�", "鍙�", "鏃�", "闂�", "鈥�", "CC0", "Wikimedia Commons")
-REQUIRED_WEB = ("index.html", "styles.css", "js/app.js", "js/state.js", "js/worker-client.js", "js/defocus.worker.js")
+REQUIRED_WEB = ("index.html", "styles.css", "js/app.js", "js/state.js", "js/worker-client.js", "js/defocus.bootstrap.js", "js/defocus.worker.js")
 
 
 def main() -> None:
@@ -29,8 +29,12 @@ def main() -> None:
         if not (web / relative).is_file():
             errors.append(f"missing web runtime file: {relative}")
     worker_path = web / "js" / "defocus.worker.js"
-    if worker_path.is_file() and "../vendor/opencv.js" not in worker_path.read_text(encoding="utf-8"):
-        errors.append("Worker must lazy-load same-origin ../vendor/opencv.js")
+    if worker_path.is_file():
+        worker_source = worker_path.read_text(encoding="utf-8")
+        if "../vendor/opencv.js" not in worker_source:
+            errors.append("Worker must lazy-load same-origin ../vendor/opencv.js")
+        if "importScripts(runtimeUrl)" not in worker_source:
+            errors.append("Worker must load the UMD OpenCV runtime with importScripts")
     runtime_path = web / "vendor" / "opencv.js"
     runtime_manifest_path = web / "vendor" / "manifest.local.json"
     if not runtime_path.is_file() or not runtime_manifest_path.is_file():
