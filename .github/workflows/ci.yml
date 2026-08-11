@@ -199,7 +199,7 @@ jobs:
           retention-days: 7
 
       - name: Validate cross-runtime, provenance, figures, and Pages
-        run: npm run validate:lab002:release
+        run: npm run validate:lab005:release
 
       - name: Upload Playwright reports on failure
         if: failure()
