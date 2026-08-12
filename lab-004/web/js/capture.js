@@ -1,7 +1,68 @@
-export const SAMPLE_MANIFEST = { id: 'checkerboard-reference', title: 'OpenCV 棋盘格标定样例', license: 'Apache-2.0', source: 'opencv/opencv 固定提交样例', url: './assets/checkerboard-reference.svg', manifestUrl: './assets/samples/manifest.json' };
-export async function loadSampleManifest() { try { const response = await fetch(SAMPLE_MANIFEST.manifestUrl); if (!response.ok) throw new Error('manifest'); const manifest = await response.json(); return { ...SAMPLE_MANIFEST, title: manifest.title || SAMPLE_MANIFEST.title, license: manifest.license || SAMPLE_MANIFEST.license, source: `${manifest.sourceRepository}@${manifest.sourceCommit?.slice(0, 12) || 'pinned'}`, url: SAMPLE_MANIFEST.url, manifest }; } catch { return SAMPLE_MANIFEST; } }
-export function createImageInput() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.capture = 'environment'; return input; }
-export async function requestRearCamera() { if (!navigator.mediaDevices?.getUserMedia) { const e = new Error('UNSUPPORTED_CAMERA'); e.code = 'UNSUPPORTED_CAMERA'; throw e; } try { return await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }); } catch (e) { const x = new Error(e.name === 'NotAllowedError' ? 'PERMISSION_DENIED' : 'UNSUPPORTED_CAMERA'); x.code = x.message; throw x; } }
-export function scaleToAnalysis(width, height, maxSide = 1280) { const scale = Math.min(1, maxSide / Math.max(width, height)); return { width: Math.round(width * scale), height: Math.round(height * scale), scale }; }
-export async function prepareAnalysisBitmap(source) { const bitmap = await createImageBitmap(source, { imageOrientation: 'from-image' }); const size = scaleToAnalysis(bitmap.width, bitmap.height); if (size.scale === 1) return { bitmap, transform: { displayToAnalysis: 1, width: size.width, height: size.height } }; const canvas = new OffscreenCanvas(size.width, size.height); canvas.getContext('2d').drawImage(bitmap, 0, 0, size.width, size.height); bitmap.close(); return { bitmap: await createImageBitmap(canvas), transform: { displayToAnalysis: size.scale, width: size.width, height: size.height } }; }
-export function toAnalysisQuad(quad, transform) { const scale = transform?.displayToAnalysis || 1; return quad.map(([x, y]) => [x * scale, y * scale]); }
+export const SAMPLE_MANIFEST = {
+  id: 'checkerboard-reference',
+  title: 'OpenCV 棋盘格标定样例',
+  license: 'Apache-2.0',
+  source: 'opencv/opencv 固定提交样例',
+  url: './assets/checkerboard-reference.svg',
+  manifestUrl: './assets/samples/manifest.json'
+};
+
+export async function loadSampleManifest() {
+  try {
+    const response = await fetch(SAMPLE_MANIFEST.manifestUrl);
+    if (!response.ok) throw new Error('manifest');
+    const manifest = await response.json();
+    return {
+      ...SAMPLE_MANIFEST,
+      title: manifest.title || SAMPLE_MANIFEST.title,
+      license: manifest.license || SAMPLE_MANIFEST.license,
+      source: `${manifest.sourceRepository || 'opencv/opencv'}@${manifest.sourceCommit?.slice(0, 12) || 'pinned'}`,
+      manifest
+    };
+  } catch {
+    return SAMPLE_MANIFEST;
+  }
+}
+
+export function createImageInput() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment';
+  return input;
+}
+
+export async function requestRearCamera() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    const error = new Error('UNSUPPORTED_CAMERA');
+    error.code = 'UNSUPPORTED_CAMERA';
+    throw error;
+  }
+  try {
+    return await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+  } catch (cause) {
+    const error = new Error(cause.name === 'NotAllowedError' ? 'PERMISSION_DENIED' : 'UNSUPPORTED_CAMERA');
+    error.code = error.message;
+    throw error;
+  }
+}
+
+export function scaleToAnalysis(width, height, maxSide = 1280) {
+  const scale = Math.min(1, maxSide / Math.max(width, height));
+  return { width: Math.round(width * scale), height: Math.round(height * scale), scale };
+}
+
+export async function prepareAnalysisBitmap(source) {
+  const bitmap = await createImageBitmap(source, { imageOrientation: 'from-image' });
+  const size = scaleToAnalysis(bitmap.width, bitmap.height);
+  if (size.scale === 1) return { bitmap, transform: { displayToAnalysis: 1, width: size.width, height: size.height } };
+  const canvas = new OffscreenCanvas(size.width, size.height);
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, size.width, size.height);
+  bitmap.close();
+  return { bitmap: await createImageBitmap(canvas), transform: { displayToAnalysis: size.scale, width: size.width, height: size.height } };
+}
+
+export function toAnalysisQuad(quad, transform) {
+  const scale = transform?.displayToAnalysis || 1;
+  return quad.map(([x, y]) => [x * scale, y * scale]);
+}
