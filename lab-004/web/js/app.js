@@ -69,6 +69,10 @@ $('sampleButton').onclick = async () => {
     $('widthInput').value = 0.8; $('heightInput').value = 0.6; $('unitInput').value = 'm';
     dispatch({ type:'SET_TARGET', target:{widthM:.8,heightM:.6,unit:'m'} });
     await loadFile(await response.blob());
+    if (!state.image) return;
+    const width = image.naturalWidth || 640;
+    const height = image.naturalHeight || 480;
+    dispatch({ type: 'SET_QUAD', quad: [[width * .12, height * .12], [width * .88, height * .12], [width * .88, height * .88], [width * .12, height * .88]] });
   } catch { $('status').textContent = '样例不可用，请选择照片。'; }
 };
 $('fileInput').onchange = event => event.target.files[0] && loadFile(event.target.files[0]);
