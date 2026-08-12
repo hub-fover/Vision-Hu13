@@ -52,7 +52,7 @@ async function loadFile(file) {
   const url = URL.createObjectURL(file);
   imageObjectUrl = url;
   image.src = url;
-  await image.decode();
+  await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; });
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
   const w = canvas.width, h = canvas.height, margin = .12;
