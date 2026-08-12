@@ -23,6 +23,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / "runtime"
 CONFIG_PATH = RUNTIME / "opencv-whitelist.json"
+COMPATIBILITY_PATCH = RUNTIME / "patches" / "opencv-4.12-emscripten-4.0.10.patch"
 GZIP_TARGET_BYTES = 8 * 1024 * 1024
 PINNED_COMMIT = "49486f61fb25722cbcf586b7f4320921d46fb38e"
 PINNED_IMAGE = "emscripten/emsdk:4.0.10"
@@ -120,7 +121,8 @@ def docker_command(source_dir: Path, output_dir: Path, config: dict[str, Any]) -
     source = "/opencv"
     output = "/out"
     command = (
-        f"cd {source} && rm -rf build_wasm && "
+        f"cd {source} && git apply --check /runtime/patches/{COMPATIBILITY_PATCH.name} && "
+        f"git apply /runtime/patches/{COMPATIBILITY_PATCH.name} && rm -rf build_wasm && "
         f"python3 ./platforms/js/build_js.py build_wasm --build_wasm "
         f"--config /runtime/opencv_js.config.py "
         + " ".join(f"--cmake_option={shlex.quote(option)}" for option in config["build"]["cmakeOptions"])
@@ -167,6 +169,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("--source-dir is required for a real Docker build")
     if _source_commit(source_dir) != PINNED_COMMIT:
         raise ValueError("OpenCV source checkout is not at the pinned commit")
+    if not COMPATIBILITY_PATCH.is_file():
+        raise ValueError("Pinned OpenCV/Emscripten compatibility patch is missing")
     if shutil.which("docker") is None:
         raise RuntimeError("Docker is required for a real OpenCV.js build; use --dry-run locally")
     output_dir.mkdir(parents=True, exist_ok=True)

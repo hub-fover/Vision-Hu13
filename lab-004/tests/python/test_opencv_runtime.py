@@ -107,6 +107,7 @@ def test_docker_command_contains_each_cmake_pin_and_fixed_memory_flags() -> None
     assert "python3 ./platforms/js/build_js.py" in rendered
     assert "emcmake python" not in rendered
     assert "-DBUILD_LIST=core,imgproc,video,calib3d,js" in rendered
+    assert "git apply --check /runtime/patches/opencv-4.12-emscripten-4.0.10.patch" in rendered
     for option in config["build"]["cmakeOptions"]:
         assert f"--cmake_option={option}" in rendered
     assert "-s ALLOW_MEMORY_GROWTH=0" in rendered

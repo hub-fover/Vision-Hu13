@@ -26,3 +26,8 @@ python lab-004/scripts/build_opencv.py --source-dir C:\src\opencv
 The generated `lab-004/web/vendor/opencv.js` and manifest are ignored by git.
 The future Worker should load `./vendor/opencv.js` same-origin; no CDN or
 remote runtime is permitted.
+
+OpenCV 4.12.0 still emits the removed Emscripten `DEMANGLE_SUPPORT` linker
+setting. Before compiling, the builder applies the minimal one-line change
+from upstream `opencv/opencv#27514`; the pinned source commit remains the
+verified checkout and the compatibility patch is stored beside this contract.
