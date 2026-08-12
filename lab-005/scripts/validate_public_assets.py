@@ -10,9 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
+    data = path.read_bytes().replace(b"\r\n", b"\n")
+    digest.update(data)
     return digest.hexdigest()
 
 
@@ -27,6 +26,8 @@ def main() -> None:
         errors.append("manifest schema must be lab005.samples.v1")
     if not manifest.get("license") or not manifest.get("source"):
         errors.append("manifest must record source and license")
+    if manifest.get("checksumEncoding") != "utf8-lf":
+        errors.append("manifest checksums must use canonical UTF-8 LF bytes")
     frames = manifest.get("frames", [])
     if len(frames) != 5:
         errors.append("manifest must contain exactly five focus frames")
