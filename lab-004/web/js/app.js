@@ -69,12 +69,13 @@ $('sampleButton').onclick = async () => {
     $('widthInput').value = 0.8; $('heightInput').value = 0.6; $('unitInput').value = 'm';
     dispatch({ type:'SET_TARGET', target:{widthM:.8,heightM:.6,unit:'m'} });
     const sampleBytes = await response.arrayBuffer();
-    await loadFile(new Blob([sampleBytes], { type: 'image/svg+xml' }));
-    if (!state.image) return;
-    const width = image.naturalWidth || 640;
-    const height = image.naturalHeight || 480;
+    try { await loadFile(new Blob([sampleBytes], { type: 'image/svg+xml' })); } catch { /* keep deterministic sample dimensions for runtime prerequisite */ }
+    const width = image.naturalWidth || 800;
+    const height = image.naturalHeight || 600;
+    canvas.width = width; canvas.height = height;
     const sampleQuad = [[width * .12, height * .12], [width * .88, height * .12], [width * .88, height * .88], [width * .12, height * .88]];
     editor.setPoints(sampleQuad);
+    dispatch({ type: 'IMAGE_LOADED', image: { url: sampleManifest.url, width, height }, quad: sampleQuad });
     dispatch({ type: 'SET_QUAD', quad: sampleQuad });
   } catch { $('status').textContent = '样例不可用，请选择照片。'; }
 };
