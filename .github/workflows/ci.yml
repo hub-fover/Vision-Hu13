@@ -23,7 +23,16 @@ jobs:
           path: opencv-src
           fetch-depth: 1
       - name: Build runtime in pinned Emscripten image
-        run: python lab-004/scripts/build_opencv.py --source-dir opencv-src --output-dir lab-004/web/vendor --manifest lab-004/web/vendor/manifest.json
+        shell: bash
+        run: |
+          set +e
+          python lab-004/scripts/build_opencv.py --source-dir opencv-src --output-dir lab-004/web/vendor --manifest lab-004/web/vendor/manifest.json 2>&1 | tee lab004-opencv-build.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            summary=$(tail -n 40 lab004-opencv-build.log | sed 's/%/%25/g; s/\r/%0D/g; s/$/%0A/' | tr -d '\n')
+            echo "::error title=LAB 004 OpenCV.js build failed::$summary"
+          fi
+          exit "$status"
       - name: Run runtime symbol and numerical smoke checks
         run: |
           python -m pytest -c lab-004/pyproject.toml lab-004/tests/python/test_opencv_runtime.py
