@@ -34,7 +34,11 @@ function render() {
   $('livePanel').classList.toggle('hidden', state.mode !== MODES.LIVE);
   $('calibrationPanel').classList.toggle('hidden', state.mode !== MODES.CALIBRATION);
   $('estimateButton').disabled = !(state.image && state.quad && state.target.widthM > 0 && state.target.heightM > 0) || state.status === 'running';
-  $('status').textContent = state.lastError ? describeError(state.lastError) : '加载样例或照片后，用四角点标记目标。';
+  $('status').textContent = state.lastError
+    ? describeError(state.lastError)
+    : state.status === 'running'
+      ? '正在加载 OpenCV 并估计相机姿态…'
+      : '加载样例或照片后，用四角点标记目标。';
   $('acceptedCount').textContent = state.calibration.views.length;
   $('coverageValue').textContent = `${Math.round((state.calibration.views.at(-1)?.coverage || 0) * 100)}%`;
   $('tiltValue').textContent = `${((state.calibration.views.at(-1)?.tilt || 0) * 180 / Math.PI).toFixed(1)}°`;
