@@ -6,10 +6,10 @@
   "source": "LAB 005 deterministic sample generator",
   "generated": true,
   "frames": [
-    {"id": "focus-near", "label": "NEAR", "focusPosition": "near", "path": "focus-near.svg", "sha256": "C8438ABFB9B4012FA299AB053A7274208C49131EE918990568E8321631E19DE7"},
-    {"id": "focus-near-mid", "label": "NEAR MID", "focusPosition": "near-mid", "path": "focus-near-mid.svg", "sha256": "68EE615CCDF3F33D2852D9551E605902F7E11812CCBEAB814542C7516350E4E4"},
-    {"id": "focus-mid", "label": "MID", "focusPosition": "mid", "path": "focus-mid.svg", "sha256": "FB72A843F87761ECBBB781718C6B967E3F696330A9D2AFD229CCA7ACBD14C2B9"},
-    {"id": "focus-far-mid", "label": "FAR MID", "focusPosition": "far-mid", "path": "focus-far-mid.svg", "sha256": "09DE75A70390AB4249A7963FFA1764AEBB1D63558A3E52549CA78288D1697B23"},
-    {"id": "focus-far", "label": "FAR", "focusPosition": "far", "path": "focus-far.svg", "sha256": "5FA600DEC68968490A10A757337BE483244BBBD83FAED8A10AEFDC8D0B81499C"}
+    {"id": "focus-near", "label": "NEAR", "focusPosition": "near", "path": "focus-near.svg", "sha256": "25FD6F38F1DA111828B4F606BB1307DC72B76886B58709488973A106093C00EE"},
+    {"id": "focus-near-mid", "label": "NEAR MID", "focusPosition": "near-mid", "path": "focus-near-mid.svg", "sha256": "C35E7BA228776D38C2EB5144C4C8E065588A88C395C4E556E28C68839F98796E"},
+    {"id": "focus-mid", "label": "MID", "focusPosition": "mid", "path": "focus-mid.svg", "sha256": "A7EE4B1A25F8B85133EA71DE8018D6B29AA4F2EA55AC5965A30DDAAC5C289972"},
+    {"id": "focus-far-mid", "label": "FAR MID", "focusPosition": "far-mid", "path": "focus-far-mid.svg", "sha256": "D83C5E320BAF5042FF6CE7BD54A8A07E899F0B8726E236287912FAEE16AB3C65"},
+    {"id": "focus-far", "label": "FAR", "focusPosition": "far", "path": "focus-far.svg", "sha256": "F31BF0418F69FE9CCA921623E8AC3D24EB1E86F04974F54C79C111DF250DEE24"}
   ]
 }
