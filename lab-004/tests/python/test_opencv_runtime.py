@@ -121,3 +121,14 @@ def test_runtime_sources_do_not_reference_remote_runtime_urls() -> None:
             text = path.read_text(encoding="utf-8")
             assert "https://docs.opencv.org" not in text
             assert "https://cdn.jsdelivr.net" not in text
+
+
+def test_whitelist_adapter_uses_opencv_supplied_absolute_config_path(monkeypatch) -> None:
+    config_path = LAB / "runtime" / "opencv_js.config.py"
+    monkeypatch.setenv("OPENCV_JS_WHITELIST", str(config_path))
+    namespace = {
+        "__file__": "/opencv/modules/js/generator/embindgen.py",
+        "makeWhiteList": lambda modules: modules,
+    }
+    exec(config_path.read_text(encoding="utf-8"), namespace)
+    assert len(namespace["white_list"]) == 4

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 
-_data = json.loads((Path(__file__).with_name("opencv-whitelist.json")).read_text(encoding="utf-8"))
+_config_path = Path(os.environ.get("OPENCV_JS_WHITELIST", __file__)).resolve()
+_data = json.loads(_config_path.with_name("opencv-whitelist.json").read_text(encoding="utf-8"))
 _modules = [
     {"": _data["symbolsByModule"][module]}
     for module in _data["modules"]
