@@ -121,7 +121,7 @@ def docker_command(source_dir: Path, output_dir: Path, config: dict[str, Any]) -
     output = "/out"
     command = (
         f"cd {source} && rm -rf build_wasm && "
-        f"emcmake python ./platforms/js/build_js.py build_wasm --build_wasm "
+        f"python3 ./platforms/js/build_js.py build_wasm --build_wasm "
         f"--config /runtime/opencv_js.config.py "
         + " ".join(f"--cmake_option={shlex.quote(option)}" for option in config["build"]["cmakeOptions"])
         + " "
