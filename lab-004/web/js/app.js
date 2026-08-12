@@ -80,6 +80,7 @@ $('sampleButton').onclick = async () => {
     editor.setPoints(sampleQuad);
     dispatch({ type: 'IMAGE_LOADED', image: { url: sampleManifest.url, width, height }, quad: sampleQuad });
     dispatch({ type: 'SET_QUAD', quad: sampleQuad });
+    $('estimateButton').disabled = false;
   } catch { $('status').textContent = '样例不可用，请选择照片。'; }
 };
 $('fileInput').onchange = event => event.target.files[0] && loadFile(event.target.files[0]);
