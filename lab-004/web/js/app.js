@@ -68,7 +68,8 @@ $('sampleButton').onclick = async () => {
     if (!response.ok) throw new Error('sample');
     $('widthInput').value = 0.8; $('heightInput').value = 0.6; $('unitInput').value = 'm';
     dispatch({ type:'SET_TARGET', target:{widthM:.8,heightM:.6,unit:'m'} });
-    await loadFile(await response.blob());
+    const sampleBytes = await response.arrayBuffer();
+    await loadFile(new Blob([sampleBytes], { type: 'image/svg+xml' }));
     if (!state.image) return;
     const width = image.naturalWidth || 640;
     const height = image.naturalHeight || 480;
