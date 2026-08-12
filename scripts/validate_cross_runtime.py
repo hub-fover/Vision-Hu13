@@ -6,7 +6,11 @@ import argparse
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "python"))
 
 import cv2
 import numpy as np
@@ -15,7 +19,6 @@ from perspective_paste.blending import blend_composite
 from perspective_paste.geometry import compute_homography
 
 
-ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = json.loads(
     (ROOT / "shared" / "fixtures" / "geometry.json").read_text(encoding="utf-8")
 )

@@ -1,0 +1,24 @@
+{
+  "name": "camera-pose-lab-004-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:e2e": "playwright test -c playwright.config.js",
+    "vendor:three": "node scripts/copy-three.mjs",
+    "prepare": "npm run vendor:three",
+    "build:opencv": "python ../scripts/build_opencv.py",
+    "test:opencv": "python -m pytest -c ../pyproject.toml ../tests/python/test_opencv_runtime.py",
+    "test:opencv:smoke": "node ../scripts/smoke_opencv.mjs",
+    "vendor:opencv": "python ../scripts/build_opencv.py",
+    "build:pages": "node ../scripts/stage-pages.mjs ../../web/lab-004",
+    "validate:pages": "node ../scripts/stage-pages.mjs --validate-only ../../web/lab-004"
+  },
+  "dependencies": {
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.0"
+  }
+}

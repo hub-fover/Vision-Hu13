@@ -20,7 +20,7 @@ test("CI covers the supported Python matrix and browser checks", async () => {
     "npm run test:lab002:web",
     "npm run test:lab002:python",
     "npm run test:lab002:acceptance",
-    "npm run validate:lab002:release",
+    "npm run validate:lab005:release",
     "npm run validate:lab002:pages",
     "playwright install --with-deps chromium",
     "npm run test:e2e",
