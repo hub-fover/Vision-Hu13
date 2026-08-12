@@ -13,6 +13,7 @@ def test_cli_exposes_three_commands():
     parser = build_parser()
     assert parser.parse_args(["estimate", "stack", "--output", "depth.png"]).command == "estimate"
     assert parser.parse_args(["calibrate-intrinsics", "cal", "--pattern", "9x6", "--square-size", "0.02", "--output", "c.json"]).command == "calibrate-intrinsics"
+    assert parser.parse_args(["calibrate-scale", "scale", "--distances", "0.3", "0.6", "1.0", "--output", "s.json", "--debug-dir", "debug"]).debug_dir == "debug"
 
 
 def test_calibrate_scale_cli_reads_three_five_frame_stacks(tmp_path):
@@ -60,6 +61,7 @@ def test_estimate_cli_applies_intrinsics_before_alignment(tmp_path, monkeypatch)
         depth = np.zeros((1, 1), np.float32)
         peak_index = np.zeros((1, 1), np.float32)
         confidence = np.ones((1, 1), np.float32)
+        valid = np.ones((1, 1), dtype=bool)
         def to_dict(self): return {}
     monkeypatch.setattr(cli, "estimate_relative_depth", lambda *args, **kwargs: Result())
     monkeypatch.setattr(cli, "write_png", lambda *args: None)

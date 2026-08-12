@@ -29,11 +29,13 @@ def build_parser() -> argparse.ArgumentParser:
     ci.add_argument("--pattern", default="9x6", help="inner corners, e.g. 9x6")
     ci.add_argument("--square-size", type=float, required=True)
     ci.add_argument("--output", required=True)
+    ci.add_argument("--debug-dir")
     cs = sub.add_parser("calibrate-scale")
     cs.add_argument("scale_folder")
     cs.add_argument("--distances", nargs=3, type=float, required=True)
     cs.add_argument("--focus-indices", nargs=3, type=float, help="manual override; otherwise derive from the three focus stacks")
     cs.add_argument("--output", required=True)
+    cs.add_argument("--debug-dir")
     return parser
 
 
@@ -68,7 +70,13 @@ def estimate_command(args: argparse.Namespace) -> int:
     Path(args.output).with_suffix(".json").write_text(json.dumps(payload), encoding="utf-8")
     _write_debug(args.debug_dir, "focus_curve", curve)
     _write_debug(args.debug_dir, "alignment", {"errors": aligned.errors, "inlierRatios": aligned.inlier_ratios})
+    _write_debug(args.debug_dir, "focus_scores", scores)
+    _write_debug(args.debug_dir, "peak_map", result.peak_index)
+    _write_debug(args.debug_dir, "invalid_mask", (~result.valid).astype(np.uint8))
     _write_debug(args.debug_dir, "confidence", result.confidence)
+    if args.debug_dir:
+        for index, frame in enumerate(aligned.frames):
+            write_png(Path(args.debug_dir) / f"aligned_{index}.png", frame)
     return 0
 
 
@@ -81,10 +89,12 @@ def main(argv: list[str] | None = None) -> int:
             pattern = tuple(int(part) for part in args.pattern.lower().split("x"))
             result = calibrate_intrinsics(args.calibration_folder, pattern, args.square_size)
             Path(args.output).write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
+            _write_debug(args.debug_dir, "calibration", result.to_dict())
             return 0
         if args.command == "calibrate-scale":
             result = calibrate_scale(args.focus_indices, args.distances) if args.focus_indices else calibrate_scale_from_folder(args.scale_folder, args.distances)
             Path(args.output).write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
+            _write_debug(args.debug_dir, "scale_calibration", result.to_dict())
             return 0
     except DefocusDepthError as exc:
         print(f"{exc.code}: {exc}")

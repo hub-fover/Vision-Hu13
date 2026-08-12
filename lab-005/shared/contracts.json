@@ -21,5 +21,10 @@
     "LOW_TEXTURE", "LOW_PEAK_PROMINENCE", "ALIGNMENT_FAILED",
     "CALIBRATION_FAILED", "DEPTH_SCALE_UNCALIBRATED", "INTRINSICS_MISMATCH",
     "MEMORY_BUDGET_EXCEEDED", "RUNTIME_MISSING", "CANCELLED"
+  ],
+  "publicTypes": [
+    "FocusFrame", "FocusStack", "FocusMetricCurve", "RelativeDepthMap",
+    "DepthSample", "CameraIntrinsics", "FocusCalibration",
+    "DepthScaleCalibration", "DepthResult", "DepthReport"
   ]
 }

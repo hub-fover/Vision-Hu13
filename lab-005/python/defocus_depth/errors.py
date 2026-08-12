@@ -20,4 +20,6 @@ ERROR_MESSAGES = {
     "DEPTH_SCALE_UNCALIBRATED": "No focus-to-distance scale calibration is available.",
     "INTRINSICS_MISMATCH": "Calibration does not match this image.",
     "MEMORY_BUDGET_EXCEEDED": "The image stack exceeds the working-memory budget.",
+    "RUNTIME_MISSING": "A required local runtime capability is unavailable.",
+    "CANCELLED": "Processing was cancelled.",
 }

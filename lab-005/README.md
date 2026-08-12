@@ -15,11 +15,10 @@ No image is uploaded or persisted by the reference implementation.
 
 ## Browser runtime boundary
 
-The browser ships the pinned OpenCV.js 4.12 default distribution as a
-same-origin Worker asset. That distribution does not include the `calib3d`
-exports required for chessboard detection and camera calibration. The web
-application therefore reports `RUNTIME_MISSING` for its optional enhanced
-calibration mode instead of fabricating a result. Run
-`calibrate-intrinsics` with the Python package, then import the resulting
-`lab005.camera-intrinsics.v1` JSON in the page. Relative focus-depth estimation
-and scale calibration remain fully local in the browser.
+The browser ships the pinned OpenCV.js 4.12 distribution as a same-origin,
+Worker-loaded asset. It exposes `calibrateCameraExtended` but not the high-level
+chessboard detector, so LAB 005 uses a conservative local black-cell lattice
+detector and rejects incomplete or ambiguous boards. Complex views that are
+rejected can be calibrated with the Python `calibrate-intrinsics` command and
+imported as `lab005.camera-intrinsics.v1` JSON. No fallback fabricates camera
+parameters, and relative focus-depth estimation remains fully local.
