@@ -247,7 +247,16 @@ jobs:
         run: npm run test:lab004:web
 
       - name: Run LAB 004 real Worker and Pixel 7 tests
-        run: npm run test:lab004:e2e
+        shell: bash
+        run: |
+          set +e
+          npm run test:lab004:e2e 2>&1 | tee lab004-e2e.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            summary=$(tail -n 80 lab004-e2e.log | tac | sed 's/%/%25/g; s/\r/%0D/g; s/$/%0A/' | tr -d '\n')
+            echo "::error title=LAB 004 real Worker E2E failed::$summary"
+          fi
+          exit "$status"
 
       - name: Run LAB 005 Web tests
         run: npm run test:lab005:web
