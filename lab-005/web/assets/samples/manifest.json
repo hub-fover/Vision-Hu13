@@ -1,6 +1,6 @@
 {
   "schema": "lab005.samples.v1",
-  "title": "五帧合成焦点样例",
+  "title": "离焦测深合成焦点样例",
   "description": "确定性本地样例，用于演示近焦到远焦的清晰度变化。",
   "license": "MIT",
   "source": "LAB 005 deterministic sample generator",

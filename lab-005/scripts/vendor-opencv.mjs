@@ -33,6 +33,6 @@ const manifest = {
     checkerboardFallback: true,
     undistort: true,
   },
-  calibrationFallback: 'python-cli-for-unsupported-board-images',
+  calibrationFallback: 'browser-checkerboard-fallback-with-python-reference',
 };
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8'); process.stdout.write(`${JSON.stringify(manifest)}\n`);
