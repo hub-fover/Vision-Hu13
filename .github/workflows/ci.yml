@@ -31,8 +31,8 @@ jobs:
           if [ "$status" -ne 0 ]; then
             failure_line=$(grep -n -m1 'gen_opencv_js_source.*Error' lab004-opencv-build.log | cut -d: -f1 || true)
             if [ -n "$failure_line" ]; then
-              start=$((failure_line > 100 ? failure_line - 100 : 1))
-              sed -n "${start},${failure_line}p" lab004-opencv-build.log > lab004-opencv-summary.log
+              start=$((failure_line > 20 ? failure_line - 20 : 1))
+              sed -n "${start},${failure_line}p" lab004-opencv-build.log | tac > lab004-opencv-summary.log
             else
               tail -n 180 lab004-opencv-build.log > lab004-opencv-summary.log
             fi
