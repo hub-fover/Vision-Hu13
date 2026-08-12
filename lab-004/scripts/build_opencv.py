@@ -128,7 +128,7 @@ def docker_command(source_dir: Path, output_dir: Path, config: dict[str, Any]) -
         + " ".join(f"--cmake_option={shlex.quote(option)}" for option in config["build"]["cmakeOptions"])
         + " "
         f"--build_flags={shlex.quote(flags)} && "
-        f"cp build_wasm/bin/opencv.js {output}/opencv.js"
+        f"cp build_wasm/bin/opencv_js.js {output}/opencv.js"
     )
     return [
         "docker", "run", "--rm", "--volume", f"{source_dir.resolve()}:{source}",

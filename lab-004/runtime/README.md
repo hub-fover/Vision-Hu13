@@ -27,6 +27,10 @@ The generated `lab-004/web/vendor/opencv.js` and manifest are ignored by git.
 The future Worker should load `./vendor/opencv.js` same-origin; no CDN or
 remote runtime is permitted.
 
+The builder publishes Emscripten's `opencv_js.js` ES module directly as
+`opencv.js`. OpenCV 4.12's optional UMD wrapper cannot wrap an `EXPORT_ES6`
+artifact because it would place `export default` inside a function body.
+
 OpenCV 4.12.0 still emits the removed Emscripten `DEMANGLE_SUPPORT` linker
 setting. Before compiling, the builder applies the minimal one-line change
 from upstream `opencv/opencv#27514`; the pinned source commit remains the
