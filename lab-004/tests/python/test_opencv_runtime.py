@@ -111,6 +111,7 @@ def test_docker_command_contains_each_cmake_pin_and_fixed_memory_flags() -> None
     for option in config["build"]["cmakeOptions"]:
         assert f"--cmake_option={option}" in rendered
     assert "-s ALLOW_MEMORY_GROWTH=0" in rendered
+    assert "-s FILESYSTEM=0" not in rendered
     assert "-s INITIAL_MEMORY=134217728" in rendered
     assert "-s MAXIMUM_MEMORY=268435456" in rendered
 

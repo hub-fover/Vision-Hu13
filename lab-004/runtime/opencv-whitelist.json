@@ -46,7 +46,6 @@
       "-s EXPORT_ES6=1",
       "-s ENVIRONMENT=web,worker",
       "-s SINGLE_FILE=1",
-      "-s FILESYSTEM=0",
       "-s ALLOW_MEMORY_GROWTH=0",
       "-s INITIAL_MEMORY=134217728",
       "-s MAXIMUM_MEMORY=268435456"
