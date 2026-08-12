@@ -1,5 +1,9 @@
 import json
+import os
 from argparse import Namespace
+from pathlib import Path
+import subprocess
+import sys
 from types import SimpleNamespace
 
 import cv2
@@ -13,7 +17,8 @@ def test_cli_exposes_three_commands():
     parser = build_parser()
     assert parser.parse_args(["estimate", "stack", "--output", "depth.png"]).command == "estimate"
     assert parser.parse_args(["calibrate-intrinsics", "cal", "--pattern", "9x6", "--square-size", "0.02", "--output", "c.json"]).command == "calibrate-intrinsics"
-    assert parser.parse_args(["calibrate-scale", "scale", "--distances", "0.3", "0.6", "1.0", "--output", "s.json", "--debug-dir", "debug"]).debug_dir == "debug"
+    assert parser.parse_args(["calibrate-scale", "scale", "--distances", "0.3", "0.6", "1.0", "--output", "s.json", "--calibration", "camera.json", "--debug-dir", "debug"]).debug_dir == "debug"
+    assert parser.parse_args(["calibrate-scale", "scale", "--distances", "0.3", "0.6", "1.0", "--output", "s.json", "--calibration", "camera.json"]).calibration == "camera.json"
 
 
 def test_calibrate_scale_cli_reads_three_five_frame_stacks(tmp_path):
@@ -27,14 +32,21 @@ def test_calibrate_scale_cli_reads_three_five_frame_stacks(tmp_path):
             frame = cv2.GaussianBlur(base, (0, 0), sigma)
             assert cv2.imwrite(str(group / f"frame-{frame_index}.png"), frame)
     output = tmp_path / "scale.json"
+    calibration = tmp_path / "camera.json"
+    calibration.write_text(json.dumps({
+        "schema": "lab005.camera-intrinsics.v1",
+        "intrinsics": {"matrix": [[100, 0, 48], [0, 100, 48], [0, 0, 1]], "distortion": [0, 0, 0, 0, 0], "imageSize": [96, 96]},
+    }), encoding="utf-8")
     code = cli.main([
         "calibrate-scale", str(tmp_path), "--distances", "0.3", "0.6", "1.0",
-        "--output", str(output),
+        "--output", str(output), "--calibration", str(calibration),
     ])
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert code == 0
     assert np.allclose(payload["focusIndices"], [0.0, 0.5, 1.0], atol=0.12)
     assert payload["sourceFrameCount"] == 15
+    assert payload["intrinsicsSchema"] == "lab005.camera-intrinsics.v1"
+    assert payload["imageSize"] == [96, 96]
 
 
 def test_estimate_cli_applies_intrinsics_before_alignment(tmp_path, monkeypatch):
@@ -68,3 +80,72 @@ def test_estimate_cli_applies_intrinsics_before_alignment(tmp_path, monkeypatch)
     args = Namespace(stack_folder="stack", output=str(tmp_path / "depth.png"), calibration=str(calibration), scale_calibration=None, debug_dir=None)
     assert cli.estimate_command(args) == 0
     assert observed == {"calibration": "lab005.camera-intrinsics.v1", "first": 10}
+    payload = json.loads((tmp_path / "depth.json").read_text(encoding="utf-8"))
+    assert payload["quality"] == "stable"
+    assert payload["valid_fraction"] == 1.0
+
+
+def test_estimate_cli_requires_intrinsics_for_metric_depth(tmp_path, monkeypatch):
+    frames = [np.full((8, 8), index, np.uint8) for index in range(5)]
+    scale = tmp_path / "scale.json"
+    scale.write_text(json.dumps({
+        "schema": "lab005.focus-depth-scale.v1",
+        "focusIndices": [0.0, 0.5, 1.0],
+        "distancesM": [0.3, 0.6, 1.0],
+    }), encoding="utf-8")
+    monkeypatch.setattr(cli, "load_stack", lambda _: frames)
+    args = Namespace(
+        stack_folder="stack",
+        output=str(tmp_path / "depth.png"),
+        calibration=None,
+        scale_calibration=str(scale),
+        debug_dir=None,
+    )
+
+    try:
+        cli.estimate_command(args)
+    except cli.DefocusDepthError as exc:
+        assert exc.code == "DEPTH_SCALE_UNCALIBRATED"
+    else:
+        raise AssertionError("metric depth must require camera intrinsics")
+
+
+def test_python_module_propagates_cli_failure_exit_code(tmp_path):
+    env = os.environ.copy()
+    python_path = str(Path(__file__).parents[2] / "python")
+    env["PYTHONPATH"] = python_path + os.pathsep + env.get("PYTHONPATH", "")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "defocus_depth",
+            "estimate",
+            str(tmp_path),
+            "--output",
+            str(tmp_path / "depth.png"),
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 2
+    assert "INVALID_FRAME_COUNT" in completed.stdout
+
+
+def test_estimate_cli_maps_invalid_calibration_json_to_contract_error(tmp_path, monkeypatch):
+    calibration = tmp_path / "camera.json"
+    calibration.write_text("not json", encoding="utf-8")
+    monkeypatch.setattr(cli, "load_stack", lambda _: [np.zeros((8, 8), np.uint8)] * 5)
+    args = Namespace(
+        stack_folder="stack",
+        output=str(tmp_path / "depth.png"),
+        calibration=str(calibration),
+        scale_calibration=None,
+        debug_dir=None,
+    )
+
+    with np.testing.assert_raises(cli.DefocusDepthError) as caught:
+        cli.estimate_command(args)
+    assert caught.exception.code == "INTRINSICS_MISMATCH"

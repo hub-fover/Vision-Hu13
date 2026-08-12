@@ -2,6 +2,14 @@ import { makeError } from './errors.js';
 import { setFrame } from './state.js';
 
 export const FOCUS_LABELS = ['近焦', '近中焦', '中焦', '远中焦', '远焦'];
+export function estimateWorkingSetBytes(width, height, frameCount = 5) { return Number(width) * Number(height) * frameCount * 5 * 4; }
+export function validateAnalysisStack(frames, maxWorkingSetMiB = 320) {
+  if (!Array.isArray(frames) || frames.length !== 5) throw makeError('INVALID_FRAME_COUNT');
+  const width = Number(frames[0]?.width); const height = Number(frames[0]?.height);
+  if (!(width > 0 && height > 0) || frames.some(frame => Number(frame.width) !== width || Number(frame.height) !== height)) throw makeError('INTRINSICS_MISMATCH');
+  if (estimateWorkingSetBytes(width, height, frames.length) > maxWorkingSetMiB * 1024 * 1024) throw makeError('MEMORY_BUDGET_EXCEEDED');
+  return { width, height, workingSetBytes: estimateWorkingSetBytes(width, height, frames.length) };
+}
 export async function decodeFile(file, maxSide = 1280) {
   if (!file?.type?.startsWith('image/')) throw makeError('UNSUPPORTED_FORMAT');
   let bitmap;

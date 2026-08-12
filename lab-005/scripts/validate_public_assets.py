@@ -28,6 +28,12 @@ def main() -> None:
         errors.append("manifest must record source and license")
     if manifest.get("checksumEncoding") != "utf8-lf":
         errors.append("manifest checksums must use canonical UTF-8 LF bytes")
+    generator = manifest.get("generator", {})
+    generator_path = ROOT / str(generator.get("path", ""))
+    if generator.get("sourceCommit") != "0d893bb456a819201ec001cda446230a4a1d2d08":
+        errors.append("manifest must pin the repository commit that introduced the deterministic sample")
+    if not generator_path.is_file():
+        errors.append(f"missing deterministic sample generator: {generator.get('path')}")
     frames = manifest.get("frames", [])
     if len(frames) != 5:
         errors.append("manifest must contain exactly five focus frames")

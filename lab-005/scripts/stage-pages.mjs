@@ -10,7 +10,13 @@ const labRoot = resolve(scriptDir, "..");
 const source = resolve(labRoot, "web");
 const defaultDestination = resolve(scriptDir, "../../web/lab-005");
 const excluded = new Set(["node_modules", "package.json", "package-lock.json", ".gitignore", "README.md", "test-results"]);
-const required = ["index.html", "styles.css", "js/app.js", "js/state.js", "js/worker-client.js", "js/defocus.bootstrap.js", "js/defocus.worker.js", "assets/samples/manifest.json", "vendor/opencv.js", "vendor/manifest.local.json"];
+const required = [
+  "index.html", "styles.css", "LICENSES.md", "THIRD_PARTY_NOTICES.md",
+  "js/alignment.js", "js/app.js", "js/calibration.js", "js/capture.js",
+  "js/defocus.bootstrap.js", "js/defocus.worker.js", "js/depth.js", "js/errors.js",
+  "js/focus-metrics.js", "js/runtime-smoke.worker.js", "js/state.js", "js/worker-client.js",
+  "assets/samples/manifest.json", "vendor/opencv.js", "vendor/manifest.local.json",
+];
 
 async function files(root, current = root) {
   const result = [];
@@ -52,6 +58,7 @@ export async function validatePagesStage(destination = defaultDestination) {
       throw new Error(`missing sample frame: ${frame.path}`);
     }
   }
+  if (!manifest.generator?.path || !manifest.generator?.sourceCommit) throw new Error("sample manifest must pin its deterministic generator and source commit");
 
   const runtimeFiles = (await files(root)).filter((path) => path === "index.html" || path === "styles.css" || path.startsWith("js/"));
   for (const path of runtimeFiles) {
@@ -85,6 +92,8 @@ export async function stagePages(destination = defaultDestination) {
   await rm(target, { recursive: true, force: true });
   await mkdir(target, { recursive: true });
   await cp(source, target, { recursive: true, filter: (path) => path === source || !excluded.has(path.split(/[\\/]/).at(-1)) });
+  await cp(resolve(labRoot, "LICENSES.md"), resolve(target, "LICENSES.md"));
+  await cp(resolve(labRoot, "THIRD_PARTY_NOTICES.md"), resolve(target, "THIRD_PARTY_NOTICES.md"));
   return validatePagesStage(target);
 }
 

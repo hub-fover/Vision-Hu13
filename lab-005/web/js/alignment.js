@@ -36,11 +36,32 @@ function shiftGray(gray, width, height, dx, dy) {
   return shifted;
 }
 
+function structuralVector(frame, size = 16) {
+  const values = new Float32Array(size * size); const counts = new Uint16Array(size * size);
+  for (let y = 0; y < frame.height; y++) for (let x = 0; x < frame.width; x++) {
+    const bx = Math.min(size - 1, Math.floor(x * size / frame.width)); const by = Math.min(size - 1, Math.floor(y * size / frame.height)); const index = by * size + bx;
+    values[index] += frame.gray[y * frame.width + x]; counts[index]++;
+  }
+  let mean = 0; for (let index = 0; index < values.length; index++) { values[index] /= Math.max(1, counts[index]); mean += values[index]; } mean /= values.length;
+  let norm = 0; for (let index = 0; index < values.length; index++) { values[index] -= mean; norm += values[index] * values[index]; } norm = Math.sqrt(norm);
+  if (norm > 1e-9) for (let index = 0; index < values.length; index++) values[index] /= norm;
+  return values;
+}
+
+export function validateSceneConsistency(frames, minCorrelation = 0.55) {
+  if (!Array.isArray(frames) || frames.length !== 5 || frames.some(frame => !frame.gray)) throw makeError('INVALID_FRAME_COUNT');
+  const reference = structuralVector(frames[2]); let minimum = 1;
+  for (const frame of frames) { const vector = structuralVector(frame); let correlation = 0; for (let index = 0; index < vector.length; index++) correlation += reference[index] * vector[index]; minimum = Math.min(minimum, correlation); }
+  if (minimum < minCorrelation) throw makeError('SCENE_CHANGED', `minimum structural correlation ${minimum.toFixed(3)}`);
+  return minimum;
+}
+
 /** Align grayscale frames with a bounded translation search before focus scoring. */
 export function alignFrames(frames, maxErrorPx = 2) {
   if (!Array.isArray(frames) || frames.length !== 5) throw makeError('INVALID_FRAME_COUNT');
   const normalized = frames.map(normalizeFrame); const referenceIndex = 2; const reference = normalized[referenceIndex];
   if (!reference.gray || normalized.some(frame => !frame.gray || frame.gray.length !== reference.gray.length)) return { frames: normalized, referenceIndex, shifts: [], errors: [], applied: false, method: 'metadata-only' };
+  validateSceneConsistency(normalized);
   const width = reference.width; const height = reference.height; const step = Math.max(1, Math.ceil(Math.max(width, height) / 96)); const search = Math.max(4, Math.ceil(maxErrorPx * 4));
   const shifts = []; const errors = []; const aligned = normalized.map((frame, index) => {
     if (index === referenceIndex) { shifts.push({ dx: 0, dy: 0 }); errors.push(0); return frame; }

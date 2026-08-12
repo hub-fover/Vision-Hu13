@@ -5,11 +5,18 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import sys
 from tempfile import TemporaryDirectory
 from typing import Any
 
 import numpy as np
 from PIL import Image, ImageFilter
+
+LAB_ROOT = Path(__file__).resolve().parents[1]
+PYTHON_ROOT = LAB_ROOT / "python"
+if str(PYTHON_ROOT) not in sys.path:
+    sys.path.insert(0, str(PYTHON_ROOT))
+
 from panorama_stitch.errors import StitchError
 
 try:

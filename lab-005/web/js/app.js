@@ -1,5 +1,5 @@
 import { createInitialState, moveFrame, readyFrames, resetFrames } from './state.js';
-import { addFileToSlot, captureVideoFrame, decodeFile, FOCUS_LABELS, getFocusCapabilities, loadSampleManifest, requestCamera, resolveSampleUrl, setFocusDistance, stopMediaStream } from './capture.js';
+import { addFileToSlot, captureVideoFrame, decodeFile, FOCUS_LABELS, getFocusCapabilities, loadSampleManifest, requestCamera, resolveSampleUrl, setFocusDistance, stopMediaStream, validateAnalysisStack } from './capture.js';
 import { validateCalibration, validateScale } from './calibration.js';
 import { messageFor } from './errors.js';
 import { DefocusWorkerClient } from './worker-client.js';
@@ -13,6 +13,7 @@ let cameraStream = null;
 let cameraTrack = null;
 let focusCapabilities = null;
 let cameraRequestToken = 0;
+let stackAnalysisToken = 0;
 
 function nextEmptySlot() { return state.frames.findIndex(frame => !(frame.file || frame.bitmap)); }
 
@@ -101,6 +102,22 @@ function updateReady() {
   $('#analysis-status').textContent = ready ? '五张照片已准备好，可以开始分析。' : `已准备 ${state.frames.filter(frame => frame.file || frame.bitmap).length}/5 张照片`;
 }
 
+async function analyzeFocusSpread() {
+  const token = ++stackAnalysisToken;
+  if (!readyFrames(state)) return;
+  const decoded = [];
+  try {
+    $('#analysis-status').textContent = '正在检查焦点跨度…';
+    for (const frame of state.frames) decoded.push(await decodeFile(frame.file));
+    const frames = decoded.map(item => ({ bitmap: item.bitmap, width: item.width, height: item.height }));
+    const result = await client.run('analyzeStack', { frames });
+    if (token !== stackAnalysisToken) return;
+    $('#analysis-status').textContent = `五张照片已准备好，焦点跨度 ${Math.round(Math.max(0, Math.min(1, result.spread)) * 100)}%。`;
+  } catch (error) {
+    if (token === stackAnalysisToken) $('#analysis-status').textContent = error.code === 'CANCELLED' ? '焦点跨度检查已取消。' : '五张照片已准备好；焦点跨度将在生成时检查。';
+  } finally { decoded.forEach(item => item.bitmap?.close?.()); }
+}
+
 function showError(error) { const node = $('#error-message'); node.hidden = false; node.textContent = error.code ? `${messageFor(error.code)}${error.detail ? ` ${error.detail}` : ''}` : error.message; }
 function clearError() { $('#error-message').hidden = true; $('#error-message').textContent = ''; }
 function setProgress(value, stage = '分析中') { $('#progress-panel').hidden = false; $('#progress').value = value; $('#progress-percent').textContent = `${Math.round(value * 100)}%`; $('#progress-stage').textContent = stage; }
@@ -117,6 +134,7 @@ function hideResult() {
   $('#result-panel').hidden = true;
   ['result', 'confidence', 'best', 'middle'].forEach(name => $(`#${name}-preview`).removeAttribute('src'));
   resultUrls.forEach(url => URL.revokeObjectURL(url)); resultUrls.clear(); state.result = null;
+  $('#sample-query').hidden = true; $('#query-value').textContent = '--'; $('#focus-curve-caption').textContent = '五张照片的全局焦点评分';
 }
 
 function renderFocusCurve(metrics) {
@@ -146,7 +164,7 @@ async function displayResult(result) {
   state.result = result; $('#result-panel').hidden = false;
   const [depthUrl, confidenceUrl] = await Promise.all([bitmapToUrl(result.depthBitmap), bitmapToUrl(result.confidenceBitmap)]); resultUrls.add(depthUrl); resultUrls.add(confidenceUrl);
   $('#result-preview').src = depthUrl; $('#confidence-preview').src = confidenceUrl; $('#middle-preview').src = state.frames[2].url;
-  const metrics = resultMetrics(result); const bestIndex = metrics.length ? metrics.indexOf(Math.max(...metrics)) : 2; $('#best-preview').src = state.frames[bestIndex].url; renderFocusCurve(metrics);
+  const metrics = resultMetrics(result); const bestIndex = metrics.length ? metrics.indexOf(Math.max(...metrics)) : 2; $('#best-preview').src = state.frames[bestIndex].url; $('#focus-curve-caption').textContent = '五张照片的全局焦点评分'; renderFocusCurve(metrics);
   const metricText = result.metricDepthM ? '已应用尺度标定，米制值仅供参考。' : '未完成尺度标定，仅显示相对深度。'; const intrinsicsText = result.intrinsicsApplied ? '已应用镜头内参。' : '';
   const alignmentText = result.alignment?.applied ? `已执行五帧轻量平移对齐，最大位移 ${Number(result.alignment.maxErrorPx || 0).toFixed(1)} px。` : '仅完成相机移动筛查。';
   $('#result-summary').textContent = `整体置信度 ${(result.quality * 100).toFixed(0)}%。${intrinsicsText}${metricText}${alignmentText}`;
@@ -159,6 +177,7 @@ async function runEstimate() {
   try {
     for (const frame of state.frames) workingFrames.push(await decodeFile(frame.file));
     const frames = workingFrames.map(decoded => ({ bitmap: decoded.bitmap, width: decoded.width, height: decoded.height }));
+    validateAnalysisStack(frames);
     const result = await client.run('estimate', { frames, calibration: state.calibration, scaleCalibration: state.scaleCalibration, options: { tileSize: 8, minTexture: 0.02, minPeakProminence: 0.08, maxAlignmentErrorPx: 2 } }, value => setProgress(value, '计算焦点评分'));
     await displayResult(result); setProgress(1, '完成'); setTimeout(() => { $('#progress-panel').hidden = true; }, 500);
   } catch (error) { $('#progress-panel').hidden = true; showError(error); }
@@ -174,7 +193,7 @@ async function useSample() {
   } catch (error) { showError(error); $('#sample-status').textContent = ''; }
 }
 
-function reset() { client.cancel(); releaseCamera(); resetFrames(state); hideResult(); renderSlots(); updateReady(); $('#sample-status').textContent = ''; clearError(); }
+function reset() { stackAnalysisToken += 1; client.cancel(); releaseCamera(); resetFrames(state); hideResult(); renderSlots(); updateReady(); $('#sample-status').textContent = ''; clearError(); }
 function activateMode(mode) { if (mode !== 'relative') releaseCamera(); state.mode = mode; document.querySelectorAll('.mode-tab').forEach(tab => { const active = tab.dataset.mode === mode; tab.classList.toggle('active', active); tab.setAttribute('aria-selected', String(active)); }); $('#relative-panel').hidden = mode !== 'relative'; $('#intrinsics-panel').hidden = mode !== 'intrinsics'; $('#scale-panel').hidden = mode !== 'scale'; if (mode !== 'relative') hideResult(); }
 
 async function importJson(file, validator) { const value = JSON.parse(await file.text()); return validator(value); }
@@ -192,11 +211,15 @@ async function calibrateIntrinsics() {
 
 async function calibrateScale() {
   const files = [...($('#scale-input').files || [])]; if (files.length !== 15) { $('#scale-status').textContent = '尺度标定需要恰好 15 张照片：三个距离，每个距离五张。'; return; }
+  if (!state.calibration) { $('#scale-status').textContent = '请先完成或导入镜头内参，再进行尺度标定。'; return; }
   const distances = [1, 2, 3].map(index => Number($(`#distance-${index}`).value)); const decoded = [];
   try {
     for (const file of files) decoded.push(await decodeFile(file));
     const groups = [0, 1, 2].map(index => ({ distanceM: distances[index], frames: decoded.slice(index * 5, index * 5 + 5).map(frame => ({ bitmap: frame.bitmap, width: frame.width, height: frame.height })) }));
-    state.scaleCalibration = await client.run('calibrateScale', { groups, distances }); $('#scale-status').textContent = `尺度拟合完成，焦点峰值 ${state.scaleCalibration.focusMetrics.map(value => value.toFixed(2)).join(' / ')}，结果为参考级。`; $('#download-scale').disabled = false; updateCalibrationStatus();
+    state.scaleCalibration = await client.run('calibrateScale', { groups, distances, calibration: state.calibration });
+    const residual = Number(state.scaleCalibration.residualM ?? state.scaleCalibration.residualRm ?? 0);
+    const lens = state.scaleCalibration.lensId || '未记录镜头标识'; const zoom = state.scaleCalibration.zoom == null ? '未记录变焦' : `${state.scaleCalibration.zoom}×`;
+    $('#scale-status').textContent = `尺度拟合完成，残差 ${residual.toFixed(3)} m；适用于${lens}、方向 ${state.scaleCalibration.orientation ?? '未记录'}、${zoom}。结果为参考级。`; $('#download-scale').disabled = false; updateCalibrationStatus();
   } catch (error) { $('#scale-status').textContent = `${error.code || 'CALIBRATION_FAILED'}：${messageFor(error.code || 'CALIBRATION_FAILED')}`; } finally { decoded.forEach(frame => frame.bitmap?.close?.()); }
 }
 
@@ -204,7 +227,7 @@ function bind() {
   renderSlots(); updateReady();
   $('#focus-support').textContent = typeof ImageCapture === 'function' ? '本机浏览器可能支持网页调焦；实际能力取决于摄像头。若无调焦滑杆，请使用系统相机逐张拍摄后导入。' : '本机浏览器不支持网页调焦，请使用系统相机逐张拍摄后导入。';
   $('#start-camera').addEventListener('click', startCamera); $('#capture-frame').addEventListener('click', captureNextFrame); $('#close-camera').addEventListener('click', () => { releaseCamera(); setCameraStatus('相机已关闭，可从相册选择照片。'); $('#camera-session').hidden = false; }); $('#focus-distance').addEventListener('input', applyFocusFromInput);
-  $('#sample-button').addEventListener('click', useSample); $('#gallery-input').addEventListener('change', async event => { releaseCamera(); const files = [...(event.target.files || [])].slice(0, 5); resetFrames(state); for (let index = 0; index < files.length; index++) await addFileToSlot(state, index, files[index]); renderSlots(); updateReady(); });
+  $('#sample-button').addEventListener('click', useSample); $('#gallery-input').addEventListener('change', async event => { releaseCamera(); const files = [...(event.target.files || [])].slice(0, 5); resetFrames(state); for (let index = 0; index < files.length; index++) await addFileToSlot(state, index, files[index]); renderSlots(); updateReady(); if (files.length === 5) analyzeFocusSpread(); });
   $('#reset-button').addEventListener('click', reset); $('#again-button').addEventListener('click', reset); $('#run-button').addEventListener('click', runEstimate); $('#cancel-button').addEventListener('click', () => { client.cancel(); releaseCamera(); $('#progress-panel').hidden = true; showError(Object.assign(new Error('Cancelled'), { code: 'CANCELLED' })); });
   document.querySelectorAll('.mode-tab').forEach(tab => tab.addEventListener('click', () => activateMode(tab.dataset.mode)));
   document.querySelectorAll('.view-tabs button').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('.view-tabs button').forEach(item => item.classList.toggle('active', item === tab)); ['depth', 'confidence', 'best', 'middle'].forEach(kind => { $(`#${kind === 'depth' ? 'result' : kind}-preview`).hidden = tab.dataset.view !== kind; }); }));
@@ -214,12 +237,23 @@ function bind() {
   $('#scale-input').addEventListener('change', event => { $('#scale-status').textContent = `已选择 ${event.target.files?.length || 0} 张照片。`; }); $('#scale-button').addEventListener('click', calibrateScale); $('#download-scale').addEventListener('click', () => state.scaleCalibration && downloadBlob(new Blob([JSON.stringify(state.scaleCalibration, null, 2)], { type: 'application/json' }), 'lab005-focus-depth-scale.json'));
   $('#download-button').addEventListener('click', () => state.result && fetch($('#result-preview').src).then(response => response.blob()).then(blob => downloadBlob(blob, 'lab-005-relative-depth.png')));
   $('#download-json').addEventListener('click', () => state.result && downloadBlob(new Blob([JSON.stringify({ schema: 'lab005.depth-result.v1', width: state.result.width, height: state.result.height, depth: [...state.result.depth], metricDepthM: state.result.metricDepthM ? [...state.result.metricDepthM] : null, metricQuality: state.result.metricQuality, confidence: [...state.result.confidence], invalid: [...state.result.invalid] }, null, 2)], { type: 'application/json' }), 'lab-005-depth.json'));
-  $('#share-button').addEventListener('click', async () => { try { if (!navigator.share) throw new Error('share unavailable'); await navigator.share({ title: 'LAB 005 离焦测深', text: '五张焦点照片的相对深度结果' }); $('#share-status').textContent = '已打开系统分享。'; } catch { $('#share-status').textContent = '当前浏览器不支持系统分享，请使用下载按钮。'; } });
+  $('#share-button').addEventListener('click', async () => {
+    try {
+      if (!navigator.share || !state.result) throw new Error('share unavailable');
+      const blob = await fetch($('#result-preview').src).then(response => response.blob());
+      const file = new File([blob], 'lab-005-relative-depth.png', { type: 'image/png' });
+      const data = { title: 'LAB 005 离焦测深', text: '五张焦点照片的相对深度结果' };
+      if (navigator.canShare?.({ files: [file] })) data.files = [file];
+      await navigator.share(data); $('#share-status').textContent = data.files ? '已打开系统分享，可发送深度图。' : '已打开系统分享。';
+    } catch { $('#share-status').textContent = '当前浏览器不支持系统分享，请使用下载按钮。'; }
+  });
 }
 
 bind();
-window.addEventListener('pagehide', releaseCamera, { once: true });
+window.addEventListener('pagehide', () => { releaseCamera(); hideResult(); resetFrames(state); client.terminate(); }, { once: true });
 $('#result-preview').addEventListener('click', event => {
   if (!state.result) return; const rect = event.currentTarget.getBoundingClientRect(); const x = Math.max(0, Math.min(state.result.width - 1, Math.round((event.clientX - rect.left) / rect.width * state.result.width))); const y = Math.max(0, Math.min(state.result.height - 1, Math.round((event.clientY - rect.top) / rect.height * state.result.height))); const tile = Math.min(state.result.rows - 1, Math.floor(y / state.result.tileSize)) * state.result.cols + Math.min(state.result.cols - 1, Math.floor(x / state.result.tileSize)); $('#sample-query').hidden = false;
+  const localCurve = Array.isArray(state.result.curves) && state.result.curves.length === 5 ? state.result.curves.map(curve => curve[tile]) : null;
+  if (localCurve?.every(Number.isFinite)) { $('#focus-curve-caption').textContent = `查询位置（${x}, ${y}）的焦点评分`; renderFocusCurve(localCurve); }
   if (state.result.invalid[tile]) $('#query-value').textContent = '该区域纹理不足'; else { const metric = state.result.metricDepthM ? `，参考距离 ${state.result.metricDepthM[tile].toFixed(2)} m` : ''; $('#query-value').textContent = `相对深度 ${(state.result.depth[tile] * 100).toFixed(0)}%，置信度 ${(state.result.confidence[tile] * 100).toFixed(0)}%${metric}`; }
 });

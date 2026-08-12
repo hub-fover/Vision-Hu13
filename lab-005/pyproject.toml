@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "lab005-defocus-depth"
 version = "0.1.0"
 requires-python = ">=3.11,<3.13"
-dependencies = ["numpy>=1.26,<3", "pillow>=10,<12", "opencv-python>=4.9,<5"]
+dependencies = ["numpy>=1.26,<3", "pillow>=10,<12", "opencv-python==4.12.0.88"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<9"]

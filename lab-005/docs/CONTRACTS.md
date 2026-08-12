@@ -27,3 +27,8 @@ names when serialising reports.
 `DepthScaleCalibration` uses `lab005.focus-depth-scale.v1`. Unknown schemas,
 image-size mismatches and non-monotone scale mappings are rejected rather than
 silently converted.
+
+Metric depth is emitted only when both calibration files are present. A scale
+calibration records `intrinsicsSchema`, `imageSize`, `lensId`, `orientation`
+and `zoom`; these must match the camera intrinsics and the current analysis
+stack. Metric values and their fitted residual remain `reference-only`.

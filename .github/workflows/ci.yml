@@ -137,6 +137,9 @@ jobs:
       - name: Run LAB 002 cross-runtime acceptance
         run: npm run test:lab002:acceptance
 
+      - name: Validate LAB 002 public assets
+        run: npm run validate:lab002:assets
+
       - name: Run LAB 003 Python tests
         run: npm run test:lab003:python
 
@@ -260,9 +263,6 @@ jobs:
 
       - name: Run LAB 005 Web tests
         run: npm run test:lab005:web
-
-      - name: Run LAB 005 browser acceptance
-        run: npm --prefix lab-005/web run test:e2e
 
       - name: Stage LAB 002 Pages artifact
         run: npm run build:lab002

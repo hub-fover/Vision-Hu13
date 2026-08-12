@@ -8,7 +8,7 @@ provided for a reference-level metric estimate.
 ```powershell
 python -m defocus_depth estimate stack-folder --output depth.png
 python -m defocus_depth calibrate-intrinsics calibration-folder --pattern 9x6 --square-size 0.025 --output camera.json
-python -m defocus_depth calibrate-scale scale-folder --distances 0.3 0.6 1.0 --output focus-depth.json
+python -m defocus_depth calibrate-scale scale-folder --distances 0.3 0.6 1.0 --calibration camera.json --output focus-depth.json
 ```
 
 No image is uploaded or persisted by the reference implementation.

@@ -5,7 +5,7 @@ export function collectTransfers(type, payload) {
     if (value.bitmap && typeof value.bitmap === 'object' && !seen.has(value.bitmap)) { seen.add(value.bitmap); transfers.push(value.bitmap); }
     if (Array.isArray(value)) value.forEach(collect); else Object.entries(value).forEach(([key, child]) => { if (key !== 'bitmap') collect(child); });
   };
-  if (type === 'estimate' || type === 'calibrateIntrinsics') collect(payload?.frames || []);
+  if (type === 'estimate' || type === 'analyzeStack' || type === 'calibrateIntrinsics') collect(payload?.frames || []);
   else if (type === 'calibrateScale') collect(payload);
   return transfers;
 }

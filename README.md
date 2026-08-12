@@ -45,6 +45,25 @@ npm run build:lab004
 npm run validate:lab004:release
 ```
 
+LAB 005 is a local five-frame defocus-depth experiment. Keep the camera still,
+capture near to far focus, and the browser produces a relative depth map plus
+confidence and invalid-region views. Metric depth is available only after both
+camera-intrinsic and three-distance focus-scale calibration, and is always
+labelled `reference-only`. The public app is available at
+[`/Vision-Hu13/lab-005/`](https://hub-fover.github.io/Vision-Hu13/lab-005/).
+It does not upload or persist images and does not claim LiDAR, stereo, SLAM,
+ARCore/ARKit, or measurement-grade accuracy.
+
+LAB 005 verification is reproducible with:
+
+```powershell
+npm run generate:lab005:samples
+npm run test:lab005
+npm run test:lab005:e2e
+npm run build:lab005
+npm run validate:lab005:release
+```
+
 ![篮球场透视合成](docs/figures/01-before-after.png)
 
 ## 功能

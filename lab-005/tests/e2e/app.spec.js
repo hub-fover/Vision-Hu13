@@ -41,19 +41,25 @@ async function installWorkflowWorker(page, { holdEstimate = false, estimateError
               confidence: new Float32Array([0.9, 0.8, 0.7, 0.6]),
               invalid: new Uint8Array([0, 0, 0, 1]),
               globalMetrics: new Float32Array([1, 2, 5, 3, 1]),
-              curves: [], quality: 0.75, metricDepthM: null, metricQuality: null,
+              curves: [
+                new Float32Array([1, 2, 3, 4]), new Float32Array([2, 3, 4, 5]),
+                new Float32Array([5, 4, 3, 2]), new Float32Array([3, 2, 1, 1]),
+                new Float32Array([1, 1, 1, 1])
+              ], quality: 0.75, metricDepthM: null, metricQuality: null,
               intrinsicsApplied: false, alignment: { applied: true, maxErrorPx: 0.5 },
               depthBitmap: new Blob(['depth'], { type: 'image/png' }),
               confidenceBitmap: new Blob(['confidence'], { type: 'image/png' })
             };
             this.dispatchEvent(new MessageEvent('message', { data: { id: message.id, progress: 0.5 } }));
             this.dispatchEvent(new MessageEvent('message', { data: { id: message.id, result } }));
+          } else if (message.type === 'analyzeStack') {
+            this.dispatchEvent(new MessageEvent('message', { data: { id: message.id, result: { globalMetrics: new Float32Array([1, 2, 5, 3, 1]), spread: 0.8 } } }));
           } else if (message.type === 'calibrateScale') {
-            this.dispatchEvent(new MessageEvent('message', { data: { id: message.id, result: { schema: 'lab005.focus-depth-scale.v1', focusMetrics: [0.2, 0.5, 0.8], distancesM: message.payload.distances, residualRm: 0.01 } } }));
+            this.dispatchEvent(new MessageEvent('message', { data: { id: message.id, result: { schema: 'lab005.focus-depth-scale.v1', focusMetrics: [0.2, 0.5, 0.8], focusIndices: [0.2, 0.5, 0.8], distancesM: message.payload.distances, residualM: 0.01, intrinsicsSchema: 'lab005.camera-intrinsics.v1', imageSize: [100, 80], lensId: '未记录', orientation: 1, zoom: null } } }));
           }
         });
       }
-      terminate() {}
+      terminate() { window.__terminatedWorkers = (window.__terminatedWorkers || 0) + 1; }
     }
     Object.defineProperty(window, 'Worker', { configurable: true, value: WorkflowWorker });
   }, { holdEstimate, estimateError, detachEstimateTransfers });
@@ -249,6 +255,8 @@ test('result supports depth query, PNG and JSON downloads, and share fallback', 
   await expect(page.locator('#sample-query')).toBeVisible();
   await expect(page.locator('#query-value')).toContainText('0%');
   await expect(page.locator('#query-value')).toContainText('90%');
+  await expect(page.locator('.focus-chart figcaption')).toContainText('查询位置');
+  await expect(page.locator('#focus-curve polyline')).toHaveAttribute('points', '20,88 110,71 200,20 290,54 380,88');
 
   const png = page.waitForEvent('download');
   await page.locator('#download-button').click();
@@ -261,6 +269,44 @@ test('result supports depth query, PNG and JSON downloads, and share fallback', 
   await expect(page.locator('#share-status')).toContainText('下载按钮');
 });
 
+test('five imported frames show a Worker-computed focus spread before estimation', async ({ page }) => {
+  await installWorkflowWorker(page);
+  await page.goto('/');
+  await page.locator('#gallery-input').setInputFiles(SAMPLE_FILES);
+  await expect(page.locator('#analysis-status')).toContainText('焦点跨度 80%');
+  expect(await page.evaluate(() => window.__workerMessages.filter(message => message.type === 'analyzeStack').length)).toBe(1);
+});
+
+test('system share includes the generated depth PNG when file sharing is available', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: data => data.files?.length === 1 });
+    Object.defineProperty(navigator, 'share', { configurable: true, value: async data => { window.__sharedDepth = { fileName: data.files?.[0]?.name, fileType: data.files?.[0]?.type, title: data.title }; } });
+  });
+  await installWorkflowWorker(page);
+  await page.goto('/');
+  await page.locator('#gallery-input').setInputFiles(SAMPLE_FILES);
+  await page.locator('#run-button').click();
+  await page.locator('#share-button').click();
+  await expect.poll(() => page.evaluate(() => window.__sharedDepth)).toMatchObject({ fileName: 'lab-005-relative-depth.png', fileType: 'image/png', title: 'LAB 005 离焦测深' });
+  await expect(page.locator('#share-status')).toContainText('深度图');
+});
+
+test('leaving the page terminates the Worker and releases input and result URLs', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__revokedUrls = [];
+    const originalRevoke = URL.revokeObjectURL.bind(URL);
+    URL.revokeObjectURL = value => { window.__revokedUrls.push(value); originalRevoke(value); };
+  });
+  await installWorkflowWorker(page);
+  await page.goto('/');
+  await page.locator('#gallery-input').setInputFiles(SAMPLE_FILES);
+  await page.locator('#run-button').click();
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide')));
+  const released = await page.evaluate(() => ({ terminated: window.__terminatedWorkers, revoked: window.__revokedUrls.length }));
+  expect(released.terminated).toBe(1);
+  expect(released.revoked).toBeGreaterThanOrEqual(7);
+});
+
 test('scale calibration rejects any count other than fifteen without starting Worker', async ({ page }) => {
   await installWorkflowWorker(page);
   await page.goto('/');
@@ -271,9 +317,22 @@ test('scale calibration rejects any count other than fifteen without starting Wo
   expect(await page.evaluate(() => window.__workerMessages.filter(message => message.type === 'calibrateScale').length)).toBe(0);
 });
 
+test('scale calibration requires intrinsics before fitting absolute depth', async ({ page }) => {
+  await installWorkflowWorker(page);
+  await page.goto('/');
+  await page.locator('button[data-mode="scale"]').click();
+  await page.locator('#scale-input').setInputFiles(namedSvgFiles(15, 'scale'));
+  await page.locator('#scale-button').click();
+  await expect(page.locator('#scale-status')).toContainText('镜头内参');
+  expect(await page.evaluate(() => window.__workerMessages.filter(message => message.type === 'calibrateScale').length)).toBe(0);
+});
+
 test('scale calibration groups fifteen files into ordered sets of five', async ({ page }) => {
   await installWorkflowWorker(page);
   await page.goto('/');
+  await page.locator('#intrinsics-import').setInputFiles({
+    name: 'camera.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ schema: 'lab005.camera-intrinsics.v1', intrinsics: { matrix: [[100, 0, 32], [0, 100, 24], [0, 0, 1]], distortion: [], imageSize: [64, 48] } }))
+  });
   await page.locator('button[data-mode="scale"]').click();
   await page.locator('#scale-input').setInputFiles(namedSvgFiles(15, 'scale'));
   await page.locator('#scale-button').click();

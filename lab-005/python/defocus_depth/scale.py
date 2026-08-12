@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 
 from .errors import DefocusDepthError
+from .intrinsics import CameraIntrinsics
 
 
 @dataclass
@@ -17,6 +18,11 @@ class FocusDepthScale:
     schema: str = "lab005.focus-depth-scale.v1"
     source_frame_count: int | None = None
     focus_curves: list[list[float]] | None = None
+    intrinsics_schema: str | None = None
+    image_size: tuple[int, int] | None = None
+    lens_id: str | None = None
+    orientation: int | None = None
+    zoom: float | None = None
 
     def distance_for_focus(self, focus: np.ndarray | float) -> np.ndarray:
         values = np.asarray(focus, dtype=np.float64)
@@ -34,7 +40,32 @@ class FocusDepthScale:
             result["sourceFrameCount"] = int(self.source_frame_count)
         if self.focus_curves is not None:
             result["focusCurves"] = self.focus_curves
+        if self.intrinsics_schema is not None:
+            result["intrinsicsSchema"] = self.intrinsics_schema
+        if self.image_size is not None:
+            result["imageSize"] = list(self.image_size)
+        if self.lens_id is not None:
+            result["lensId"] = self.lens_id
+        if self.orientation is not None:
+            result["orientation"] = int(self.orientation)
+        if self.zoom is not None:
+            result["zoom"] = float(self.zoom)
         return result
+
+    def bind_camera(self, camera: CameraIntrinsics) -> "FocusDepthScale":
+        self.intrinsics_schema = camera.schema
+        self.image_size = camera.image_size
+        self.lens_id = camera.lens_id
+        self.orientation = camera.orientation
+        self.zoom = camera.zoom
+        return self
+
+    def validate_for_camera(self, camera: CameraIntrinsics) -> None:
+        if self.intrinsics_schema != camera.schema or self.image_size != camera.image_size:
+            raise DefocusDepthError("INTRINSICS_MISMATCH")
+        for expected, actual in ((self.lens_id, camera.lens_id), (self.orientation, camera.orientation), (self.zoom, camera.zoom)):
+            if expected is not None and actual is not None and str(expected) != str(actual):
+                raise DefocusDepthError("INTRINSICS_MISMATCH")
 
     @classmethod
     def from_dict(cls, data: dict) -> "FocusDepthScale":
@@ -56,10 +87,18 @@ class FocusDepthScale:
             or np.any(np.diff(focus) <= 0) or np.any(distance <= 0)
         ):
             raise DefocusDepthError("DEPTH_SCALE_UNCALIBRATED")
+        distance_deltas = np.diff(distance)
+        if not (np.all(distance_deltas >= 0) or np.all(distance_deltas <= 0)):
+            raise DefocusDepthError("DEPTH_SCALE_UNCALIBRATED")
         return cls(
             focus, distance, float(data.get("residualM", 0.0)),
             source_frame_count=data.get("sourceFrameCount"),
             focus_curves=data.get("focusCurves"),
+            intrinsics_schema=data.get("intrinsicsSchema"),
+            image_size=tuple(map(int, data["imageSize"])) if data.get("imageSize") else None,
+            lens_id=data.get("lensId"),
+            orientation=int(data["orientation"]) if data.get("orientation") is not None else None,
+            zoom=float(data["zoom"]) if data.get("zoom") is not None else None,
         )
 
 
@@ -75,8 +114,10 @@ def calibrate_scale(focus_indices: list[float] | np.ndarray, distances_m: list[f
     diffs = np.diff(distance)
     if not (np.all(diffs >= 0) or np.all(diffs <= 0)):
         raise DefocusDepthError("CALIBRATION_FAILED", "Distance mapping must be monotonic.")
-    # A monotone piecewise-linear curve avoids claiming a physical lens model.
-    fitted = np.interp(focus, focus, distance)
+    # The mapping remains piecewise linear. RMSE against its best linear trend
+    # reports how nonlinear the three calibration samples are.
+    slope, intercept = np.polyfit(focus, distance, 1)
+    fitted = slope * focus + intercept
     residual = float(np.sqrt(np.mean((fitted - distance) ** 2)))
     return FocusDepthScale(focus, distance, residual)
 
@@ -98,7 +139,7 @@ def _scale_groups(folder: Path) -> list[list[np.ndarray]]:
     return [list(validate_stack([load_image(path) for path in paths[start:start + 5]])) for start in range(0, 15, 5)]
 
 
-def calibrate_scale_from_folder(folder: str | Path, distances_m: list[float] | np.ndarray) -> FocusDepthScale:
+def calibrate_scale_from_folder(folder: str | Path, distances_m: list[float] | np.ndarray, camera: CameraIntrinsics | None = None) -> FocusDepthScale:
     """Measure the sharpest sweep position for three known-distance stacks."""
     from .alignment import align_stack
     from .depth import quadratic_peak
@@ -108,6 +149,9 @@ def calibrate_scale_from_folder(folder: str | Path, distances_m: list[float] | n
     curves: list[list[float]] = []
     focus_indices: list[float] = []
     for frames in groups:
+        if camera is not None:
+            from .intrinsics import undistort_stack
+            frames = undistort_stack(frames, camera)
         try:
             aligned_frames = align_stack(frames).frames
         except DefocusDepthError as exc:
@@ -137,4 +181,6 @@ def calibrate_scale_from_folder(folder: str | Path, distances_m: list[float] | n
     result.source_frame_count = sum(len(group) for group in groups)
     # Reorder diagnostics into the same focus order as the serialised samples.
     result.focus_curves = [curves[index] for index in np.argsort(focus_indices)]
+    if camera is not None:
+        result.bind_camera(camera)
     return result

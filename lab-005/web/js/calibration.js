@@ -129,15 +129,41 @@ export function validateCalibration(value, dimensions = null) {
   const source = value.intrinsics; const matrix = source.matrix || [[source.fx, 0, source.cx], [0, source.fy, source.cy], [0, 0, 1]]; const imageSize = source.imageSize || (value.image ? [value.image.width, value.image.height] : null);
   if (!Array.isArray(matrix) || matrix.length !== 3 || matrix.some(row => !Array.isArray(row) || row.length !== 3) || !Array.isArray(imageSize) || imageSize.length !== 2) throw makeError('INTRINSICS_MISMATCH');
   const normalized = { schema: INTRINSICS_SCHEMA, intrinsics: { matrix: matrix.map(row => row.map(Number)), distortion: (source.distortion || []).map(Number), imageSize: imageSize.map(Number) }, rmsErrorPx: Number(value.rmsErrorPx ?? value.reprojectionRmsPx ?? 0), lensId: value.lensId ?? null, orientation: Number(value.orientation ?? 1), zoom: value.zoom ?? null };
-  if (dimensions && (normalized.intrinsics.imageSize[0] !== dimensions.width || normalized.intrinsics.imageSize[1] !== dimensions.height)) throw makeError('INTRINSICS_MISMATCH'); return normalized;
+  if (!normalized.intrinsics.matrix.flat().every(Number.isFinite) || !normalized.intrinsics.distortion.every(Number.isFinite) || !normalized.intrinsics.imageSize.every(value => Number.isFinite(value) && value > 0) || normalized.intrinsics.matrix[0][0] <= 0 || normalized.intrinsics.matrix[1][1] <= 0) throw makeError('INTRINSICS_MISMATCH');
+  if (!dimensions) return normalized;
+  const [sourceWidth, sourceHeight] = normalized.intrinsics.imageSize;
+  const width = Number(dimensions.width); const height = Number(dimensions.height);
+  if (!(sourceWidth > 0 && sourceHeight > 0 && width > 0 && height > 0)) throw makeError('INTRINSICS_MISMATCH');
+  const scaleX = width / sourceWidth; const scaleY = height / sourceHeight;
+  if (Math.abs(scaleX - scaleY) > Math.max(scaleX, scaleY) * 0.005) throw makeError('INTRINSICS_MISMATCH');
+  for (const key of ['lensId', 'orientation', 'zoom']) {
+    if (dimensions[key] != null && normalized[key] != null && String(dimensions[key]) !== String(normalized[key])) throw makeError('INTRINSICS_MISMATCH');
+  }
+  normalized.intrinsics.matrix = normalized.intrinsics.matrix.map(row => [...row]);
+  normalized.intrinsics.matrix[0][0] *= scaleX; normalized.intrinsics.matrix[0][1] *= scaleX; normalized.intrinsics.matrix[0][2] *= scaleX;
+  normalized.intrinsics.matrix[1][0] *= scaleY; normalized.intrinsics.matrix[1][1] *= scaleY; normalized.intrinsics.matrix[1][2] *= scaleY;
+  normalized.intrinsics.imageSize = [width, height];
+  return normalized;
 }
 
 export function validateScale(value) {
   if (!value || value.schema !== SCALE_SCHEMA) throw makeError('DEPTH_SCALE_UNCALIBRATED');
   const focusIndices = value.focusIndices || value.samples?.map(item => item.focus); const distancesM = value.distancesM || value.samples?.map(item => item.distance);
   if (!Array.isArray(focusIndices) || !Array.isArray(distancesM) || focusIndices.length < 2 || focusIndices.length !== distancesM.length) throw makeError('DEPTH_SCALE_UNCALIBRATED');
-  const focus = focusIndices.map(Number); const distance = distancesM.map(Number); if (focus.some((item, index) => !Number.isFinite(item) || (index && item <= focus[index - 1])) || distance.some(item => !Number.isFinite(item) || item <= 0)) throw makeError('DEPTH_SCALE_UNCALIBRATED');
-  return { schema: SCALE_SCHEMA, focusIndices: focus, distancesM: distance, residualM: Number(value.residualM || 0), sourceFrameCount: value.sourceFrameCount ?? null, focusCurves: value.focusCurves ?? null, quality: 'reference-only' };
+  const focus = focusIndices.map(Number); const distance = distancesM.map(Number); if (focus.some((item, index) => !Number.isFinite(item) || (index && item <= focus[index - 1])) || distance.some(item => !Number.isFinite(item) || item <= 0)) throw makeError('DEPTH_SCALE_UNCALIBRATED'); const direction = Math.sign(distance.at(-1) - distance[0]); if (!direction || distance.some((item, index) => index && Math.sign(item - distance[index - 1]) !== direction)) throw makeError('DEPTH_SCALE_UNCALIBRATED');
+  return { schema: SCALE_SCHEMA, focusIndices: focus, distancesM: distance, residualM: Number(value.residualM ?? value.residualRm ?? 0), sourceFrameCount: value.sourceFrameCount ?? null, focusCurves: value.focusCurves ?? null, intrinsicsSchema: value.intrinsicsSchema ?? null, imageSize: Array.isArray(value.imageSize) ? value.imageSize.map(Number) : null, lensId: value.lensId ?? null, orientation: value.orientation ?? null, zoom: value.zoom ?? null, quality: 'reference-only' };
+}
+
+export function canUseMetricDepth(calibration, scaleCalibration) {
+  if (!calibration || !scaleCalibration) return false;
+  try {
+    const intrinsics = validateCalibration(calibration); const scale = validateScale(scaleCalibration);
+    if (scale.intrinsicsSchema !== intrinsics.schema || !scale.imageSize || scale.imageSize.some((value, index) => value !== intrinsics.intrinsics.imageSize[index])) return false;
+    for (const key of ['lensId', 'orientation', 'zoom']) {
+      if (scale[key] != null && intrinsics[key] != null && String(scale[key]) !== String(intrinsics[key])) return false;
+    }
+    return true;
+  } catch { return false; }
 }
 
 export function fitScale(samples, distances) {
@@ -145,7 +171,10 @@ export function fitScale(samples, distances) {
   const points = samples.map((focus, index) => ({ focus: Number(focus), distance: Number(distances[index]) })).sort((a, b) => a.focus - b.focus);
   if (points.some((point, index) => !Number.isFinite(point.focus) || !Number.isFinite(point.distance) || point.distance <= 0 || (index && point.focus <= points[index - 1].focus))) throw makeError('CALIBRATION_FAILED');
   const direction = Math.sign(points.at(-1).distance - points[0].distance); if (!direction || points.some((point, index) => index && Math.sign(point.distance - points[index - 1].distance) !== direction)) throw makeError('CALIBRATION_FAILED');
-  return { schema: SCALE_SCHEMA, focusIndices: points.map(point => point.focus), distancesM: points.map(point => point.distance), residualM: 0, quality: 'reference-only' };
+  const count = points.length; const meanFocus = points.reduce((sum, point) => sum + point.focus, 0) / count; const meanDistance = points.reduce((sum, point) => sum + point.distance, 0) / count;
+  const denominator = points.reduce((sum, point) => sum + (point.focus - meanFocus) ** 2, 0); const slope = points.reduce((sum, point) => sum + (point.focus - meanFocus) * (point.distance - meanDistance), 0) / Math.max(denominator, 1e-12); const intercept = meanDistance - slope * meanFocus;
+  const residualM = Math.sqrt(points.reduce((sum, point) => sum + (slope * point.focus + intercept - point.distance) ** 2, 0) / count);
+  return { schema: SCALE_SCHEMA, focusIndices: points.map(point => point.focus), distancesM: points.map(point => point.distance), residualM, quality: 'reference-only' };
 }
 
 export function mapDepthToMeters(value, calibration) {

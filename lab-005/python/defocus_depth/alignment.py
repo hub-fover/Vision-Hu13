@@ -30,6 +30,30 @@ def _gray(frame: np.ndarray) -> np.ndarray:
     return frame if frame.ndim == 2 else cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
 
+def validate_scene_consistency(
+    frames: list[np.ndarray] | tuple[np.ndarray, ...],
+    *,
+    min_correlation: float = 0.55,
+) -> float:
+    """Reject a changed scene while remaining insensitive to ordinary defocus."""
+    frames = list(validate_stack(frames))
+    reference = _gray(frames[len(frames) // 2])
+
+    def structure(frame: np.ndarray) -> np.ndarray:
+        gray = cv2.resize(_gray(frame), (32, 32), interpolation=cv2.INTER_AREA)
+        low = cv2.GaussianBlur(gray.astype(np.float32), (0, 0), 2.0)
+        low -= float(low.mean())
+        norm = float(np.linalg.norm(low))
+        return low.ravel() / max(norm, 1e-8)
+
+    target = structure(reference)
+    correlations = [float(np.dot(target, structure(frame))) for frame in frames]
+    minimum = min(correlations)
+    if minimum < min_correlation:
+        raise DefocusDepthError("SCENE_CHANGED", f"minimum structural correlation {minimum:.3f}")
+    return minimum
+
+
 def _estimate(reference: np.ndarray, frame: np.ndarray) -> tuple[np.ndarray, float, float]:
     orb = cv2.ORB_create(nfeatures=1500)
     key_ref, des_ref = orb.detectAndCompute(_gray(reference), None)
@@ -57,6 +81,7 @@ def _estimate(reference: np.ndarray, frame: np.ndarray) -> tuple[np.ndarray, flo
 
 def align_stack(frames: list[np.ndarray] | tuple[np.ndarray, ...], *, max_error_px: float = 2.0) -> AlignmentResult:
     frames = list(validate_stack(frames))
+    validate_scene_consistency(frames)
     reference_index = len(frames) // 2
     reference = frames[reference_index]
     aligned = []
@@ -80,7 +105,9 @@ def align_stack(frames: list[np.ndarray] | tuple[np.ndarray, ...], *, max_error_
                 warp = np.eye(2, 3, dtype=np.float32)
                 criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 80, 1e-5)
                 _, warp = cv2.findTransformECC(ref_gray, frame_gray, warp, cv2.MOTION_EUCLIDEAN, criteria)
-                matrix = warp
+                # findTransformECC estimates reference -> input, whereas the
+                # ORB path and warpAffine below require input -> reference.
+                matrix = cv2.invertAffineTransform(warp)
                 error, ratio = 1.0, 0.5
             except cv2.error as exc:
                 raise DefocusDepthError("ALIGNMENT_FAILED") from exc

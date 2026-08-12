@@ -3,14 +3,48 @@
   "title": "离焦测深合成焦点样例",
   "description": "确定性本地样例，用于演示近焦到远焦的清晰度变化。",
   "license": "MIT",
-  "source": "LAB 005 deterministic sample generator",
+  "source": "Repository-original deterministic SVG generator",
+  "generator": {
+    "path": "scripts/generate_focus_samples.mjs",
+    "sourceCommit": "0d893bb456a819201ec001cda446230a4a1d2d08"
+  },
   "checksumEncoding": "utf8-lf",
   "generated": true,
   "frames": [
-    {"id": "focus-near", "label": "NEAR", "focusPosition": "near", "path": "focus-near.svg", "sha256": "C8438ABFB9B4012FA299AB053A7274208C49131EE918990568E8321631E19DE7"},
-    {"id": "focus-near-mid", "label": "NEAR MID", "focusPosition": "near-mid", "path": "focus-near-mid.svg", "sha256": "68EE615CCDF3F33D2852D9551E605902F7E11812CCBEAB814542C7516350E4E4"},
-    {"id": "focus-mid", "label": "MID", "focusPosition": "mid", "path": "focus-mid.svg", "sha256": "FB72A843F87761ECBBB781718C6B967E3F696330A9D2AFD229CCA7ACBD14C2B9"},
-    {"id": "focus-far-mid", "label": "FAR MID", "focusPosition": "far-mid", "path": "focus-far-mid.svg", "sha256": "09DE75A70390AB4249A7963FFA1764AEBB1D63558A3E52549CA78288D1697B23"},
-    {"id": "focus-far", "label": "FAR", "focusPosition": "far", "path": "focus-far.svg", "sha256": "5FA600DEC68968490A10A757337BE483244BBBD83FAED8A10AEFDC8D0B81499C"}
+    {
+      "id": "focus-near",
+      "label": "NEAR",
+      "focusPosition": "near",
+      "path": "focus-near.svg",
+      "sha256": "C8438ABFB9B4012FA299AB053A7274208C49131EE918990568E8321631E19DE7"
+    },
+    {
+      "id": "focus-near-mid",
+      "label": "NEAR MID",
+      "focusPosition": "near-mid",
+      "path": "focus-near-mid.svg",
+      "sha256": "68EE615CCDF3F33D2852D9551E605902F7E11812CCBEAB814542C7516350E4E4"
+    },
+    {
+      "id": "focus-mid",
+      "label": "MID",
+      "focusPosition": "mid",
+      "path": "focus-mid.svg",
+      "sha256": "FB72A843F87761ECBBB781718C6B967E3F696330A9D2AFD229CCA7ACBD14C2B9"
+    },
+    {
+      "id": "focus-far-mid",
+      "label": "FAR MID",
+      "focusPosition": "far-mid",
+      "path": "focus-far-mid.svg",
+      "sha256": "09DE75A70390AB4249A7963FFA1764AEBB1D63558A3E52549CA78288D1697B23"
+    },
+    {
+      "id": "focus-far",
+      "label": "FAR",
+      "focusPosition": "far",
+      "path": "focus-far.svg",
+      "sha256": "5FA600DEC68968490A10A757337BE483244BBBD83FAED8A10AEFDC8D0B81499C"
+    }
   ]
 }

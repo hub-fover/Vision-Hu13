@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 
 import pytest
 
@@ -22,6 +24,18 @@ from scripts.extract_real_samples import (
 
 
 LAB_ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_public_asset_validator_runs_directly_from_repository_root() -> None:
+    completed = subprocess.run(
+        [sys.executable, str(LAB_ROOT / "scripts" / "validate_public_assets.py")],
+        cwd=LAB_ROOT.parent,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stdout + completed.stderr
 
 
 def test_public_asset_validator_accepts_complete_real_media_release() -> None:

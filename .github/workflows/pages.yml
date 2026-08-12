@@ -104,3 +104,24 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Smoke-test deployed LAB entry points
+        shell: bash
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          base="${PAGE_URL%/}"
+          for path in "" "lab-002/" "lab-003/" "lab-004/" "lab-005/" "lab-005/assets/samples/manifest.json" "lab-005/LICENSES.md" "lab-005/vendor/opencv.js"; do
+            url="$base/$path"
+            for attempt in 1 2 3 4 5 6; do
+              if curl --fail --silent --show-error --location --max-time 30 "$url" --output /dev/null; then
+                break
+              fi
+              if [ "$attempt" -eq 6 ]; then
+                echo "Deployed resource failed HTTP smoke test: $url" >&2
+                exit 1
+              fi
+              sleep 10
+            done
+          done
