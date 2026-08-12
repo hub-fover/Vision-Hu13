@@ -16,6 +16,7 @@ playwright-report/
 blob-report/
 web/lab-002/
 web/lab-003/
+web/lab-004/
 .superpowers/
 
 # Editors and operating systems
@@ -40,4 +41,11 @@ lab-003/assets/figures/
 lab-003/assets/public/
 lab-003/docs/
 lab-003/output/
+lab-004/article/
+lab-004/publication/
+lab-004/output/
+lab-004/tmp/
+lab-004/assets/figures/
+lab-004/assets/public/
 docs/superpowers/plans/*lab-003*
+lab-004/web/vendor/

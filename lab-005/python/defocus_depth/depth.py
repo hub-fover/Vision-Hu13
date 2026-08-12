@@ -24,6 +24,40 @@ class DepthResult:
         }
 
 
+def edge_aware_smooth(
+    depth: np.ndarray,
+    confidence: np.ndarray,
+    valid: np.ndarray,
+    *,
+    edge_threshold: float = 0.15,
+) -> np.ndarray:
+    """Smooth valid four-neighbour tiles without crossing a depth jump."""
+    source = np.asarray(depth, dtype=np.float32)
+    confidence = np.asarray(confidence, dtype=np.float32)
+    valid = np.asarray(valid, dtype=bool)
+    if source.shape != confidence.shape or source.shape != valid.shape:
+        raise ValueError("depth, confidence and valid shapes must match")
+    output = source.copy()
+    height, width = source.shape
+    for y in range(height):
+        for x in range(width):
+            if not valid[y, x]:
+                continue
+            weighted_sum = 0.0
+            weight_sum = 0.0
+            for ny, nx in ((y, x), (y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)):
+                if not (0 <= ny < height and 0 <= nx < width) or not valid[ny, nx]:
+                    continue
+                if abs(float(source[ny, nx] - source[y, x])) > edge_threshold:
+                    continue
+                weight = max(float(confidence[ny, nx]), 1e-6)
+                weighted_sum += float(source[ny, nx]) * weight
+                weight_sum += weight
+            if weight_sum:
+                output[y, x] = weighted_sum / weight_sum
+    return output
+
+
 def quadratic_peak(values: np.ndarray) -> tuple[float, float]:
     """Return a sub-frame maximum and its prominence over the neighbours."""
     values = np.asarray(values, dtype=np.float32).ravel()
@@ -75,4 +109,5 @@ def estimate_relative_depth(
         raise DefocusDepthError("LOW_TEXTURE")
     if float(np.max(confidence, initial=0)) < min_peak_prominence:
         raise DefocusDepthError("LOW_PEAK_PROMINENCE")
+    depth = edge_aware_smooth(depth, confidence, valid)
     return DepthResult(depth, confidence, valid, peak, scores)

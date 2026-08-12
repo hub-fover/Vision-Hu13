@@ -154,11 +154,15 @@ async function displayResult(result) {
 
 async function runEstimate() {
   releaseCamera(); clearError(); hideResult(); setProgress(0, '读取五张照片');
-  const frames = state.frames.map(frame => ({ bitmap: frame.bitmap, width: frame.bitmap.width, height: frame.bitmap.height }));
+  // Worker transfers ImageBitmap ownership. Decode fresh working copies so a cancelled or repeated run never reuses detached preview bitmaps.
+  const workingFrames = [];
   try {
+    for (const frame of state.frames) workingFrames.push(await decodeFile(frame.file));
+    const frames = workingFrames.map(decoded => ({ bitmap: decoded.bitmap, width: decoded.width, height: decoded.height }));
     const result = await client.run('estimate', { frames, calibration: state.calibration, scaleCalibration: state.scaleCalibration, options: { tileSize: 8, minTexture: 0.02, minPeakProminence: 0.08, maxAlignmentErrorPx: 2 } }, value => setProgress(value, '计算焦点评分'));
     await displayResult(result); setProgress(1, '完成'); setTimeout(() => { $('#progress-panel').hidden = true; }, 500);
   } catch (error) { $('#progress-panel').hidden = true; showError(error); }
+  finally { workingFrames.forEach(frame => frame.bitmap?.close?.()); }
 }
 
 async function useSample() {

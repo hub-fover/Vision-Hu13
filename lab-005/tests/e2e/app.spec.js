@@ -1,5 +1,64 @@
 import { test, expect } from '@playwright/test';
 
+const SAMPLE_DIR = new URL('../../web/assets/samples/', import.meta.url);
+const SAMPLE_FILES = ['focus-near.svg', 'focus-near-mid.svg', 'focus-mid.svg', 'focus-far-mid.svg', 'focus-far.svg']
+  .map(name => decodeURIComponent(new URL(name, SAMPLE_DIR).pathname).replace(/^\/(?:([A-Za-z]:))/, '$1'));
+
+function namedSvgFiles(count, prefix = 'frame') {
+  return Array.from({ length: count }, (_, index) => ({
+    name: `${prefix}-${String(index + 1).padStart(2, '0')}.svg`,
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="48"><rect width="64" height="48" fill="rgb(${index * 7 % 255},40,70)"/></svg>`)
+  }));
+}
+
+async function installWorkflowWorker(page, { holdEstimate = false, estimateError = null, detachEstimateTransfers = false } = {}) {
+  await page.addInitScript(({ holdEstimate, estimateError, detachEstimateTransfers }) => {
+    window.__workerMessages = [];
+    window.createImageBitmap = async source => {
+      if (source?.closed) throw new DOMException('The source image is detached', 'InvalidStateError');
+      return { width: source.width || 64, height: source.height || 48, sourceName: source.sourceName || source.name || 'canvas', closed: false, close() { this.closed = true; } };
+    };
+    class WorkflowWorker extends EventTarget {
+      postMessage(message) {
+        const summarizeFrame = frame => ({ name: frame.bitmap?.sourceName || '', width: frame.width, height: frame.height, detached: Boolean(frame.bitmap?.closed) });
+        window.__workerMessages.push({
+          type: message.type,
+          frames: message.payload?.frames?.map(summarizeFrame) || null,
+          groups: message.payload?.groups?.map(group => ({ distanceM: group.distanceM, frames: group.frames.map(summarizeFrame) })) || null
+        });
+        if (message.type === 'estimate' && detachEstimateTransfers) message.payload.frames.forEach(frame => frame.bitmap.close?.());
+        if (message.type === 'cancel' || (message.type === 'estimate' && holdEstimate)) return;
+        queueMicrotask(() => {
+          if (message.type === 'estimate' && estimateError) {
+            this.dispatchEvent(new MessageEvent('message', { data: { id: message.id, error: { code: estimateError, message: estimateError } } }));
+            return;
+          }
+          if (message.type === 'estimate') {
+            const result = {
+              width: 16, height: 16, tileSize: 8, cols: 2, rows: 2,
+              depth: new Float32Array([0, 0.25, 0.75, 1]),
+              confidence: new Float32Array([0.9, 0.8, 0.7, 0.6]),
+              invalid: new Uint8Array([0, 0, 0, 1]),
+              globalMetrics: new Float32Array([1, 2, 5, 3, 1]),
+              curves: [], quality: 0.75, metricDepthM: null, metricQuality: null,
+              intrinsicsApplied: false, alignment: { applied: true, maxErrorPx: 0.5 },
+              depthBitmap: new Blob(['depth'], { type: 'image/png' }),
+              confidenceBitmap: new Blob(['confidence'], { type: 'image/png' })
+            };
+            this.dispatchEvent(new MessageEvent('message', { data: { id: message.id, progress: 0.5 } }));
+            this.dispatchEvent(new MessageEvent('message', { data: { id: message.id, result } }));
+          } else if (message.type === 'calibrateScale') {
+            this.dispatchEvent(new MessageEvent('message', { data: { id: message.id, result: { schema: 'lab005.focus-depth-scale.v1', focusMetrics: [0.2, 0.5, 0.8], distancesM: message.payload.distances, residualRm: 0.01 } } }));
+          }
+        });
+      }
+      terminate() {}
+    }
+    Object.defineProperty(window, 'Worker', { configurable: true, value: WorkflowWorker });
+  }, { holdEstimate, estimateError, detachEstimateTransfers });
+}
+
 test('sample prepares five frames and exposes result workflow', async ({ page }) => {
   test.setTimeout(120_000);
   const errors = []; page.on('pageerror', error => errors.push(error.message)); page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
@@ -118,4 +177,113 @@ test('supported focus distance is surfaced and every camera exit releases its st
   await page.getByRole('tab', { name: '镜头标定' }).click();
   await expect(page.locator('#camera-preview')).toBeHidden();
   await expect.poll(() => page.evaluate(() => window.__stoppedTracks)).toBe(3);
+});
+
+test('album import keeps all five files and reorder controls change worker order', async ({ page }) => {
+  await installWorkflowWorker(page);
+  await page.goto('/');
+  await page.locator('#gallery-input').setInputFiles(SAMPLE_FILES);
+  await expect(page.locator('.capture-slot img')).toHaveCount(5);
+  await expect(page.locator('.capture-slot').first()).toContainText('已选择');
+  await page.locator('.capture-slot').first().locator('.move-right').click();
+  await page.locator('#run-button').click();
+  await expect(page.locator('#result-panel')).toBeVisible();
+  const order = await page.evaluate(() => window.__workerMessages.find(message => message.type === 'estimate').frames.map(frame => frame.name));
+  expect(order).toEqual(['focus-near-mid.svg', 'focus-near.svg', 'focus-mid.svg', 'focus-far-mid.svg', 'focus-far.svg']);
+});
+
+test('dragging a focus frame to another slot changes analysis order', async ({ page }) => {
+  await installWorkflowWorker(page);
+  await page.goto('/');
+  await page.locator('#gallery-input').setInputFiles(SAMPLE_FILES);
+  await page.locator('.capture-slot').nth(4).dragTo(page.locator('.capture-slot').first());
+  await page.locator('#run-button').click();
+  await expect(page.locator('#result-panel')).toBeVisible();
+  const order = await page.evaluate(() => window.__workerMessages.find(message => message.type === 'estimate').frames.map(frame => frame.name));
+  expect(order).toEqual(['focus-far.svg', 'focus-near.svg', 'focus-near-mid.svg', 'focus-mid.svg', 'focus-far-mid.svg']);
+});
+
+test('focus spread failure is shown with a stable error and does not expose stale results', async ({ page }) => {
+  await installWorkflowWorker(page, { estimateError: 'FOCUS_SPREAD_TOO_SMALL' });
+  await page.goto('/');
+  await page.locator('#gallery-input').setInputFiles(SAMPLE_FILES);
+  await page.locator('#run-button').click();
+  await expect(page.locator('#error-message')).toContainText('焦点跨度太小');
+  await expect(page.locator('#result-panel')).toBeHidden();
+  await expect(page.locator('#progress-panel')).toBeHidden();
+});
+
+test('cancelling an estimate leaves five usable frames and can restart immediately', async ({ page }) => {
+  await installWorkflowWorker(page, { holdEstimate: true });
+  await page.goto('/');
+  await page.locator('#gallery-input').setInputFiles(SAMPLE_FILES);
+  await page.locator('#run-button').click();
+  await expect(page.locator('#progress-panel')).toBeVisible();
+  await page.locator('#cancel-button').click();
+  await expect(page.locator('#error-message')).toContainText('处理已取消');
+  await expect(page.locator('#run-button')).toBeEnabled();
+  await page.locator('#run-button').click();
+  await expect(page.locator('#progress-panel')).toBeVisible();
+  expect(await page.evaluate(() => window.__workerMessages.filter(message => message.type === 'estimate').length)).toBe(2);
+});
+
+test('retry after a cancelled transfer re-decodes files instead of reusing detached bitmaps', async ({ page }) => {
+  await installWorkflowWorker(page, { holdEstimate: true, detachEstimateTransfers: true });
+  await page.goto('/');
+  await page.locator('#gallery-input').setInputFiles(SAMPLE_FILES);
+  await page.locator('#run-button').click();
+  await page.locator('#cancel-button').click();
+  await page.locator('#run-button').click();
+  const detached = await page.evaluate(() => window.__workerMessages.filter(message => message.type === 'estimate').at(-1).frames.map(frame => frame.detached));
+  expect(detached).toEqual([false, false, false, false, false]);
+});
+
+test('result supports depth query, PNG and JSON downloads, and share fallback', async ({ page }) => {
+  await installWorkflowWorker(page);
+  await page.goto('/');
+  await page.locator('#gallery-input').setInputFiles(SAMPLE_FILES);
+  await page.locator('#run-button').click();
+  await expect(page.locator('#result-panel')).toBeVisible();
+
+  await page.locator('#result-preview').click({ position: { x: 2, y: 2 } });
+  await expect(page.locator('#sample-query')).toBeVisible();
+  await expect(page.locator('#query-value')).toContainText('0%');
+  await expect(page.locator('#query-value')).toContainText('90%');
+
+  const png = page.waitForEvent('download');
+  await page.locator('#download-button').click();
+  expect((await png).suggestedFilename()).toBe('lab-005-relative-depth.png');
+  const json = page.waitForEvent('download');
+  await page.locator('#download-json').click();
+  expect((await json).suggestedFilename()).toBe('lab-005-depth.json');
+
+  await page.locator('#share-button').click();
+  await expect(page.locator('#share-status')).toContainText('下载按钮');
+});
+
+test('scale calibration rejects any count other than fifteen without starting Worker', async ({ page }) => {
+  await installWorkflowWorker(page);
+  await page.goto('/');
+  await page.locator('button[data-mode="scale"]').click();
+  await page.locator('#scale-input').setInputFiles(namedSvgFiles(14, 'scale'));
+  await page.locator('#scale-button').click();
+  await expect(page.locator('#scale-status')).toContainText('15');
+  expect(await page.evaluate(() => window.__workerMessages.filter(message => message.type === 'calibrateScale').length)).toBe(0);
+});
+
+test('scale calibration groups fifteen files into ordered sets of five', async ({ page }) => {
+  await installWorkflowWorker(page);
+  await page.goto('/');
+  await page.locator('button[data-mode="scale"]').click();
+  await page.locator('#scale-input').setInputFiles(namedSvgFiles(15, 'scale'));
+  await page.locator('#scale-button').click();
+  await expect(page.locator('#download-scale')).toBeEnabled();
+  const request = await page.evaluate(() => window.__workerMessages.find(message => message.type === 'calibrateScale'));
+  expect(request.groups.map(group => group.distanceM)).toEqual([0.3, 0.6, 1]);
+  expect(request.groups.map(group => group.frames.length)).toEqual([5, 5, 5]);
+  expect(request.groups.map(group => group.frames.map(frame => frame.name))).toEqual([
+    ['scale-01.svg', 'scale-02.svg', 'scale-03.svg', 'scale-04.svg', 'scale-05.svg'],
+    ['scale-06.svg', 'scale-07.svg', 'scale-08.svg', 'scale-09.svg', 'scale-10.svg'],
+    ['scale-11.svg', 'scale-12.svg', 'scale-13.svg', 'scale-14.svg', 'scale-15.svg']
+  ]);
 });

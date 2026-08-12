@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>相机姿态测量</title><link rel="stylesheet" href="./styles.css"></head>
+<body><main class="app" id="app">
+  <header class="topbar"><div class="brand">相机姿态测量 · LAB 004</div><nav class="modes" aria-label="模式"><button data-mode="photo" aria-pressed="true">照片估计</button><button data-mode="live" aria-pressed="false">实时跟踪</button><button data-mode="calibration" aria-pressed="false">相机标定</button></nav></header>
+  <section class="tool">
+    <div class="panel" id="photoPanel">
+      <div class="dropzone"><strong id="sampleTitle">棋盘格标定样例</strong><span id="sampleLicense">正在读取样例来源…</span><button id="sampleButton">用样例体验</button><label>拍照或选择图片<input id="fileInput" type="file" accept="image/*" capture="environment"></label><label>从图库选择<input id="galleryInput" type="file" accept="image/*"></label></div>
+      <div class="stage"><img id="photoImage" alt="待测目标图像"><canvas id="overlayCanvas"></canvas></div>
+      <div class="form-grid"><label>目标宽度<input id="widthInput" type="number" min="0" step="any" placeholder="例如 210"></label><label>目标高度<input id="heightInput" type="number" min="0" step="any" placeholder="例如 297"></label><label>单位<select id="unitInput"><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option></select></label></div>
+      <div class="modes"><button id="estimateButton" disabled>估计姿态</button><button id="cancelButton" disabled>取消</button></div>
+    </div>
+    <div class="panel hidden" id="livePanel">
+      <div class="stage"><video id="cameraVideo" autoplay playsinline muted></video><canvas id="liveCanvas"></canvas></div><div class="status" id="liveStatus">点击开始以请求后置相机。</div>
+      <div class="modes"><button id="startCamera">开始相机</button><button id="freezeCamera" disabled>冻结画面</button><button id="resumeCamera" disabled>恢复画面</button><button id="reinitializeTrack" disabled>重新初始化</button></div>
+    </div>
+    <div class="panel hidden" id="calibrationPanel">
+      <h2>相机标定</h2><div class="modes"><button id="quickPath" aria-pressed="true">普通矩形快速</button><button id="enhancedPath" aria-pressed="false">棋盘格增强</button></div><p>至少接受 8 个具有覆盖和倾斜差异的视角。</p>
+      <div class="metrics"><div class="metric">已接受 <strong id="acceptedCount">0</strong>/8</div><div class="metric">覆盖 <strong id="coverageValue">0%</strong></div><div class="metric">倾斜多样性 <strong id="tiltValue">0</strong></div></div>
+      <button id="acceptView">接受当前视图</button><button id="exportCalibration">导出 JSON</button><label>导入 JSON<input id="importCalibration" type="file" accept="application/json"></label><div class="status" id="calibrationStatus"></div>
+    </div>
+    <div class="panel" id="resultPanel"><div class="status" id="status" role="status">加载样例或照片后，用四角点标记目标。</div><div id="metrics" class="metrics"></div><button id="shareResult" disabled>分享或下载结果</button><div id="frustum" class="frustum" aria-label="三维相机视锥图"></div></div>
+  </section>
+</main><script type="module" src="./js/app.js"></script></body></html>

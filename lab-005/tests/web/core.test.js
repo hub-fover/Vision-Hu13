@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fitPeak, estimateDepth } from '../../web/js/depth.js';
+import { edgeAwareSmooth, estimateDepth, estimateDepthFromScores, fitPeak } from '../../web/js/depth.js';
 import { fitScale, mapDepthToMeters, validateCalibration, validateScale } from '../../web/js/calibration.js';
 import { checkAlignment, alignFrames } from '../../web/js/alignment.js';
 import { createInitialState, moveFrame, readyFrames } from '../../web/js/state.js';
 import { getFocusCapabilities, resolveSampleUrl, setFocusDistance, stopMediaStream } from '../../web/js/capture.js';
 import { collectTransfers } from '../../web/js/worker-client.js';
 import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../');
@@ -15,6 +16,29 @@ test('focus peak is fitted between frames', () => assert.ok(Math.abs(fitPeak([1,
 test('relative depth selects a peak and confidence map', () => {
   const gray = Float32Array.from({ length: 64 }, (_, i) => (i % 8) / 8); const frames = [0, 1, 2, 3, 4].map(index => ({ width: 8, height: 8, gray: gray.map(value => value * (index === 2 ? 2 : 1)) }));
   const result = estimateDepth(frames, { tileSize: 8, minTexture: 0, minPeakProminence: 0 }); assert.equal(result.depth.length, 1); assert.equal(result.confidence.length, 1);
+});
+test('confidence and invalid mask use the shared prominence and reference gate', () => {
+  const curves = [
+    Float32Array.of(0.1, 0.1), Float32Array.of(0.2, 0.2),
+    Float32Array.of(0.9, 0.9), Float32Array.of(0.2, 0.2),
+    Float32Array.of(0.1, 0.1),
+  ];
+  const result = estimateDepthFromScores(curves, 1, 2, {
+    texture: Float32Array.of(0.15, 0.03),
+  });
+  assert.ok(Math.abs(result.confidence[0] - 5 / 6) < 1e-6);
+  assert.ok(Math.abs(result.confidence[1] - 1 / 6) < 1e-6);
+  assert.deepEqual(Array.from(result.invalid), [0, 1]);
+});
+test('edge-aware smoothing preserves a two-plane depth discontinuity', () => {
+  const smoothed = edgeAwareSmooth(
+    Float32Array.of(0, 0.2, 0.8, 1),
+    Float32Array.of(1, 1, 1, 1),
+    Uint8Array.of(0, 0, 0, 0),
+    1, 4, 0.25,
+  );
+  assert.deepEqual(Array.from(smoothed).map(value => Number(value.toFixed(6))), [0.1, 0.1, 0.9, 0.9]);
+  assert.ok(smoothed[2] - smoothed[1] >= 0.6);
 });
 test('alignment rejects a moved stack', () => assert.throws(() => checkAlignment([{ width: 10, height: 10, meanX: 0, meanY: 0 }, { width: 10, height: 10, meanX: 0, meanY: 0 }, { width: 10, height: 10, meanX: 0, meanY: 0 }, { width: 10, height: 10, meanX: 0, meanY: 0 }, { width: 10, height: 10, meanX: 30, meanY: 0 }]), error => error.code === 'CAMERA_MOVED'));
 test('browser alignment applies bounded translation before focus scoring', () => { const width = 16; const height = 16; const reference = new Float32Array(width * height); for (let index = 0; index < reference.length; index++) reference[index] = (index % width) / width; const shifted = new Float32Array(width * height); for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) shifted[y * width + x] = reference[Math.min(height - 1, y + 1) * width + Math.min(width - 1, x + 1)]; const frames = Array.from({ length: 5 }, (_, index) => ({ width, height, gray: index === 1 ? shifted : reference, meanX: width / 2, meanY: height / 2 })); const result = alignFrames(frames, 2); assert.equal(result.applied, true); assert.ok(Math.hypot(result.shifts[1].dx, result.shifts[1].dy) > 0); });
@@ -49,3 +73,13 @@ test('scale calibration maps focus depth to reference metres', () => { const sca
 test('result workflow imports calibration and renders best frame and curve', () => { const html = readFileSync(join(ROOT, 'web/index.html'), 'utf8'); const app = readFileSync(join(ROOT, 'web/js/app.js'), 'utf8'); assert.match(html, /intrinsics-import/); assert.match(html, /scale-import/); assert.match(html, /best-preview/); assert.match(html, /focus-curve/); assert.match(app, /calibration:\s*state\.calibration/); assert.match(app, /scaleCalibration:\s*state\.scaleCalibration/); });
 test('focus frames can be reordered with mobile-friendly controls', () => { const state = createInitialState(); state.frames[0].file = { name: 'a' }; state.frames[1].file = { name: 'b' }; moveFrame(state, 1, 0); assert.equal(state.frames[0].file.name, 'b'); const app = readFileSync(join(ROOT, 'web/js/app.js'), 'utf8'); assert.match(app, /move-left/); assert.match(app, /move-right/); });
 test('Python and legacy Web calibration JSON normalize to shared schemas', () => { const intrinsics = validateCalibration({ schema: 'lab005.camera-intrinsics.v1', intrinsics: { matrix: [[100, 0, 50], [0, 101, 40], [0, 0, 1]], distortion: [0, 0, 0, 0, 0], imageSize: [100, 80] }, rmsErrorPx: 0.4 }); assert.deepEqual(intrinsics.intrinsics.imageSize, [100, 80]); const legacy = validateCalibration({ schema: 'lab005.camera-intrinsics.v1', image: { width: 100, height: 80 }, intrinsics: { fx: 100, fy: 101, cx: 50, cy: 40, distortion: [] } }); assert.deepEqual(legacy.intrinsics.matrix[0], [100, 0, 50]); const scale = validateScale({ schema: 'lab005.focus-depth-scale.v1', focusIndices: [0, 0.5, 1], distancesM: [0.3, 0.6, 1] }); assert.deepEqual(scale.distancesM, [0.3, 0.6, 1]); const legacyScale = validateScale({ schema: 'lab005.focus-depth-scale.v1', samples: [{ focus: 0, distance: 0.3 }, { focus: 1, distance: 1 }] }); assert.deepEqual(legacyScale.focusIndices, [0, 1]); });
+test('cross-runtime verifier compares depth confidence invalid mask and errors', () => {
+  const run = spawnSync(process.execPath, [join(ROOT, 'scripts/cross_runtime_web.mjs')], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  const report = JSON.parse(run.stdout);
+  assert.equal(report.maxDepthDifference, 0);
+  assert.equal(report.maxConfidenceDifference, 0);
+  assert.equal(report.invalidMaskMismatchCount, 0);
+  assert.equal(report.errorCodeMismatchCount, 0);
+  assert.deepEqual(report.depthOrder, [0, 1, 2, 3, 4]);
+});
