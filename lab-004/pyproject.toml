@@ -21,6 +21,7 @@ package-dir = {"" = "python"}
 
 [tool.setuptools.packages.find]
 where = ["python"]
+include = ["camera_measurement*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["python"]

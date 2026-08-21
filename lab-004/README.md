@@ -17,7 +17,12 @@ The cross-runtime contract is `shared/contracts.json`; it uses
 `camera_measurement` and supports Python 3.11/3.12.
 
 ```powershell
+# From the repository root:
+python -m pip install -e lab-004
+
+# Or from this lab-004 directory:
 python -m pip install -r requirements-lock.txt
+python -m pip install -e .
 python -m pytest
 python -m camera_measurement analyze-frames frames \
   --target-roi roi.json --scale-points scale.json \

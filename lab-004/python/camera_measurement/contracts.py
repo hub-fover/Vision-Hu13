@@ -57,6 +57,14 @@ class MeasurementOptions:
     max_camera_drift_px: float = MAX_CAMERA_DRIFT_PX
     min_template_score: float = MIN_TEMPLATE_SCORE
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "method": self.method,
+            "fps": self.fps,
+            "maxCameraDriftPx": self.max_camera_drift_px,
+            "minTemplateScore": self.min_template_score,
+        }
+
 
 @dataclass
 class TrackingSample:
@@ -71,7 +79,13 @@ class TrackingSample:
     error_code: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return {
+            "frameIndex": self.frame_index, "timeS": self.time_s,
+            "dxPx": self.dx_px, "dyPx": self.dy_px,
+            "dxM": self.dx_m, "dyM": self.dy_m,
+            "score": self.score, "valid": self.valid,
+            "errorCode": self.error_code,
+        }
 
 
 @dataclass(frozen=True)

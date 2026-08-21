@@ -15,8 +15,6 @@ def resample_series(timestamps: np.ndarray, values: np.ndarray, fps: float = 30.
     v = np.asarray(values, dtype=np.float64).reshape(-1)
     if len(t) != len(v) or len(t) < 2 or not np.isfinite(t).all() or not np.isfinite(v).all() or fps <= 0:
         raise MeasurementError("FPS_UNSTABLE", "Timestamps and values must be finite and have equal length.")
-    order = np.argsort(t)
-    t, v = t[order], v[order]
     intervals = np.diff(t)
     if np.any(intervals <= 0):
         raise MeasurementError("FPS_UNSTABLE", "Timestamps must be strictly increasing.")
@@ -44,9 +42,12 @@ def dominant_frequency(
         raise MeasurementError("INSUFFICIENT_SAMPLES", f"At least {MIN_SAMPLES_FOR_SPECTRUM} samples are required.")
     if len(t) != len(v) or len(t) < 2:
         raise MeasurementError("INVALID_FRAME", "Signal arrays must have equal length.")
-    dt = float(np.median(np.diff(t)))
-    if not np.isfinite(dt) or dt <= 0:
+    if not np.isfinite(t).all() or not np.isfinite(v).all():
+        raise MeasurementError("FPS_UNSTABLE", "Signal samples must be finite.")
+    intervals = np.diff(t)
+    if intervals.size == 0 or not np.isfinite(intervals).all() or np.any(intervals <= 0):
         raise MeasurementError("FPS_UNSTABLE", "Invalid sample interval.")
+    dt = float(np.median(intervals))
     signal = _detrend(v)
     window = np.hanning(len(signal))
     transformed = np.fft.rfft(signal * window)
@@ -81,4 +82,3 @@ def summarize_signal(values: np.ndarray, scale_m_per_px: float = 1.0) -> tuple[f
         return 0.0, 0.0
     metres = array * scale_m_per_px
     return float(np.ptp(metres)), float(np.sqrt(np.mean((metres - np.mean(metres)) ** 2)))
-

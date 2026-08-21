@@ -11,7 +11,7 @@ import numpy as np
 from .contracts import MIN_SCALE_LENGTH_PX, ScaleReference
 from .errors import MeasurementError
 
-UNIT_TO_METRES = {"m": 1.0, "metre": 1.0, "meter": 1.0, "cm": 0.01, "mm": 0.001, "in": 0.0254}
+UNIT_TO_METRES = {"m": 1.0, "cm": 0.01, "mm": 0.001}
 
 
 def validate_unit(unit: str) -> str:
@@ -96,4 +96,3 @@ def metres_to_pixels(values: Any, reference: ScaleReference) -> np.ndarray:
 
 ScaleReference.from_points = staticmethod(from_points)  # type: ignore[attr-defined]
 ScaleReference.from_dict = staticmethod(scale_from_dict)  # type: ignore[attr-defined]
-

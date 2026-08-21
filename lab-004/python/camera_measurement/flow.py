@@ -58,6 +58,10 @@ def track_flow_sequence(
     shape = grays[0].shape
     if any(gray.shape != shape for gray in grays):
         raise MeasurementError("SCENE_CHANGED", "Frames have different dimensions.")
+    from .target import validate_target_region
+    validate_target_region(region, (shape[1], shape[0]), min_size=32)
+    if background_region is not None:
+        validate_target_region(background_region, (shape[1], shape[0]), min_size=32)
     target_points = _features(grays[0], region)
     if target_points is None or len(target_points) < 3:
         sample = TrackingSample(0, 0.0, valid=False, error_code="LOW_TEXTURE")
@@ -93,6 +97,15 @@ def track_flow_sequence(
         target_points = _features(current, region)
         if background_region is not None:
             background_points = _features(current, background_region)
+            if background_points is None or len(background_points) < 3:
+                background_trackable = False
+                camera_stable = False
+                failure = TrackingSample(index, index / fps, valid=False, error_code="BACKGROUND_UNTRACKABLE")
+                if samples and samples[-1].frame_index == index:
+                    samples[-1] = failure
+                else:
+                    samples.append(failure)
+                continue
     valid = [sample for sample in samples if sample.valid]
     diagnostics = TrackingDiagnostics(
         camera_stable=camera_stable,
@@ -100,7 +113,6 @@ def track_flow_sequence(
         valid_ratio=len(valid) / len(samples),
         mean_score=float(np.mean(scores)) if scores else 0.0,
         fps=float(fps),
-        error_code=None if camera_stable else "CAMERA_MOVED",
+        error_code=("BACKGROUND_UNTRACKABLE" if not background_trackable else (None if camera_stable else "CAMERA_MOVED")),
     )
     return samples, diagnostics
-

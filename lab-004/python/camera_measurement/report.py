@@ -25,25 +25,37 @@ def measure_frames(
     method: str = "template", timestamps_s: np.ndarray | None = None,
     background_region: TargetRegion | None = None, debug_dir: str | Path | None = None,
 ) -> MeasurementReport:
+    try:
+        fps_value = float(fps)
+    except (TypeError, ValueError, OverflowError) as error:
+        raise MeasurementError("FPS_UNSTABLE", "FPS must be a positive finite number.") from error
+    if not np.isfinite(fps_value) or fps_value <= 0:
+        raise MeasurementError("FPS_UNSTABLE", "FPS must be a positive finite number.")
+    if timestamps_s is not None:
+        timestamps_s = np.asarray(timestamps_s, dtype=np.float64).reshape(-1)
+        if len(timestamps_s) == 0 or not np.isfinite(timestamps_s).all() or np.any(np.diff(timestamps_s) <= 0):
+            raise MeasurementError("FPS_UNSTABLE", "Timestamps must be finite and strictly increasing.")
     if not frames:
         raise MeasurementError("INVALID_FRAME", "At least one frame is required.")
     shape = frames[0].shape[:2]
     validate_target_region(region, (shape[1], shape[0]))
+    if background_region is not None:
+        validate_target_region(background_region, (shape[1], shape[0]))
     validate_scale_reference(scale, (shape[1], shape[0]))
     method = str(method).lower()
     if method not in {"template", "flow", "dic"}:
         raise MeasurementError("INVALID_FRAME", f"Unknown tracking method: {method}")
     if timestamps_s is None:
-        timestamps_s = np.arange(len(frames), dtype=np.float64) / float(fps)
+        timestamps_s = np.arange(len(frames), dtype=np.float64) / fps_value
     else:
         timestamps_s = np.asarray(timestamps_s, dtype=np.float64)
         if len(timestamps_s) != len(frames):
             raise MeasurementError("FPS_UNSTABLE", "Timestamp count does not match frame count.")
     if method == "template":
-        samples = track_template_sequence(frames, region, fps=fps)
-        diagnostics = _diagnostics_from_samples(samples, fps)
+        samples = track_template_sequence(frames, region, fps=fps_value)
+        diagnostics = _diagnostics_from_samples(samples, fps_value)
     elif method == "flow":
-        samples, diagnostics = track_flow_sequence(frames, region, fps=fps, background_region=background_region)
+        samples, diagnostics = track_flow_sequence(frames, region, fps=fps_value, background_region=background_region)
     else:
         samples = [TrackingSample(0, float(timestamps_s[0]), 0, 0, score=1.0)]
         for index, frame in enumerate(frames[1:], 1):
@@ -52,7 +64,7 @@ def measure_frames(
                 samples.append(TrackingSample(index, float(timestamps_s[index]), result.dx_px, result.dy_px, score=result.score))
             except MeasurementError as error:
                 samples.append(TrackingSample(index, float(timestamps_s[index]), valid=False, error_code=error.code))
-        diagnostics = _diagnostics_from_samples(samples, fps)
+        diagnostics = _diagnostics_from_samples(samples, fps_value)
     # Attach physical units and actual timestamps after the tracker has produced pixels.
     scale_m_per_px = scale.real_distance_m / float(np.linalg.norm(np.asarray(scale.p2_px) - np.asarray(scale.p1_px)))
     for sample in samples:
@@ -70,7 +82,7 @@ def measure_frames(
         try:
             times = np.asarray([sample.time_s for sample in valid_samples])
             values = np.asarray([sample.dx_m for sample in valid_samples])
-            uniform_times, uniform_values = resample_series(times, values, fps=fps)
+            uniform_times, uniform_values = resample_series(times, values, fps=fps_value)
             spectrum = dominant_frequency(uniform_times, uniform_values)
         except MeasurementError as error:
             if error.code not in {"INSUFFICIENT_SAMPLES", "FPS_UNSTABLE"}:
@@ -113,6 +125,9 @@ def write_debug(report: MeasurementReport, debug_dir: str | Path) -> None:
         writer.writerow(["frameIndex", "timeS", "dxPx", "dyPx", "dxM", "dyM", "score", "valid", "errorCode"])
         for sample in samples:
             writer.writerow([sample.frame_index, sample.time_s, sample.dx_px, sample.dy_px, sample.dx_m, sample.dy_m, sample.score, sample.valid, sample.error_code or ""])
-    (directory / "spectrum.json").write_text(json.dumps(report.spectrum.to_dict() if report.spectrum else {"error": "INSUFFICIENT_SAMPLES"}, indent=2), encoding="utf-8")
+    spectrum_payload = report.spectrum.to_dict() if report.spectrum else {
+        "error": report.errors[0] if report.errors else "INSUFFICIENT_SAMPLES"
+    }
+    (directory / "spectrum.json").write_text(json.dumps(spectrum_payload, indent=2), encoding="utf-8")
     (directory / "diagnostics.json").write_text(json.dumps(report.diagnostics.to_dict(), indent=2), encoding="utf-8")
     (directory / "report.json").write_text(json.dumps(report.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
