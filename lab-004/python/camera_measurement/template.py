@@ -64,6 +64,12 @@ def match_template(reference: np.ndarray, frame: np.ndarray, region: TargetRegio
 def track_template_sequence(
     frames: list[np.ndarray], region: TargetRegion, *, fps: float = 30.0, min_score: float = MIN_TEMPLATE_SCORE
 ) -> list[TrackingSample]:
+    try:
+        fps_value = float(fps)
+    except (TypeError, ValueError, OverflowError) as error:
+        raise MeasurementError("FPS_UNSTABLE", "FPS must be a positive finite number.") from error
+    if not np.isfinite(fps_value) or fps_value <= 0:
+        raise MeasurementError("FPS_UNSTABLE", "FPS must be a positive finite number.")
     if not frames:
         raise MeasurementError("INVALID_FRAME", "At least one frame is required.")
     reference = frames[0]
@@ -74,10 +80,9 @@ def track_template_sequence(
     for index, frame in enumerate(frames[1:], 1):
         try:
             match = match_template(reference, frame, region, min_score)
-            samples.append(TrackingSample(index, index / fps, match.dx_px, match.dy_px, score=match.score))
+            samples.append(TrackingSample(index, index / fps_value, match.dx_px, match.dy_px, score=match.score))
         except MeasurementError as error:
             if error.code in {"SCENE_CHANGED", "INVALID_FRAME", "TARGET_TOO_SMALL", "LOW_TEXTURE", "LOW_CONTRAST"}:
                 raise
-            samples.append(TrackingSample(index, index / fps, valid=False, error_code=error.code))
+            samples.append(TrackingSample(index, index / fps_value, valid=False, error_code=error.code))
     return samples
-

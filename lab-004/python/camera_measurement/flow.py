@@ -52,6 +52,12 @@ def track_flow_sequence(
     frames: list[np.ndarray], region: TargetRegion, *, fps: float = 30.0,
     background_region: TargetRegion | None = None, max_camera_drift_px: float = MAX_CAMERA_DRIFT_PX,
 ) -> tuple[list[TrackingSample], TrackingDiagnostics]:
+    try:
+        fps_value = float(fps)
+    except (TypeError, ValueError, OverflowError) as error:
+        raise MeasurementError("FPS_UNSTABLE", "FPS must be a positive finite number.") from error
+    if not np.isfinite(fps_value) or fps_value <= 0:
+        raise MeasurementError("FPS_UNSTABLE", "FPS must be a positive finite number.")
     if not frames:
         raise MeasurementError("INVALID_FRAME", "At least one frame is required.")
     grays = [_gray(frame) for frame in frames]
@@ -65,7 +71,7 @@ def track_flow_sequence(
     target_points = _features(grays[0], region)
     if target_points is None or len(target_points) < 3:
         sample = TrackingSample(0, 0.0, valid=False, error_code="LOW_TEXTURE")
-        return [sample], TrackingDiagnostics(False, False, 0.0, 0.0, fps, "LOW_TEXTURE")
+        return [sample], TrackingDiagnostics(False, False, 0.0, 0.0, fps_value, "LOW_TEXTURE")
     background_points = _features(grays[0], background_region) if background_region else None
     background_trackable = background_region is None or background_points is not None and len(background_points) >= 3
     if background_region is not None and not background_trackable:
@@ -83,14 +89,14 @@ def track_flow_sequence(
             if camera_drift > max_camera_drift_px:
                 camera_stable = False
         if target_delta is None:
-            samples.append(TrackingSample(index, index / fps, valid=False, error_code="LOW_TEXTURE" if not np.isfinite(fb) else "TEMPLATE_LOST"))
+            samples.append(TrackingSample(index, index / fps_value, valid=False, error_code="LOW_TEXTURE" if not np.isfinite(fb) else "TEMPLATE_LOST"))
         elif not camera_stable:
-            samples.append(TrackingSample(index, index / fps, valid=False, error_code="CAMERA_MOVED"))
+            samples.append(TrackingSample(index, index / fps_value, valid=False, error_code="CAMERA_MOVED"))
         else:
             delta = np.median(target_delta, axis=0)
             cumulative += delta
             score = float(np.exp(-max(fb, 0.0))) if np.isfinite(fb) else 0.0
-            samples.append(TrackingSample(index, index / fps, float(cumulative[0]), float(cumulative[1]), score=score))
+            samples.append(TrackingSample(index, index / fps_value, float(cumulative[0]), float(cumulative[1]), score=score))
             scores.append(score)
         previous = current
         # Re-detect on the current frame to avoid accumulating stale points.
@@ -100,7 +106,7 @@ def track_flow_sequence(
             if background_points is None or len(background_points) < 3:
                 background_trackable = False
                 camera_stable = False
-                failure = TrackingSample(index, index / fps, valid=False, error_code="BACKGROUND_UNTRACKABLE")
+                failure = TrackingSample(index, index / fps_value, valid=False, error_code="BACKGROUND_UNTRACKABLE")
                 if samples and samples[-1].frame_index == index:
                     samples[-1] = failure
                 else:
@@ -112,7 +118,7 @@ def track_flow_sequence(
         background_trackable=background_trackable,
         valid_ratio=len(valid) / len(samples),
         mean_score=float(np.mean(scores)) if scores else 0.0,
-        fps=float(fps),
+        fps=fps_value,
         error_code=("BACKGROUND_UNTRACKABLE" if not background_trackable else (None if camera_stable else "CAMERA_MOVED")),
     )
     return samples, diagnostics

@@ -95,6 +95,14 @@ def test_flow_and_report_reject_invalid_background_roi():
         measure_frames(frames, TargetRegion(55, 45, 65, 65), scale, background_region=TargetRegion(150, 100, 65, 65))
 
 
+def test_direct_trackers_reject_invalid_fps():
+    from camera_measurement.template import track_template_sequence
+    with pytest.raises(MeasurementError, match="FPS_UNSTABLE"):
+        track_template_sequence(_frames(), TargetRegion(55, 45, 65, 65), fps=0)
+    with pytest.raises(MeasurementError, match="FPS_UNSTABLE"):
+        track_flow_sequence(_frames(), TargetRegion(55, 45, 65, 65), fps=float("nan"))
+
+
 def test_debug_spectrum_preserves_report_error_code(tmp_path):
     frames = _frames() + [np.zeros_like(_frames()[0])]
     scale = ScaleReference.from_points((10, 10), (110, 10), 100, "mm")
