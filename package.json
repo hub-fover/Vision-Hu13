@@ -32,7 +32,7 @@
     "test:lab004:acceptance": "python lab-004/scripts/validate_acceptance.py",
     "test:lab004:cross-runtime": "node lab-004/scripts/cross_runtime_web.mjs",
     "validate:lab004:assets": "python lab-004/scripts/validate_public_assets.py",
-    "validate:lab004:release": "npm run test:lab004:acceptance && npm run validate:lab004:assets && npm run validate:lab004:pages",
+    "validate:lab004:release": "npm run test:lab004 && npm run test:lab004:e2e && npm run test:lab004:cross-runtime && npm run test:lab004:acceptance && npm run validate:lab004:assets && npm run validate:lab004:pages",
     "test:lab005": "npm run test:lab005:python && npm run test:lab005:web",
     "test:lab005:python": "python -m pytest -c lab-005/pyproject.toml lab-005/tests/python",
     "test:lab005:web": "npm --prefix lab-005/web test",

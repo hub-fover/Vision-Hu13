@@ -8,5 +8,6 @@
   "frames": {"count": 240, "fps": 30, "format": "deterministic-motion-json"},
   "groundTruth": {"frequencyHz": 2, "amplitudePx": 3, "scaleReferenceMm": 100, "scaleReferencePx": 160},
   "processing": "Generated locally for automated checks; it is not a phone capture and does not claim measurement-grade accuracy.",
-  "sha256": "deterministic-build-from-generator"
+  "sha256": "b56c51d063278f05d1f9de648df4b592f24793629dbfc6f9ac21bd052ddb768e",
+  "samples": [{"path": "motion.json", "sha256": "b56c51d063278f05d1f9de648df4b592f24793629dbfc6f9ac21bd052ddb768e"}]
 }

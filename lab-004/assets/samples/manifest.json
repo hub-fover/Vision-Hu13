@@ -1,12 +1,13 @@
 {
-  "schema": "lab004.samples.v1",
-  "title": "OpenCV 棋盘格标定参考图",
-  "sourceRepository": "opencv/opencv",
-  "sourceCommit": "49486f61fb25722cbcf586b7f4320921d46fb38e",
-  "license": "Apache-2.0",
-  "board": { "innerCorners": [9, 6], "squareSizeM": 0.025 },
-  "processing": "The public reference is kept same-origin and is used only to exercise the checkerboard selection flow. It is not a door/window accuracy claim.",
-  "samples": [
-    { "path": "../left01.jpg", "sourcePath": "samples/data/left01.jpg", "sha256": "9621899098adffa1440c8264606bb7be535ccfd9ad126ae8e0bd9b0c5a5b8676", "width": 640, "height": 480 }
-  ]
+  "schema": "lab004.measurement-samples.v1",
+  "title": "固定相机的小幅正弦位移样例",
+  "sampleId": "synthetic-sine-2hz",
+  "license": "MIT",
+  "sourceRepository": "Vision-Hu13",
+  "generator": "lab-004/scripts/generate_sample.py",
+  "frames": {"count": 240, "fps": 30, "format": "deterministic-motion-json"},
+  "groundTruth": {"frequencyHz": 2, "amplitudePx": 3, "scaleReferenceMm": 100, "scaleReferencePx": 160},
+  "processing": "Generated locally for automated checks; it is not a phone capture and does not claim measurement-grade accuracy.",
+  "sha256": "b56c51d063278f05d1f9de648df4b592f24793629dbfc6f9ac21bd052ddb768e",
+  "samples": [{"path": "motion.json", "sha256": "b56c51d063278f05d1f9de648df4b592f24793629dbfc6f9ac21bd052ddb768e"}]
 }

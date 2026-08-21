@@ -11,15 +11,16 @@ ROOT = Path(__file__).resolve().parents[1]
 def main() -> int:
     manifest_path = ROOT / "assets" / "samples" / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("sourceRepository") != "opencv/opencv":
-        raise SystemExit("sample source repository must be opencv/opencv")
-    if len(manifest.get("sourceCommit", "")) != 40:
-        raise SystemExit("sample source commit must be a full SHA")
-    if manifest.get("license") != "Apache-2.0":
-        raise SystemExit("sample license must be Apache-2.0")
-    board = manifest.get("board", {})
-    if board.get("innerCorners") != [9, 6] or board.get("squareSizeM", 0) <= 0:
-        raise SystemExit("checkerboard configuration is incomplete")
+    if manifest.get("schema") != "lab004.measurement-samples.v1":
+        raise SystemExit("measurement sample schema is missing")
+    if not manifest.get("sampleId") or manifest.get("license") != "MIT":
+        raise SystemExit("deterministic sample metadata is incomplete")
+    frames = manifest.get("frames", {})
+    truth = manifest.get("groundTruth", {})
+    if frames.get("count", 0) < 128 or frames.get("fps", 0) <= 0:
+        raise SystemExit("sample frame metadata is invalid")
+    if truth.get("frequencyHz", 0) <= 0 or truth.get("amplitudePx", 0) <= 0:
+        raise SystemExit("sample ground truth is incomplete")
     for sample in manifest.get("samples", []):
         path = manifest_path.parent / sample["path"]
         if not path.is_file():
@@ -27,7 +28,7 @@ def main() -> int:
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         if digest != sample.get("sha256"):
             raise SystemExit(f"sample SHA-256 mismatch: {path}")
-    print(f"LAB 004 public assets: PASS ({len(manifest['samples'])} sample(s))")
+    print(f"LAB 004 public assets: PASS ({manifest['sampleId']})")
     return 0
 
 

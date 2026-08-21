@@ -28,10 +28,11 @@ npm run validate:lab003:release
 npm run build:lab003
 ```
 
-LAB 004 is the camera-pose estimation software-only lab. It supports a
-known-size planar rectangle (door, window, screen, frame, or tile), optional
-intrinsic calibration, single-image pose estimation, and local live tracking.
-The public app is available at
+LAB 004 is the local visual displacement and vibration lab. Fix an ordinary
+camera, mark a textured target and two points with a known real distance, then
+inspect pixel displacement, reference millimetres, a curve, and dominant
+frequency. Template matching is the default and Lucas–Kanade optical flow is
+available as an enhancement. The public app is available at
 [`/Vision-Hu13/lab-004/`](https://hub-fover.github.io/Vision-Hu13/lab-004/).
 Publication drafts, QR codes, figures, and WeChat-specific exports remain
 local-only and are intentionally excluded from this repository.

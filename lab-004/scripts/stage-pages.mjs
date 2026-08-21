@@ -8,11 +8,9 @@ const assetSource = resolve(here, '../assets');
 const defaultDestination = resolve(here, '../../web/lab-004');
 const excluded = new Set(['node_modules', 'package.json', 'package-lock.json', 'playwright.config.js', 'scripts', 'tests', 'test-results', 'README.md', 'manifest.local.json', '_review-manifest.json']);
 const required = [
-  'index.html', 'styles.css', 'assets/checkerboard-reference.svg', 'assets/samples/manifest.json',
-  'js/app.js', 'js/state.js', 'js/capture.js', 'js/contracts.js', 'js/quad-editor.js', 'js/pose.js',
-  'js/tracking.js', 'js/calibration.js', 'js/uncertainty.js', 'js/overlay.js', 'js/frustum-view.js',
-  'js/worker-client.js', 'js/camera-pose.worker.js', 'vendor/three.module.js', 'vendor/three.core.js',
-  'vendor/opencv.js', 'vendor/manifest.json'
+  'index.html', 'styles.css', 'assets/samples/manifest.json',
+  'js/app.js', 'js/state.js', 'js/capture.js', 'js/measurement.js', 'js/template.js',
+  'js/flow.js', 'js/signal.js', 'js/worker-client.js', 'js/measurement.worker.js', 'js/errors.js'
 ];
 
 async function listFiles(root, current = root) {
@@ -42,9 +40,7 @@ async function validatePagesStage(destination = defaultDestination) {
   const html = await readFile(resolve(root, 'index.html'), 'utf8');
   if (/<script[^>]+opencv\.js/i.test(html)) throw new Error('OpenCV.js must remain Worker-lazy-loaded');
   const manifest = JSON.parse(await readFile(resolve(root, 'assets/samples/manifest.json'), 'utf8'));
-  if (!Array.isArray(manifest.samples) || manifest.samples.length < 1) throw new Error('sample manifest is empty');
-  const runtimeManifest = JSON.parse(await readFile(resolve(root, 'vendor/manifest.json'), 'utf8'));
-  if (!runtimeManifest.artifactPresent) throw new Error('Pages must contain a built OpenCV artifact');
+  if (!(manifest.sampleId || (Array.isArray(manifest.samples) && manifest.samples.length))) throw new Error('sample manifest is empty');
   return { files };
 }
 
@@ -54,11 +50,14 @@ async function stagePages(destination = defaultDestination) {
   await mkdir(target, { recursive: true });
   await cp(source, target, { recursive: true, filter: path => path === source || !excluded.has(path.split(/[\\/]/).at(-1)) });
   await mkdir(resolve(target, 'assets/samples'), { recursive: true });
-  await cp(resolve(assetSource, 'checkerboard-reference.svg'), resolve(target, 'assets/checkerboard-reference.svg'));
   await cp(resolve(assetSource, 'samples/manifest.json'), resolve(target, 'assets/samples/manifest.json'));
   const manifest = JSON.parse(await readFile(resolve(assetSource, 'samples/manifest.json'), 'utf8'));
   for (const sample of manifest.samples || []) {
-    if (sample.path) await cp(resolve(assetSource, 'samples', sample.path), resolve(target, 'assets/samples', sample.path));
+    if (!sample.path) continue;
+    const sourcePath = resolve(assetSource, 'samples', sample.path);
+    const destinationPath = resolve(target, 'assets/samples', sample.path);
+    await mkdir(dirname(destinationPath), { recursive: true });
+    await cp(sourcePath, destinationPath);
   }
   return validatePagesStage(target);
 }

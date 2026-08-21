@@ -78,7 +78,8 @@ def measure_frames(
     series = DisplacementSeries(samples=samples, peak_to_peak_m=peak_to_peak_m, rms_m=rms_m, peak_to_peak_px=float(np.ptp(magnitudes)) if magnitudes.size else 0.0)
     spectrum = None
     errors: list[str] = []
-    if len(valid_samples) >= 2:
+    blocking_error = diagnostics.error_code in {"CAMERA_MOVED", "BACKGROUND_UNTRACKABLE", "TEMPLATE_LOST", "SCENE_CHANGED"}
+    if len(valid_samples) >= 2 and not blocking_error:
         try:
             times = np.asarray([sample.time_s for sample in valid_samples])
             values = np.asarray([sample.dx_m for sample in valid_samples])
@@ -88,6 +89,8 @@ def measure_frames(
             if error.code not in {"INSUFFICIENT_SAMPLES", "FPS_UNSTABLE"}:
                 raise
             errors.append(error.code)
+    elif blocking_error and diagnostics.error_code:
+        errors.append(diagnostics.error_code)
     errors.extend(sorted({sample.error_code for sample in samples if sample.error_code}))
     report = MeasurementReport(
         displacement=series, spectrum=spectrum, diagnostics=diagnostics, method=method, scale=scale, errors=errors,

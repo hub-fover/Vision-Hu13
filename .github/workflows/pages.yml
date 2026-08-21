@@ -56,14 +56,6 @@ jobs:
       - name: Install LAB 005 Web dependencies
         run: npm ci --prefix lab-005/web
 
-      - name: Download LAB 004 runtime validated by CI
-        uses: actions/download-artifact@v4
-        with:
-          name: lab004-opencv-${{ github.event.workflow_run.head_sha }}
-          path: lab-004/web/vendor
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Download LAB 005 runtime validated by CI
         uses: actions/download-artifact@v4
         with:
@@ -84,7 +76,7 @@ jobs:
       - name: Validate LAB 003 staged static resources
         run: npm run validate:lab003:pages
 
-      - name: Stage LAB 004 with the validated runtime
+      - name: Stage LAB 004 visual measurement app
         run: npm run build:lab004
 
       - name: Validate LAB 004 staged static resources
