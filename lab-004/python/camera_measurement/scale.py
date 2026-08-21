@@ -50,6 +50,7 @@ def from_points(
 
 
 def validate_scale_reference(reference: ScaleReference, image_size_px: tuple[int, int] | None = None) -> ScaleReference:
+    unit = validate_unit(reference.unit)
     result = from_points(reference.p1_px, reference.p2_px, reference.real_distance_m, "m")
     if image_size_px is not None:
         try:
@@ -61,7 +62,7 @@ def validate_scale_reference(reference: ScaleReference, image_size_px: tuple[int
         for point in (result.p1_px, result.p2_px):
             if not (0 <= point[0] < width and 0 <= point[1] < height):
                 raise MeasurementError("INVALID_SCALE", "Scale points must be inside the frame.")
-    return replace(result, unit=reference.unit)
+    return replace(result, unit=unit)
 
 
 def scale_from_dict(data: dict[str, Any], image_size_px: tuple[int, int] | None = None) -> ScaleReference:
