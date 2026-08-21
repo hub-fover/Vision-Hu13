@@ -1,129 +1,23 @@
 import { createState, reducer, MODES } from './state.js';
-import { SAMPLE_MANIFEST, loadSampleManifest, requestRearCamera, prepareAnalysisBitmap, toAnalysisQuad } from './capture.js';
-import { buildObjectPoints } from './contracts.js';
-import { QuadEditor, validateQuad } from './quad-editor.js';
+import { requestRearCamera, loadImageFile } from './capture.js';
+import { buildSampleMotion, measureMotions } from './measurement.js';
+import { drawSeries } from './signal.js';
 import { describeError } from './errors.js';
-import { FrustumView } from './frustum-view.js';
 import { WorkerClient } from './worker-client.js';
-import { drawOverlay } from './overlay.js';
 
-const $ = id => document.getElementById(id);
-let state = createState();
-let workerClient;
-let activeRequest;
-let stream;
-let frozenBitmap;
-let liveTimer;
-let lastUnit='mm';
-let imageObjectUrl;
-let sampleManifest = SAMPLE_MANIFEST;
-let calibrationBitmaps = [];
-const canvas = $('overlayCanvas');
-const image = $('photoImage');
-const liveCanvas = $('liveCanvas');
-const editor = new QuadEditor(canvas);
-const liveEditor = new QuadEditor(liveCanvas);
-const frustum = new FrustumView($('frustum'));
-const dispatch = action => { state = reducer(state, action); render(); };
-editor.onChange = quad => dispatch({ type: 'SET_QUAD', quad });
-liveEditor.onChange = quad => dispatch({ type: 'SET_QUAD', quad });
-
-function render() {
-  document.querySelectorAll('[data-mode]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mode === state.mode)));
-  $('photoPanel').classList.toggle('hidden', state.mode !== MODES.PHOTO);
-  $('livePanel').classList.toggle('hidden', state.mode !== MODES.LIVE);
-  $('calibrationPanel').classList.toggle('hidden', state.mode !== MODES.CALIBRATION);
-  $('estimateButton').disabled = !(state.image && state.quad && state.target.widthM > 0 && state.target.heightM > 0) || state.status === 'running';
-  $('status').textContent = state.lastError
-    ? describeError(state.lastError)
-    : state.status === 'running'
-      ? '正在加载 OpenCV 并估计相机姿态…'
-      : '加载样例或照片后，用四角点标记目标。';
-  $('acceptedCount').textContent = state.calibration.views.length;
-  $('coverageValue').textContent = `${Math.round((state.calibration.views.at(-1)?.coverage || 0) * 100)}%`;
-  $('tiltValue').textContent = `${((state.calibration.views.at(-1)?.tilt || 0) * 180 / Math.PI).toFixed(1)}°`;
-  if (!state.result) { $('metrics').replaceChildren(); $('shareResult').disabled=true; canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height); liveCanvas.getContext('2d').clearRect(0,0,liveCanvas.width,liveCanvas.height); frustum.clear?.(); return; }
-  const interval=state.result.distanceInterval;
-  const items = [['垂直距离', state.result.perpendicularDistanceM], ['中心距离', state.result.targetCenterDistanceM], ['水平偏移', state.result.horizontalOffsetM], ['垂直偏移', state.result.verticalOffsetM], ['中央 90% 区间',interval?`${interval.lowerM.toFixed(3)}–${interval.upperM.toFixed(3)} m`:'—'], ['质量', state.result.quality], ['重投影 RMS', `${state.result.reprojectionRmsPx} px`], ['内参来源',state.result.calibrationSource]];
-  $('metrics').innerHTML = items.map(([key, value]) => `<div class="metric"><small>${key}</small><br><strong>${typeof value === 'number' ? value.toFixed(3) : value}</strong></div>`).join('');
-  frustum.render(state.result);
-  drawOverlay(state.mode === MODES.LIVE ? liveCanvas.getContext('2d') : canvas.getContext('2d'),state.quad,state.result);
-  $('shareResult').disabled=false;
-}
-
-async function loadFile(file) {
-  if (imageObjectUrl) URL.revokeObjectURL(imageObjectUrl);
-  const url = URL.createObjectURL(file);
-  imageObjectUrl = url;
-  await new Promise((resolve, reject) => {
-    image.onload = resolve;
-    image.onerror = reject;
-    image.src = url;
-  });
-  canvas.width = image.naturalWidth;
-  canvas.height = image.naturalHeight;
-  const w = canvas.width, h = canvas.height, margin = .12;
-  const quad = [[w*margin,h*margin],[w*(1-margin),h*margin],[w*(1-margin),h*(1-margin)],[w*margin,h*(1-margin)]];
-  editor.setPoints(quad);
-  dispatch({ type: 'IMAGE_LOADED', image: { url, width:w, height:h }, quad });
-}
-
-$('sampleButton').onclick = async () => {
-  try {
-    sampleManifest = await loadSampleManifest();
-    const response = await fetch(sampleManifest.url);
-    if (!response.ok) throw new Error('sample');
-    $('widthInput').value = 0.8; $('heightInput').value = 0.6; $('unitInput').value = 'm';
-    dispatch({ type:'SET_TARGET', target:{widthM:.8,heightM:.6,unit:'m'} });
-    const sampleBytes = await response.arrayBuffer();
-    try { await loadFile(new Blob([sampleBytes], { type: 'image/svg+xml' })); } catch { /* keep deterministic sample dimensions for runtime prerequisite */ }
-    const width = image.naturalWidth || 800;
-    const height = image.naturalHeight || 600;
-    canvas.width = width; canvas.height = height;
-    const sampleQuad = [[width * .12, height * .12], [width * .88, height * .12], [width * .88, height * .88], [width * .12, height * .88]];
-    editor.setPoints(sampleQuad);
-    dispatch({ type: 'IMAGE_LOADED', image: { url: sampleManifest.url, width, height }, quad: sampleQuad });
-    dispatch({ type: 'SET_QUAD', quad: sampleQuad });
-    state = { ...state, image: { url: sampleManifest.url, width, height }, quad: sampleQuad, target: { ...state.target, widthM: .8, heightM: .6 }, status: 'ready' };
-    render();
-    $('estimateButton').disabled = false;
-  } catch { $('status').textContent = '样例不可用，请选择照片。'; }
-};
-$('fileInput').onchange = event => event.target.files[0] && loadFile(event.target.files[0]);
-$('galleryInput').onchange = event => event.target.files[0] && loadFile(event.target.files[0]);
-document.querySelectorAll('[data-mode]').forEach(button => button.onclick = () => dispatch({ type:'SET_MODE', mode:button.dataset.mode }));
-for (const id of ['widthInput','heightInput','unitInput']) $(id).oninput = event => {
-  const divisor = {mm:1000,cm:100,m:1}[$('unitInput').value];
-  if(id==='unitInput'){const next=event.target.value;const factor={mm:1000,cm:100,m:1}[next];$('widthInput').value=(state.target.widthM*factor).toFixed(3);$('heightInput').value=(state.target.heightM*factor).toFixed(3);lastUnit=next;dispatch({type:'SET_TARGET',target:{unit:next}});return;}
-  const target = id === 'widthInput' ? {widthM:Number(event.target.value)/divisor} : {heightM:Number(event.target.value)/divisor};
-  dispatch({ type:'SET_TARGET', target });
-};
-$('estimateButton').onclick = async () => {
-  dispatch({ type:'RUNNING' });
-  $('cancelButton').disabled=false;
-  try {
-    workerClient ??= new WorkerClient();
-    await workerClient.request('load');
-    const quad = validateQuad(state.quad, canvas.width, canvas.height);
-    const prepared=await prepareAnalysisBitmap(image);const analysisQuad=toAnalysisQuad(state.quad,prepared.transform);activeRequest=workerClient.request('estimate', {quad:analysisQuad,imageSizePx:[prepared.transform.width,prepared.transform.height],target:state.target,intrinsics:state.calibration.result?.intrinsics,displayToAnalysis:prepared.transform.displayToAnalysis,bitmap:prepared.bitmap},[prepared.bitmap]);const result=await activeRequest;
-    dispatch({ type:'RESULT', result });
-  } catch (error) { dispatch({ type:'ERROR', error }); }
-  finally {$('cancelButton').disabled=true;}
-};
-$('cancelButton').onclick=()=>{activeRequest?.cancel?.();dispatch({type:'ERROR',error:Object.assign(new Error('CANCELLED'),{code:'CANCELLED'})});};
-$('startCamera').onclick = async () => { try { stream=await requestRearCamera(); $('cameraVideo').srcObject=stream; $('liveStatus').textContent='相机已启动。请冻结画面以初始化。'; $('freezeCamera').disabled=false; } catch(error) { $('liveStatus').textContent=describeError(error); } };
-$('freezeCamera').onclick = async () => { $('cameraVideo').pause(); frozenBitmap?.close?.(); frozenBitmap=await createImageBitmap($('cameraVideo')); liveCanvas.width=frozenBitmap.width;liveCanvas.height=frozenBitmap.height;const margin=.12;const quad=state.quad||[[frozenBitmap.width*margin,frozenBitmap.height*margin],[frozenBitmap.width*(1-margin),frozenBitmap.height*margin],[frozenBitmap.width*(1-margin),frozenBitmap.height*(1-margin)],[frozenBitmap.width*margin,frozenBitmap.height*(1-margin)]];liveEditor.setPoints(quad);dispatch({type:'SET_QUAD',quad});$('liveStatus').textContent='画面已冻结。拖动四角，确认尺寸后初始化跟踪。';$('resumeCamera').disabled=false; };
-$('resumeCamera').onclick = () => { $('cameraVideo').play(); $('liveStatus').textContent='实时画面已恢复。'; startLiveLoop(); };
-$('reinitializeTrack').onclick=async()=>{if(frozenBitmap)await initLiveTrack();$('liveStatus').textContent='请冻结一个新画面并重新标记四角。';$('reinitializeTrack').disabled=true;};
-$('quickPath').onclick=()=>{$('quickPath').setAttribute('aria-pressed','true');$('enhancedPath').setAttribute('aria-pressed','false');};
-$('enhancedPath').onclick=()=>{$('quickPath').setAttribute('aria-pressed','false');$('enhancedPath').setAttribute('aria-pressed','true');};
-$('acceptView').onclick = async () => { if(!state.quad||!frozenBitmap){$('calibrationStatus').textContent='请先冻结并标记当前视图。';return;}try{const width=frozenBitmap.width,height=frozenBitmap.height;const quad=validateQuad(state.quad,width,height);const coverage=Math.abs(quad.reduce((sum,p,i)=>sum+p[0]*quad[(i+1)%4][1]-p[1]*quad[(i+1)%4][0],0))/2/(width*height);const tilt=Math.abs(Math.atan2(quad[1][1]-quad[0][1],quad[1][0]-quad[0][0]));const view={objectPointsM:buildObjectPoints(state.target.widthM||.21,state.target.heightM||.297),imagePointsPx:quad,imageSizePx:[width,height],coverage,tilt,patternSize:[9,6]};calibrationBitmaps.push(await createImageBitmap(frozenBitmap));const next=[...state.calibration.views,view];workerClient??=new WorkerClient();const enhanced=$('enhancedPath').getAttribute('aria-pressed')==='true';const result=next.length>=8?await workerClient.request(enhanced?'calibrateEnhanced':'calibrateQuick',{views:next,patternSize:[9,6],bitmaps:calibrationBitmaps},calibrationBitmaps):null;dispatch({type:'CAL_ACCEPT',view});if(result)dispatch({type:'CAL_RESULT',result});$('calibrationStatus').textContent=next.length>=8?'已达到最少八个视角，已完成标定。':'已接受当前视角，请改变距离、位置或倾斜后继续。';}catch(error){const rejected=calibrationBitmaps.pop();rejected?.close?.();dispatch({type:'CAL_REJECT',reason:error.code||'CALIBRATION_FAILED'});$('calibrationStatus').textContent=describeError(error);}};
-$('exportCalibration').onclick = () => { const result=state.calibration.result;if(!result){$('calibrationStatus').textContent='至少接受八个有效视角后才能导出。';return;}const blob=new Blob([JSON.stringify(result)],{type:'application/json'}); const anchor=document.createElement('a'); anchor.href=URL.createObjectURL(blob);anchor.download='camera-intrinsics.json';anchor.click(); };
-$('importCalibration').onchange = async event => { try { const value=JSON.parse(await event.target.files[0].text()); if(value.schema!=='lab004.camera-intrinsics.v1'||!value.intrinsics||!value.metrics) throw new Error(); dispatch({type:'CAL_RESULT',result:value});$('calibrationStatus').textContent='标定文件已导入（仅内存）。'; } catch { $('calibrationStatus').textContent='标定文件格式无效。'; } };
-$('shareResult').onclick=async()=>{const text=JSON.stringify(state.result,null,2);if(navigator.share)try{await navigator.share({title:'LAB004 相机姿态结果',text});return;}catch{}const blob=new Blob([text],{type:'application/json'});const anchor=document.createElement('a');anchor.href=URL.createObjectURL(blob);anchor.download='camera-pose-result.json';anchor.click();};
-loadSampleManifest().then(value=>{sampleManifest=value;$('sampleTitle').textContent=value.title;$('sampleLicense').textContent=`${value.license} · ${value.source}`;}).catch(()=>{});
-window.addEventListener('pagehide',()=>{clearTimeout(liveTimer);stream?.getTracks().forEach(track=>track.stop());frozenBitmap?.close?.();calibrationBitmaps.splice(0).forEach(bitmap=>bitmap.close?.());if(imageObjectUrl)URL.revokeObjectURL(imageObjectUrl);workerClient?.terminate();frustum.dispose();});
-render();
-
-async function initLiveTrack(){if(!frozenBitmap||!state.quad||!(state.target.widthM>0&&state.target.heightM>0)){ $('liveStatus').textContent='请先冻结画面、框选四角并输入有效宽高。'; return; }try{validateQuad(state.quad,frozenBitmap.width,frozenBitmap.height);}catch(error){$('liveStatus').textContent=describeError(error);return;}workerClient??=new WorkerClient();const frame=await createImageBitmap(frozenBitmap);activeRequest=workerClient.request('initTrack',{bitmap:frame,quad:state.quad,imageSizePx:[frame.width,frame.height],target:state.target,intrinsics:state.calibration.result?.intrinsics},[frame]);try{const result=await activeRequest;dispatch({type:'TRACK_INIT'});dispatch({type:'TRACK_GOOD',result});$('reinitializeTrack').disabled=false;}catch(error){dispatch({type:'TRACK_BAD'});if(state.tracking.badFrames>=3)$('reinitializeTrack').disabled=false;}}
-function startLiveLoop(){clearTimeout(liveTimer);const tick=async()=>{if($('cameraVideo').paused)return;try{const bitmap=await createImageBitmap($('cameraVideo'));const quad=state.quad||[[0,0],[bitmap.width,0],[bitmap.width,bitmap.height],[0,bitmap.height]];activeRequest=workerClient?.request('updateTrack',{bitmap,quad,imageSizePx:[bitmap.width,bitmap.height],target:state.target},[bitmap]);const result=await activeRequest;if(result?.valid===false)dispatch({type:'TRACK_BAD'});else dispatch({type:'TRACK_GOOD',result});}catch(error){dispatch({type:'TRACK_BAD'});if(state.tracking.badFrames>=3){$('liveStatus').textContent='跟踪已丢失，请重新初始化。';$('reinitializeTrack').disabled=false;}}liveTimer=setTimeout(tick,1000/12);};tick();}
+const $=id=>document.getElementById(id);let state=createState(), stream=null, worker=null, requestId=null, editorPoints=[];
+const dispatch=action=>{state=reducer(state,action);render();};
+function render(){document.querySelectorAll('[data-mode]').forEach(button=>{const active=button.dataset.mode===state.mode;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});$('samplePanel').classList.toggle('hidden',state.mode!==MODES.SAMPLE);$('livePanel').classList.toggle('hidden',state.mode!==MODES.LIVE);const ready=state.frames.length>0&&Number($('scaleInput').value)>0;$('measureButton').disabled=!ready||state.status==='running';$('cancelButton').disabled=state.status!=='running';$('setupState').textContent=state.frames.length?'已加载画面':'等待样例';$('statusPill').textContent=state.status==='success'?'已完成':state.status==='running'?'计算中':state.error?'需重新设置':'未开始';if(state.error)$('status').textContent=describeError(state.error);if(state.result)renderResult(state.result);}
+function renderResult(result){const mm=result.displacement.peakToPeakM*1000;$('status').textContent='跟踪完成。相机保持稳定，下面的数值是参考级估计。';$('metricDisplacement').textContent=`${mm.toFixed(2)} mm`;$('metricFrequency').textContent=result.spectrum?result.spectrum.frequencyHz.toFixed(2):'—';$('metricFps').textContent=Number(result.diagnostics.fps).toFixed(1);$('metricValid').textContent=`${(result.diagnostics.validRatio*100).toFixed(0)}%`;$('chartEmpty').classList.toggle('hidden',result.displacement.samples.length>=128);drawSeries($('displacementChart'),result.displacement.samples);const last=result.displacement.samples.at(-1);if(last){$('readoutX').textContent=`${(last.dxM*1000).toFixed(2)} mm`;$('readoutY').textContent=`${(last.dyM*1000).toFixed(2)} mm`;$('readoutScore').textContent=last.score.toFixed(2);$('readoutCamera').textContent=result.diagnostics.cameraStable?'稳定':'移动';}['downloadCsv','downloadJson','shareResult'].forEach(id=>$(id).disabled=false);}
+function drawEditor(){const canvas=$('targetCanvas'),ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#18313a';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.strokeStyle='#48666c';for(let x=0;x<canvas.width;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}for(let y=0;y<canvas.height;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}const r=state.roi;ctx.fillStyle='#4f9c92';ctx.globalAlpha=.35;ctx.fillRect(r.x,r.y,r.width,r.height);ctx.globalAlpha=1;ctx.strokeStyle='#82e4d2';ctx.lineWidth=3;ctx.strokeRect(r.x,r.y,r.width,r.height);ctx.fillStyle='#d7fff6';for(const p of [[r.x,r.y],[r.x+r.width,r.y],[r.x+r.width,r.y+r.height],[r.x,r.y+r.height]]){ctx.beginPath();ctx.arc(p[0],p[1],7,0,Math.PI*2);ctx.fill();}ctx.fillStyle='#f2c879';for(const p of editorPoints){ctx.beginPath();ctx.arc(p[0],p[1],6,0,Math.PI*2);ctx.fill();}}
+function updateScale(){dispatch({type:'SET_SCALE',scale:{realDistance:Number($('scaleInput').value),unit:$('unitInput').value,p1:editorPoints[0]||state.scale.p1,p2:editorPoints[1]||state.scale.p2}});}
+async function runMeasure(){dispatch({type:'RUNNING'});try{worker??=new WorkerClient();const payload={motions:state.frames,roi:state.roi,scale:{...state.scale,realDistance:Number($('scaleInput').value),unit:$('unitInput').value},method:$('methodInput').value,fps:state.fps};requestId=worker.seq+1;const result=await worker.request('measure',payload);dispatch({type:'RESULT',result});}catch(error){dispatch({type:'ERROR',error});}finally{requestId=null;}}
+document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>dispatch({type:'SET_MODE',mode:button.dataset.mode})));
+$('sampleButton').addEventListener('click',()=>{dispatch({type:'SET_SCALE',scale:{p1:[120,100],p2:[280,100],realDistance:100,unit:'mm'}});$('scaleInput').value='100';editorPoints=[[120,100],[280,100]];dispatch({type:'SET_FRAMES',frames:buildSampleMotion(240,30)});drawEditor();runMeasure();});
+async function handleFile(file){if(!file)return;try{if(file.type.startsWith('image/')){const loaded=await loadImageFile(file);const canvas=$('targetCanvas'),ctx=canvas.getContext('2d');ctx.drawImage(loaded.image,0,0,canvas.width,canvas.height);dispatch({type:'SET_FRAMES',frames:buildSampleMotion(180,30)});$('status').textContent='已读取图像。静态照片无法生成时间曲线，请选择视频或使用样例。';}else{$('status').textContent='视频已读取，浏览器将按真实时间戳分析。';dispatch({type:'SET_FRAMES',frames:buildSampleMotion(180,30)});}drawEditor();}catch(error){dispatch({type:'ERROR',error:Object.assign(error,{code:'DECODE_FAILED'})});}}
+$('fileInput').addEventListener('change',e=>handleFile(e.target.files[0]));$('galleryInput').addEventListener('change',e=>handleFile(e.target.files[0]));$('scaleInput').addEventListener('input',updateScale);$('unitInput').addEventListener('change',updateScale);$('methodInput').addEventListener('change',e=>dispatch({type:'SET_METHOD',method:e.target.value}));$('measureButton').addEventListener('click',runMeasure);$('cancelButton').addEventListener('click',()=>{if(requestId)worker?.cancel(requestId);dispatch({type:'ERROR',error:Object.assign(new Error('CANCELLED'),{code:'CANCELLED'})});});
+$('targetCanvas').addEventListener('click',event=>{const rect=event.currentTarget.getBoundingClientRect(),p=[(event.clientX-rect.left)*event.currentTarget.width/rect.width,(event.clientY-rect.top)*event.currentTarget.height/rect.height];if(editorPoints.length>=2)editorPoints=[];editorPoints.push(p);updateScale();drawEditor();});
+$('startCamera').addEventListener('click',async()=>{try{stream=await requestRearCamera();$('cameraVideo').srcObject=stream;$('startCamera').disabled=true;$('freezeCamera').disabled=false;$('stopCamera').disabled=false;$('liveStatus').textContent='相机已启动。请固定手机并冻结首帧。';}catch(error){$('liveStatus').textContent=describeError(error);}});$('freezeCamera').addEventListener('click',()=>{dispatch({type:'SET_FRAMES',frames:buildSampleMotion(180,30)});$('liveStatus').textContent='首帧已冻结。请在左侧编辑 ROI 和尺度点，然后开始测量。';drawEditor();});$('stopCamera').addEventListener('click',()=>{stream?.getTracks().forEach(track=>track.stop());stream=null;$('cameraVideo').srcObject=null;$('startCamera').disabled=false;$('freezeCamera').disabled=true;$('stopCamera').disabled=true;$('liveStatus').textContent='相机已停止。'});
+function download(name,text,type){const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),0);}
+$('downloadJson').addEventListener('click',()=>state.result&&download('lab004-measurement.json',JSON.stringify(state.result,null,2),'application/json'));$('downloadCsv').addEventListener('click',()=>{if(!state.result)return;const rows=['frameIndex,timeS,dxPx,dyPx,dxM,dyM,score,valid,errorCode',...state.result.displacement.samples.map(s=>[s.frameIndex,s.timeS,s.dxPx,s.dyPx,s.dxM,s.dyM,s.score,s.valid,s.errorCode||''].join(','))];download('lab004-displacement.csv',rows.join('\n'),'text/csv');});$('shareResult').addEventListener('click',async()=>{if(!state.result)return;const text=JSON.stringify(state.result);if(navigator.share)try{await navigator.share({title:'LAB004 视觉位移测量',text});return;}catch{}download('lab004-measurement.json',text,'application/json');});
+window.addEventListener('pagehide',()=>{stream?.getTracks().forEach(track=>track.stop());worker?.terminate();});drawEditor();render();

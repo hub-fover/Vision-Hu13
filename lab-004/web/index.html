@@ -1,24 +1,57 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>相机姿态测量</title><link rel="stylesheet" href="./styles.css"></head>
-<body><main class="app" id="app">
-  <header class="topbar"><div class="brand">相机姿态测量 · LAB 004</div><nav class="modes" aria-label="模式"><button data-mode="photo" aria-pressed="true">照片估计</button><button data-mode="live" aria-pressed="false">实时跟踪</button><button data-mode="calibration" aria-pressed="false">相机标定</button></nav></header>
-  <section class="tool">
-    <div class="panel" id="photoPanel">
-      <div class="dropzone"><strong id="sampleTitle">棋盘格标定样例</strong><span id="sampleLicense">正在读取样例来源…</span><button id="sampleButton">用样例体验</button><label>拍照或选择图片<input id="fileInput" type="file" accept="image/*" capture="environment"></label><label>从图库选择<input id="galleryInput" type="file" accept="image/*"></label></div>
-      <div class="stage"><img id="photoImage" alt="待测目标图像"><canvas id="overlayCanvas"></canvas></div>
-      <div class="form-grid"><label>目标宽度<input id="widthInput" type="number" min="0" step="any" placeholder="例如 210"></label><label>目标高度<input id="heightInput" type="number" min="0" step="any" placeholder="例如 297"></label><label>单位<select id="unitInput"><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option></select></label></div>
-      <div class="modes"><button id="estimateButton" disabled>估计姿态</button><button id="cancelButton" disabled>取消</button></div>
-    </div>
-    <div class="panel hidden" id="livePanel">
-      <div class="stage"><video id="cameraVideo" autoplay playsinline muted></video><canvas id="liveCanvas"></canvas></div><div class="status" id="liveStatus">点击开始以请求后置相机。</div>
-      <div class="modes"><button id="startCamera">开始相机</button><button id="freezeCamera" disabled>冻结画面</button><button id="resumeCamera" disabled>恢复画面</button><button id="reinitializeTrack" disabled>重新初始化</button></div>
-    </div>
-    <div class="panel hidden" id="calibrationPanel">
-      <h2>相机标定</h2><div class="modes"><button id="quickPath" aria-pressed="true">普通矩形快速</button><button id="enhancedPath" aria-pressed="false">棋盘格增强</button></div><p>至少接受 8 个具有覆盖和倾斜差异的视角。</p>
-      <div class="metrics"><div class="metric">已接受 <strong id="acceptedCount">0</strong>/8</div><div class="metric">覆盖 <strong id="coverageValue">0%</strong></div><div class="metric">倾斜多样性 <strong id="tiltValue">0</strong></div></div>
-      <button id="acceptView">接受当前视图</button><button id="exportCalibration">导出 JSON</button><label>导入 JSON<input id="importCalibration" type="file" accept="application/json"></label><div class="status" id="calibrationStatus"></div>
-    </div>
-    <div class="panel" id="resultPanel"><div class="status" id="status" role="status">加载样例或照片后，用四角点标记目标。</div><div id="metrics" class="metrics"></div><button id="shareResult" disabled>分享或下载结果</button><div id="frustum" class="frustum" aria-label="三维相机视锥图"></div></div>
-  </section>
-</main><script type="module" src="./js/app.js"></script></body></html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="description" content="LAB 004：在固定摄像头下观察目标的二维位移和振动频率。">
+  <title>普通摄像头位移测量 · LAB 004</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div><p class="eyebrow">LAB 004 / LOCAL VISION</p><h1>普通摄像头，真的能测出物体动了几毫米吗？</h1><p class="lede">固定相机，给画面里的两个点当标尺，观察一个目标的像素位移和振动频率。</p></div>
+      <div class="privacy"><span class="dot"></span>仅在本页处理<br><small>不上传照片，不保存记录</small></div>
+    </header>
+    <nav class="tabs" aria-label="测量模式"><button class="tab active" data-mode="sample" aria-pressed="true">样例回放</button><button class="tab" data-mode="live" aria-pressed="false">实时测量</button></nav>
+    <section class="workspace">
+      <div class="capture-column">
+        <section class="panel source-panel" id="samplePanel">
+          <div class="panel-heading"><div><span class="section-kicker">STEP 01</span><h2>先用样例看结果</h2></div><span class="badge">30 fps · 2 Hz</span></div>
+          <p class="muted">样例模拟一个固定相机观察下的小幅正弦运动。你可以先熟悉曲线，再换成自己的相机。</p>
+          <div class="sample-visual" id="sampleVisual"><div class="sample-grid"></div><div class="sample-target" id="sampleTarget"></div><span class="sample-caption">确定性运动样例</span></div>
+          <div class="action-row"><button class="button primary" id="sampleButton">用样例体验</button><label class="button secondary file-button">选择视频或帧<input id="fileInput" type="file" accept="video/*,image/*" capture="environment"></label></div>
+          <p class="source-note" id="sampleSource">来源：仓库内置生成样例，不代表手机实拍精度。</p>
+        </section>
+        <section class="panel live-panel hidden" id="livePanel">
+          <div class="panel-heading"><div><span class="section-kicker">STEP 01</span><h2>固定相机，再开始测量</h2></div></div>
+          <div class="video-stage"><video id="cameraVideo" autoplay playsinline muted></video><canvas id="liveCanvas"></canvas><div class="roi-handle" id="roiHandle" hidden></div></div>
+          <div class="action-row"><button class="button primary" id="startCamera">开始后置相机</button><button class="button secondary" id="freezeCamera" disabled>冻结首帧</button><button class="button quiet" id="stopCamera" disabled>停止</button></div>
+          <p class="status" id="liveStatus">需要 HTTPS 或 localhost，以及摄像头权限。</p>
+          <label class="button secondary file-button">相册备用<input id="galleryInput" type="file" accept="video/*,image/*"></label>
+        </section>
+        <section class="panel setup-panel" id="setupPanel">
+          <div class="panel-heading"><div><span class="section-kicker">STEP 02</span><h2>框选目标和标尺</h2></div><span class="badge" id="setupState">等待样例</span></div>
+          <div class="editor-stage"><canvas id="targetCanvas" width="640" height="360" aria-label="目标区域编辑画布"></canvas><div class="editor-help">拖动矩形四角调整 ROI；再点画面上的两个尺度点。</div></div>
+          <div class="form-grid"><label>真实距离<input id="scaleInput" type="number" min="0" step="any" placeholder="例如 100"></label><label>单位<select id="unitInput"><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option></select></label><label>跟踪方法<select id="methodInput"><option value="template">模板匹配（默认）</option><option value="flow">Lucas–Kanade 光流</option></select></label></div>
+          <p class="hint">两点必须在同一刚性平面上。相机一旦移动，毫米结果会被判为无效。</p>
+          <div class="action-row"><button class="button primary" id="measureButton" disabled>开始测量</button><button class="button quiet" id="cancelButton" disabled>取消</button></div>
+        </section>
+      </div>
+      <aside class="results-column">
+        <section class="panel result-panel" id="resultPanel" aria-live="polite">
+          <div class="panel-heading"><div><span class="section-kicker">OUTPUT</span><h2>位移结果</h2></div><span class="status-pill" id="statusPill">未开始</span></div>
+          <p class="status" id="status">加载样例后，这里会显示像素位移、毫米位移和主频。</p>
+          <div class="metric-grid" id="metrics"><div class="metric"><span>合位移</span><strong id="metricDisplacement">—</strong><small>峰峰值</small></div><div class="metric"><span>主频</span><strong id="metricFrequency">—</strong><small>Hz</small></div><div class="metric"><span>采样 FPS</span><strong id="metricFps">—</strong><small>真实时间戳</small></div><div class="metric"><span>有效比例</span><strong id="metricValid">—</strong><small>匹配质量</small></div></div>
+          <div class="chart-wrap"><canvas id="displacementChart" width="720" height="280" aria-label="位移曲线"></canvas><div class="chart-empty" id="chartEmpty">完成 128 帧后显示频谱和主频</div></div>
+          <div class="sample-readout" id="liveReadout"><span>Δx <b id="readoutX">—</b></span><span>Δy <b id="readoutY">—</b></span><span>置信度 <b id="readoutScore">—</b></span><span>相机 <b id="readoutCamera">待检</b></span></div>
+          <div class="action-row result-actions"><button class="button secondary" id="downloadCsv" disabled>下载 CSV</button><button class="button secondary" id="downloadJson" disabled>下载 JSON</button><button class="button secondary" id="shareResult" disabled>分享</button></div>
+        </section>
+        <section class="panel boundary-panel"><span class="section-kicker">边界</span><p>这是固定相机、近似平面目标的参考级估计。它不替代卷尺、激光测距仪或工程传感器；纹理不足、相机移动或目标丢失时，结果会主动清空。</p></section>
+      </aside>
+    </section>
+    <footer><span>LAB 004 · 视觉位移测量</span><span>浏览器内存处理 · 无上传</span></footer>
+  </main>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

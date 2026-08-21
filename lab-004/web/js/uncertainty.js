@@ -1,2 +1,0 @@
-export function centralInterval(values,confidence=.9){const v=values.filter(Number.isFinite).sort((a,b)=>a-b);if(!v.length)return null;const q=p=>v[Math.max(0,Math.min(v.length-1,Math.round((v.length-1)*p)))];return {medianM:q(.5),lowerM:q((1-confidence)/2),upperM:q(1-(1-confidence)/2),confidence};}
-export function recomputeUncertainty(samples,now=performance.now()){if(!samples?.length)return null;const current=samples.filter(x=>now-x.time<5000);return centralInterval(current.map(x=>x.value));}
