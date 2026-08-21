@@ -3,9 +3,9 @@ requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "camera-pose-lab-004"
+name = "camera-measurement-lab-004"
 version = "0.1.0"
-description = "Planar target camera pose and measurement core"
+description = "Local visual displacement and vibration measurement core"
 requires-python = ">=3.11,<3.13"
 dependencies = [
   "numpy==2.2.6",

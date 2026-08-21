@@ -1,94 +1,43 @@
 {
-  "schemaVersion": "lab004.contracts.v1",
-  "cornerOrder": ["TL", "TR", "BR", "BL"],
-  "objectFrame": {
-    "origin": "target-center",
-    "xAxis": "plane-right",
-    "yAxis": "plane-up",
-    "zAxis": "plane-out"
-  },
-  "lengthUnit": "metre",
-  "pixelFrame": "exif-corrected-analysis-image",
+  "schemaVersion": "lab004.measurement.v1",
   "analysisMaxSide": 1280,
+  "targetAnalysisFps": 30,
   "maxWorkingSetMiB": 320,
-  "quality": {
-    "metric": "normalized-rms",
-    "stableMax": 0.0015,
-    "referenceOnlyMax": 0.0035
-  },
-  "poseAmbiguity": {
-    "maxAbsoluteReprojectionDifferencePx": 0.25,
-    "maxRelativeReprojectionDifference": 0.10
-  },
-  "trackingDefaults": {
-    "targetAnalysisFps": 12,
-    "maxTrackedFeatures": 300,
-    "minTrackedFeatures": 12,
-    "minHomographyInlierRatio": 0.60,
-    "maxMedianForwardBackwardErrorPx": 1.5,
-    "maxConsecutiveBadFrames": 3
-  },
-  "calibrationSchema": "lab004.camera-intrinsics.v1",
-  "types": {
-    "PlaneTarget": {
-      "description": "Physical planar rectangle centered at the object-frame origin.",
-      "fields": {"widthM": "positive number", "heightM": "positive number"}
-    },
-    "ImagePoint": {
-      "description": "Pixel coordinate in the EXIF-corrected analysis image.",
-      "fields": {"xPx": "number", "yPx": "number"}
-    },
-    "CameraIntrinsics": {
-      "description": "Pinhole camera matrix, distortion, image size, and provenance.",
-      "fields": {"cameraMatrix": "3x3 numbers", "distortion": "numbers", "imageSizePx": "[width,height]", "source": "quick-calibrated|enhanced-calibrated|estimated"}
-    },
-    "CalibrationView": {
-      "description": "One accepted calibration image and its detected object/image correspondences.",
-      "fields": {"imageSizePx": "[width,height]", "objectPointsM": "Nx3 numbers", "imagePointsPx": "Nx2 numbers"}
-    },
-    "CalibrationMetrics": {
-      "description": "Calibration reprojection and view-diversity diagnostics.",
-      "fields": {"rmsPx": "number", "normalizedRms": "number", "acceptedViews": "integer"}
-    },
-    "CalibrationResult": {
-      "description": "Versioned calibrated intrinsics and metrics.",
-      "fields": {"schema": "lab004.camera-intrinsics.v1", "intrinsics": "CameraIntrinsics", "metrics": "CalibrationMetrics"}
-    },
-    "PoseEstimate": {
-      "description": "Object-to-camera rotation and translation with camera-center measurements.",
-      "fields": {"rotationMatrix": "3x3 numbers", "rotationVector": "3 numbers", "translationM": "3 numbers", "cameraCenterM": "3 numbers", "eulerZYXRad": "3 numbers", "normalizedRms": "number", "quality": "stable|reference-only|unstable"}
-    },
-    "TrackingMetrics": {
-      "description": "Per-frame feature tracking acceptance diagnostics.",
-      "fields": {"trackedFeatures": "integer", "homographyInlierRatio": "number", "medianForwardBackwardErrorPx": "number", "consecutiveBadFrames": "integer"}
-    },
-    "MeasurementInterval": {
-      "description": "Central uncertainty interval in metres.",
-      "fields": {"medianM": "number", "lowerM": "number", "upperM": "number", "confidence": "0.90"}
-    },
-    "MeasurementReport": {
-      "description": "Pose-derived distances, offsets, uncertainty, and final quality.",
-      "fields": {"perpendicularDistanceM": "number", "targetCenterDistanceM": "number", "horizontalOffsetM": "number", "verticalOffsetM": "number", "distanceInterval": "MeasurementInterval|null", "quality": "stable|reference-only|unstable"}
-    }
-  },
+  "defaultMethod": "template",
+  "minScaleLengthPx": 40,
+  "minTemplateSizePx": 64,
+  "minTemplateScore": 0.55,
+  "maxCameraDriftPx": 1.5,
+  "minSamplesForSpectrum": 128,
+  "frequencyBandHz": [0.2, 12.0],
+  "quality": {"stableConfidence": 0.8, "referenceConfidence": 0.5},
+  "lengthUnit": "metre",
   "errorCodes": {
-    "INVALID_DIMENSIONS": "Target or image dimensions are invalid.",
-    "INVALID_QUAD": "The ordered target quadrilateral is invalid.",
-    "TARGET_TOO_SMALL": "The target occupies insufficient analysis-image area.",
-    "TARGET_CLIPPED": "The target touches or extends beyond the analysis image.",
-    "LOW_CONTRAST": "Target contrast is insufficient.",
-    "LOW_TEXTURE": "Trackable target texture is insufficient.",
-    "INSUFFICIENT_VIEW_DIVERSITY": "Calibration views lack geometric diversity.",
-    "CALIBRATION_FAILED": "Camera calibration failed.",
-    "INVALID_CALIBRATION_FILE": "The calibration file is malformed or unsupported.",
-    "INTRINSICS_MISMATCH": "Intrinsics do not match the analysis image or camera.",
-    "POSE_FAILED": "No physically valid pose was found.",
-    "POSE_AMBIGUOUS": "Multiple physically plausible poses remain.",
-    "HIGH_REPROJECTION_ERROR": "Pose reprojection error exceeds the quality gate.",
-    "TRACKING_LOST": "Live target tracking was lost.",
-    "CAMERA_CHANGED": "The active camera no longer matches the pose session.",
-    "PERMISSION_DENIED": "Camera access was denied.",
-    "UNSUPPORTED_CAMERA": "The camera or image format is unsupported.",
+    "INVALID_FRAME": "Frame or image dimensions are invalid.",
+    "UNSUPPORTED_FORMAT": "The input format is unsupported.",
+    "DECODE_FAILED": "The input could not be decoded.",
+    "INVALID_SCALE": "Two-point scale reference is invalid.",
+    "TARGET_TOO_SMALL": "The target region is too small or outside the frame.",
+    "LOW_TEXTURE": "The selected target has insufficient texture.",
+    "LOW_CONTRAST": "The selected target has insufficient contrast.",
+    "TEMPLATE_LOST": "Template matching lost the target.",
+    "CAMERA_MOVED": "The fixed camera moved during capture.",
+    "BACKGROUND_UNTRACKABLE": "The background cannot be used as a stability anchor.",
+    "SCENE_CHANGED": "The scene changed beyond the supported motion model.",
+    "FPS_UNSTABLE": "Frame timestamps are too irregular for spectrum analysis.",
+    "INSUFFICIENT_SAMPLES": "More samples are required for spectrum analysis.",
+    "RUNTIME_MISSING": "The local computer-vision runtime is unavailable.",
+    "PERMISSION_DENIED": "Camera permission was denied.",
     "CANCELLED": "The operation was cancelled."
+  },
+  "types": {
+    "ScaleReference": {"fields": {"p1Px": "[x,y]", "p2Px": "[x,y]", "realDistanceM": "positive number"}},
+    "TargetRegion": {"fields": {"xPx": "number", "yPx": "number", "widthPx": "positive number", "heightPx": "positive number"}},
+    "MeasurementOptions": {"fields": {"method": "template|flow|dic", "fps": "positive number"}},
+    "TrackingSample": {"fields": {"frameIndex": "integer", "timeS": "number", "dxPx": "number", "dyPx": "number", "score": "number", "valid": "boolean"}},
+    "DisplacementSeries": {"fields": {"samples": "TrackingSample[]", "peakToPeakM": "number", "rmsM": "number"}},
+    "SpectrumPeak": {"fields": {"frequencyHz": "number", "amplitude": "number", "prominence": "number"}},
+    "MeasurementReport": {"fields": {"schemaVersion": "lab004.measurement.v1", "displacement": "DisplacementSeries", "spectrum": "SpectrumPeak|null"}},
+    "TrackingDiagnostics": {"fields": {"cameraStable": "boolean", "backgroundTrackable": "boolean", "validRatio": "number"}}
   }
 }

@@ -1,22 +1,31 @@
-# LAB 004: Camera Pose and Measurement
+# LAB 004: Local Visual Displacement Measurement
 
-LAB 004 estimates a camera pose from a known rectangular plane target, reports
-camera-to-plane measurements in metres, and quantifies distance uncertainty.
-It is a standalone package and does not import runtime code from LAB 001-003.
+LAB 004 uses an ordinary fixed camera to estimate small two-dimensional motion
+from a target region. Select two points whose real separation is known, track a
+textured target with template matching or Lucas--Kanade optical flow, and the
+tool reports pixel displacement, reference millimetres, a displacement curve,
+and (when enough frames exist) the dominant vibration frequency.
 
-The public cross-runtime contract is `shared/contracts.json`. Image points are
-always expressed in the EXIF-corrected analysis image, whose long side is at
-most 1280 pixels. Plane corners use TL, TR, BR, BL order. The centered object
-frame uses X plane-right, Y plane-up, and Z plane-out.
+All processing is local. No image or video is uploaded and the package does not
+use cookies, browser storage, telemetry, or a cloud runtime. Results are
+reference-level estimates, not a replacement for a calibrated instrument,
+laser range finder, or engineering displacement sensor. The camera must stay
+fixed and the target should be approximately planar, rigid, and textured.
 
-Install and test with Python 3.11 or 3.12:
+The cross-runtime contract is `shared/contracts.json`; it uses
+`lab004.measurement.v1` and metres internally. The Python package is
+`camera_measurement` and supports Python 3.11/3.12.
 
 ```powershell
 python -m pip install -r requirements-lock.txt
 python -m pytest
+python -m camera_measurement analyze-frames frames \
+  --target-roi roi.json --scale-points scale.json \
+  --output report.json --debug-dir debug
 ```
 
-The Python API lives in the `camera_pose` package. All physical lengths in its
-serializable results use metres. Euler angles are presentation values in the
-documented intrinsic ZYX convention; rotation matrices and Rodrigues vectors
-remain the interchange representation.
+`roi.json` contains `xPx`, `yPx`, `widthPx`, and `heightPx`. `scale.json`
+contains `p1Px`, `p2Px`, `realDistance` and `unit` (`mm`, `cm`, or `m`).
+The CLI also accepts `measure-video` for MP4/WebM and `track --camera 0` for
+local camera capture. DIC is a Python-only teaching mode; the browser's main
+flow uses template matching and optional optical flow.
