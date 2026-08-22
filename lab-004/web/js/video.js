@@ -301,15 +301,16 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
   };
   const onStop = () => settle(failure || (cancelled ? makeError('CANCELLED') : null));
   const onError = (event) => {
+    if (settled) return;
     stopping = true;
     const nativeError = event?.error;
     failure = nativeError?.code
       ? nativeError
       : makeError('VIDEO_RECORDING_FAILED', nativeError?.message || 'MediaRecorder failed');
+    settle(failure);
     // Some implementations leave the recorder active after an error event.
     // Stop it best-effort; `settled` makes a subsequent stop event harmless.
     try { recorder.stop(); } catch { /* already stopped */ }
-    settle(failure);
   };
   const hasEventTarget = typeof recorder.addEventListener === 'function';
   if (hasEventTarget) {
