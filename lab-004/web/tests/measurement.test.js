@@ -4,7 +4,8 @@ import { CONTRACTS, metresPerPixel } from '../js/contracts.js';
 import { buildSampleFrames, buildSampleMotion, measureMotions } from '../js/measurement.js';
 import { dominantFrequency } from '../js/signal.js';
 import { createState, reducer } from '../js/state.js';
-import { captureLiveFrames, motionFromFrames } from '../js/capture.js';
+import { captureLiveFrames, motionFromFrames, sortImageFiles } from '../js/capture.js';
+import { trackTemplateSequence } from '../js/template.js';
 
 test('shared contract exposes local measurement defaults',()=>{assert.equal(CONTRACTS.schemaVersion,'lab004.measurement.v1');assert.equal(CONTRACTS.defaultMethod,'template');assert.equal(CONTRACTS.minSamplesForSpectrum,128);});
 test('scale conversion rejects short references and converts units',()=>{assert.equal(metresPerPixel([0,0],[160,0],100,'mm'),.000625);assert.throws(()=>metresPerPixel([0,0],[1,1],100,'mm'),e=>e.code==='INVALID_SCALE');});
@@ -14,6 +15,10 @@ test('signal rejects non-monotonic timestamps',()=>{assert.throws(()=>dominantFr
 test('state clears stale results when mode changes',()=>{let state=createState();state=reducer(state,{type:'RESULT',result:{}});state=reducer(state,{type:'SET_MODE',mode:'live'});assert.equal(state.result,null);});
 test('sample reset restores the deterministic 30 fps after another input rate',()=>{let state=createState();state=reducer(state,{type:'SET_FPS',fps:24});assert.equal(state.fps,24);state=reducer(state,{type:'SET_FPS',fps:30});assert.equal(state.fps,30);});
 test('editing inputs invalidates a previous result and mode switches clear frames',()=>{let state=createState();state=reducer(state,{type:'SET_FRAMES',frames:[{},{}]});state=reducer(state,{type:'RESULT',result:{}});state=reducer(state,{type:'SET_SCALE',scale:{realDistance:200}});assert.equal(state.result,null);state=reducer(state,{type:'SET_MODE',mode:'live'});assert.deepEqual(state.frames,[]);});
+test('clear action releases imported frame references',()=>{let state=createState();state=reducer(state,{type:'SET_FRAMES',frames:[{canvas:{}}]});state=reducer(state,{type:'CLEAR'});assert.deepEqual(state.frames,[]);});
+test('image sequence sorting keeps numeric frame order',()=>{const files=sortImageFiles([{name:'frame10.jpg'},{name:'frame2.jpg'},{name:'frame1.jpg'}]);assert.deepEqual(files.map((file)=>file.name),['frame1.jpg','frame2.jpg','frame10.jpg']);});
 test('live capture helper is available for the camera path',()=>{assert.equal(typeof captureLiveFrames,'function');});
 test('frame timestamps are preserved by pixel tracking',()=>{const makeCanvas=()=>({width:64,height:64,getContext:()=>({getImageData:()=>({data:new Uint8ClampedArray(64*64*4)})})});const motions=motionFromFrames([{canvas:makeCanvas(),timeS:.4},{canvas:makeCanvas(),timeS:.9}],{x:0,y:0,width:64,height:64},30);assert.equal(motions[0].timeS,.4);assert.equal(motions[1].timeS,.9);});
 test('imported frame timestamps survive tracking',()=>{const frames=buildSampleMotion(128,24).map((frame,index)=>({...frame,timeS:index/24}));const result=measureMotions(frames,{roi:{x:220,y:110,width:180,height:120},scale:{p1:[120,100],p2:[280,100],realDistance:100,unit:'mm'},fps:24});assert.equal(result.diagnostics.fps,24);assert.equal(result.displacement.samples[10].timeS,10/24);});
+test('camera drift metadata invalidates browser measurements instead of claiming stability',()=>{const samples=trackTemplateSequence([{offsetX:0,offsetY:0,timeS:0},{offsetX:4,offsetY:0,timeS:1/30,cameraStable:false,cameraDriftPx:4}],30);assert.equal(samples[1].valid,false);assert.equal(samples[1].errorCode,'CAMERA_MOVED');});
+test('template tracking keeps explicit frame timestamps',()=>{const samples=trackTemplateSequence([{offsetX:0,offsetY:0,timeS:.25},{offsetX:2,offsetY:0,timeS:.75}],30);assert.equal(samples[0].timeS,.25);assert.equal(samples[1].timeS,.75);});

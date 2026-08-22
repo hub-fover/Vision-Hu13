@@ -61,6 +61,27 @@ def match_template(reference: np.ndarray, frame: np.ndarray, region: TargetRegio
     return TemplateMatch(px + width / 2 - (region.x_px + region.width_px / 2), py + height / 2 - (region.y_px + region.height_px / 2), float(score), px, py)
 
 
+def _background_shift(reference_gray: np.ndarray, frame_gray: np.ndarray, region: TargetRegion) -> float:
+    """Estimate global camera drift from background corners outside the ROI."""
+    if reference_gray.shape != frame_gray.shape:
+        return float("inf")
+    mask = np.full(reference_gray.shape, 255, dtype=np.uint8)
+    x0, y0 = max(0, int(round(region.x_px))), max(0, int(round(region.y_px)))
+    x1, y1 = min(reference_gray.shape[1], int(round(region.x_px + region.width_px))), min(reference_gray.shape[0], int(round(region.y_px + region.height_px)))
+    mask[y0:y1, x0:x1] = 0
+    points = cv2.goodFeaturesToTrack(reference_gray, maxCorners=80, qualityLevel=0.01, minDistance=5, blockSize=5, mask=mask)
+    if points is None or len(points) < 3:
+        return 0.0  # no background evidence: leave the stricter flow gate to decide
+    next_points, status, _ = cv2.calcOpticalFlowPyrLK(reference_gray, frame_gray, points, None, winSize=(21, 21), maxLevel=3)
+    if next_points is None or status is None:
+        return 0.0
+    displacement = next_points.reshape(-1, 2) - points.reshape(-1, 2)
+    valid = status.reshape(-1).astype(bool) & np.isfinite(displacement).all(axis=1)
+    if np.count_nonzero(valid) < 3:
+        return 0.0
+    return float(np.linalg.norm(np.median(displacement[valid], axis=0)))
+
+
 def track_template_sequence(
     frames: list[np.ndarray], region: TargetRegion, *, fps: float = 30.0, min_score: float = MIN_TEMPLATE_SCORE
 ) -> list[TrackingSample]:
@@ -79,6 +100,10 @@ def track_template_sequence(
     samples = [TrackingSample(0, 0.0, 0.0, 0.0, score=1.0)]
     for index, frame in enumerate(frames[1:], 1):
         try:
+            drift = _background_shift(gray, _gray(frame), region)
+            if drift > 1.5:
+                samples.append(TrackingSample(index, index / fps_value, valid=False, error_code="CAMERA_MOVED"))
+                continue
             match = match_template(reference, frame, region, min_score)
             samples.append(TrackingSample(index, index / fps_value, match.dx_px, match.dy_px, score=match.score))
         except MeasurementError as error:
