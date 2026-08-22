@@ -286,7 +286,10 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
   const onStop = () => settle(failure || (cancelled ? makeError('CANCELLED') : null));
   const onError = (event) => {
     stopping = true;
-    failure = event?.error || makeError('VIDEO_RECORDING_FAILED');
+    const nativeError = event?.error;
+    failure = nativeError?.code
+      ? nativeError
+      : makeError('VIDEO_RECORDING_FAILED', nativeError?.message || 'MediaRecorder failed');
     settle(failure);
   };
   const hasEventTarget = typeof recorder.addEventListener === 'function';
