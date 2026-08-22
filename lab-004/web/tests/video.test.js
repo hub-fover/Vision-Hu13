@@ -26,7 +26,15 @@ test('sample frames are renderable 640x360 frames with motion metadata', () => {
   const pixels = frames.map((frame) => frame.pixels ?? frame.imageData?.data ??
     frame.canvas?.getContext?.('2d')?.getImageData(0, 0, frame.canvas.width, frame.canvas.height).data);
   assert.ok(pixels.every(Boolean), 'each sample frame should expose inspectable pixels');
-  assert.notDeepEqual(Array.from(pixels[0]), Array.from(pixels[6]), 'motion must change rendered pixels');
+  const hash = (values) => {
+    let result = 2166136261;
+    for (let index = 0; index < values.length; index += 97) {
+      result ^= values[index];
+      result = Math.imul(result, 16777619);
+    }
+    return result >>> 0;
+  };
+  assert.notEqual(hash(pixels[0]), hash(pixels[6]), 'motion must change rendered pixels');
 });
 
 test('annotated first frame explains zero displacement from the initial frame', () => {
@@ -87,16 +95,19 @@ test('recording MIME detection returns null when no supported type exists', () =
   }
 });
 
-test('video URL replacement revokes the previous object URL', () => {
+test('video URL replacement updates the element and revokes the previous object URL', () => {
   const calls = [];
   const urlApi = {
     createObjectURL(value) { calls.push(['create', value]); return 'blob:new'; },
     revokeObjectURL(value) { calls.push(['revoke', value]); },
   };
   const blob = { type: 'video/webm' };
+  const video = { src: 'blob:old' };
 
-  assert.equal(replaceVideoUrl('blob:old', blob, urlApi), 'blob:new');
-  releaseVideoUrl('blob:new', urlApi);
+  assert.equal(replaceVideoUrl(video, blob, urlApi), 'blob:new');
+  assert.equal(video.src, 'blob:new');
+  releaseVideoUrl(video, urlApi);
+  assert.equal(video.src, '');
   assert.deepEqual(calls, [['revoke', 'blob:old'], ['create', blob], ['revoke', 'blob:new']]);
 });
 
@@ -136,7 +147,7 @@ test('annotated video records a Blob with the minimal MediaRecorder contract', a
       { dxPx: 2, dyPx: 1, dxM: 0.002, dyM: 0.001, magnitudePx: 2.24, magnitudeM: 0.00224, score: 0.9 }];
     const result = await createAnnotatedVideo(frames, samples, { x: 10, y: 10, width: 100, height: 80 }, 30);
     assert.ok(result instanceof Blob);
-    assert.equal(result.type, 'video/webm');
+    assert.ok(result.type.startsWith('video/webm'));
     events.push(result.size);
     assert.ok(events[0] > 0);
   } finally {
@@ -144,5 +155,26 @@ test('annotated video records a Blob with the minimal MediaRecorder contract', a
     else globalThis.MediaRecorder = previousRecorder;
     if (previousDocument === undefined) delete globalThis.document;
     else globalThis.document = previousDocument;
+  }
+});
+
+test('annotated video reports unsupported recording explicitly', async () => {
+  const previousRecorder = globalThis.MediaRecorder;
+  try {
+    delete globalThis.MediaRecorder;
+    await assert.rejects(
+      () => createAnnotatedVideo([], [], { x: 0, y: 0, width: 64, height: 64 }, 30),
+      (error) => error?.code === 'VIDEO_RECORDING_UNSUPPORTED',
+    );
+
+    globalThis.MediaRecorder = class MediaRecorder {};
+    globalThis.MediaRecorder.isTypeSupported = () => false;
+    await assert.rejects(
+      () => createAnnotatedVideo([], [], { x: 0, y: 0, width: 64, height: 64 }, 30),
+      (error) => error?.code === 'VIDEO_RECORDING_UNSUPPORTED',
+    );
+  } finally {
+    if (previousRecorder === undefined) delete globalThis.MediaRecorder;
+    else globalThis.MediaRecorder = previousRecorder;
   }
 });
