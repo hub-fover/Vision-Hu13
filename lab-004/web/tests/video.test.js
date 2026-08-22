@@ -72,6 +72,35 @@ test('annotated first frame explains zero displacement from the initial frame', 
   assert.ok(labels.some((text) => text.includes('位移: 0.00 mm')));
 });
 
+test('annotated moving frame exposes non-zero pixel and metric deltas', () => {
+  const labels = [];
+  const context = {
+    save() {}, restore() {}, drawImage() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {},
+    fillText(text) { labels.push(String(text)); }, setLineDash() {},
+  };
+  const canvas = { width: 640, height: 360, getContext: () => context };
+  const initial = { canvas, timeS: 0, offsetX: 0, offsetY: 0 };
+  const moving = { canvas, timeS: 1 / 30, offsetX: 3, offsetY: -2 };
+
+  drawAnnotatedFrame(canvas, moving, initial, {
+    dxPx: 3,
+    dyPx: -2,
+    magnitudePx: Math.hypot(3, 2),
+    dxM: 0.003,
+    dyM: -0.002,
+    magnitudeM: Math.hypot(0.003, 0.002),
+    score: 0.91,
+  }, { x: 220, y: 110, width: 180, height: 120 }, {
+    metresPerPixel: 0.001,
+    unit: 'mm',
+  });
+
+  assert.ok(labels.some((text) => text.includes('Δx: 3.00 px')));
+  assert.ok(labels.some((text) => text.includes('Δy: -2.00 px')));
+  assert.ok(labels.some((text) => text.includes('3.61')),
+    'the displayed magnitude should be approximately 3.61 px/mm');
+});
+
 test('recording MIME detection returns null without MediaRecorder', () => {
   const previous = globalThis.MediaRecorder;
   try {
@@ -176,5 +205,60 @@ test('annotated video reports unsupported recording explicitly', async () => {
   } finally {
     if (previousRecorder === undefined) delete globalThis.MediaRecorder;
     else globalThis.MediaRecorder = previousRecorder;
+  }
+});
+
+test('annotated video cancellation stops recorder and capture stream', async () => {
+  const previousRecorder = globalThis.MediaRecorder;
+  const previousDocument = globalThis.document;
+  let recorderStopped = false;
+  let trackStopped = false;
+  let cancelChecks = 0;
+  class FakeMediaRecorder {
+    static isTypeSupported() { return true; }
+    constructor(stream) { this.stream = stream; this.handlers = {}; }
+    addEventListener(name, handler) { this.handlers[name] = handler; }
+    start() {
+      const event = { data: new Blob(['frame'], { type: 'video/webm' }) };
+      this.handlers.dataavailable?.(event);
+      this.ondataavailable?.(event);
+    }
+    stop() {
+      recorderStopped = true;
+      this.handlers.stop?.();
+      this.onstop?.();
+    }
+  }
+  const context = {
+    clearRect() {}, drawImage() {}, fillText() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {},
+    save() {}, restore() {}, setLineDash() {},
+  };
+  const makeCanvas = () => ({
+    width: 640,
+    height: 360,
+    getContext: () => context,
+    captureStream: () => ({ getTracks: () => [{ stop() { trackStopped = true; } }] }),
+  });
+  try {
+    globalThis.MediaRecorder = FakeMediaRecorder;
+    globalThis.document = { createElement: () => makeCanvas() };
+    const frames = [{ canvas: makeCanvas(), timeS: 0 }, { canvas: makeCanvas(), timeS: 1 / 30 }];
+    const samples = [{ dxPx: 0, dyPx: 0, dxM: 0, dyM: 0, magnitudePx: 0, magnitudeM: 0, score: 1 },
+      { dxPx: 1, dyPx: 0, dxM: 0.001, dyM: 0, magnitudePx: 1, magnitudeM: 0.001, score: 0.9 }];
+
+    // Public cancellation contract: options.shouldCancel is polled between frames.
+    await assert.rejects(
+      () => createAnnotatedVideo(frames, samples, { x: 10, y: 10, width: 100, height: 80 }, 30, {
+        shouldCancel: () => ++cancelChecks > 1,
+      }),
+      (error) => error?.code === 'CANCELLED',
+    );
+    assert.equal(recorderStopped, true);
+    assert.equal(trackStopped, true);
+  } finally {
+    if (previousRecorder === undefined) delete globalThis.MediaRecorder;
+    else globalThis.MediaRecorder = previousRecorder;
+    if (previousDocument === undefined) delete globalThis.document;
+    else globalThis.document = previousDocument;
   }
 });
