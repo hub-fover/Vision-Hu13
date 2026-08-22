@@ -217,8 +217,8 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
   requestFrame = initialTracks?.find((track) => typeof track?.requestFrame === 'function') || null;
   // CanvasCaptureMediaStreamTrack.requestFrame is unavailable in some Safari
   // builds. Recreate the track with a non-zero rate so it can still encode.
-  if (!requestFrame && initialTracks) {
-    stopTracks(stream);
+  if (!requestFrame) {
+    if (initialTracks) stopTracks(stream);
     try {
       stream = temporaryCanvas.captureStream?.(rate);
     } catch (error) {
