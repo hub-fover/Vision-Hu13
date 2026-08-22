@@ -2,6 +2,7 @@ const RECORDING_TYPES = [
   'video/webm;codecs=vp9',
   'video/webm;codecs=vp8',
   'video/webm',
+  'video/mp4',
 ];
 
 function finite(value, fallback = 0) {
@@ -20,11 +21,35 @@ function drawLine(context, x1, y1, x2, y2) {
 }
 
 function distanceLabel(metres, unit) {
-  const value = finite(metres);
+  if (!Number.isFinite(Number(metres))) return '未标定';
+  const value = Number(metres);
   const normalized = String(unit || 'm').toLowerCase();
   if (normalized === 'mm') return `${(value * 1000).toFixed(2)} mm`;
   if (normalized === 'cm') return `${(value * 100).toFixed(2)} cm`;
   return `${value.toFixed(3)} m`;
+}
+
+function sourceFor(frame) {
+  return frame?.canvas || frame?.image || frame?.bitmap || frame;
+}
+
+function pointXY(point) {
+  if (Array.isArray(point)) return [finite(point[0]), finite(point[1])];
+  return [finite(point?.x), finite(point?.y)];
+}
+
+function metresPerPixel(scale = {}) {
+  const direct = [scale.metresPerPixel, scale.mPerPx, scale.scaleMPerPx]
+    .map(Number).find(Number.isFinite);
+  if (direct !== undefined && direct > 0) return direct;
+  const [x1, y1] = pointXY(scale.p1);
+  const [x2, y2] = pointXY(scale.p2);
+  const pixels = Math.hypot(x2 - x1, y2 - y1);
+  const real = Number(scale.realDistance);
+  if (!(pixels > 0) || !(real > 0) || !Number.isFinite(real)) return null;
+  const unit = String(scale.unit || 'm').toLowerCase();
+  const unitFactor = unit === 'mm' ? 0.001 : unit === 'cm' ? 0.01 : unit === 'm' ? 1 : null;
+  return unitFactor === null ? null : real * unitFactor / pixels;
 }
 
 /**
@@ -47,7 +72,7 @@ export function drawAnnotatedFrame(
 
   const width = finite(canvas.width, 640);
   const height = finite(canvas.height, 360);
-  const source = frame?.canvas || frame?.image || frame?.bitmap || frame;
+  const source = sourceFor(frame);
   if (source && typeof context.drawImage === 'function') {
     context.drawImage(source, 0, 0, width, height);
   } else if (typeof context.clearRect === 'function') {
@@ -64,6 +89,16 @@ export function drawAnnotatedFrame(
   const dyPx = finite(sample.dyPx);
   const endX = startX + dxPx;
   const endY = startY + dyPx;
+
+  // A faint crop of the first frame gives the viewer a visual reference in
+  // addition to the dashed outline and displacement arrow.
+  const initialSource = sourceFor(initialFrame);
+  if (initialSource && typeof context.drawImage === 'function' && roiWidth > 0 && roiHeight > 0) {
+    if (typeof context.save === 'function') context.save();
+    context.globalAlpha = 0.2;
+    context.drawImage(initialSource, x, y, roiWidth, roiHeight, x, y, roiWidth, roiHeight);
+    if (typeof context.restore === 'function') context.restore();
+  }
 
   if (typeof context.save === 'function') context.save();
   context.lineWidth = 2;
@@ -88,9 +123,10 @@ export function drawAnnotatedFrame(
 
   context.fillStyle = '#ffffff';
   context.font = '600 14px system-ui, sans-serif';
+  const mPerPx = metresPerPixel(scale);
   const magnitudeM = Number.isFinite(Number(sample.magnitudeM))
     ? Number(sample.magnitudeM)
-    : Math.hypot(dxPx, dyPx) * finite(scale.metresPerPixel);
+    : (mPerPx === null ? null : Math.hypot(dxPx, dyPx) * mPerPx);
   const confidence = Number.isFinite(Number(sample.score)) ? Number(sample.score) : null;
   const timeS = Number.isFinite(Number(frame?.timeS)) ? Number(frame.timeS) : null;
   const frameLabel = Number.isFinite(Number(index))
@@ -144,10 +180,29 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
   if (!mimeType || typeof document === 'undefined' || typeof document.createElement !== 'function') {
     throw makeError('VIDEO_RECORDING_UNSUPPORTED');
   }
+  const list = Array.isArray(frames) ? frames : [];
+  const sampleList = Array.isArray(samples) ? samples : [];
+  const rate = Number(fps);
+  if (list.length < 2 || sampleList.length !== list.length || !Number.isFinite(rate) || rate <= 0) {
+    throw makeError('INVALID_FRAME');
+  }
+  const firstSource = sourceFor(list[0]);
+  const sourceWidth = finite(options.width, finite(firstSource?.width, 640));
+  const sourceHeight = finite(options.height, finite(firstSource?.height, 360));
+  if (!(sourceWidth > 0) || !(sourceHeight > 0)) throw makeError('INVALID_FRAME');
   const temporaryCanvas = document.createElement('canvas');
-  temporaryCanvas.width = 640;
-  temporaryCanvas.height = 360;
-  const stream = temporaryCanvas.captureStream?.(Number(fps) > 0 ? Number(fps) : 30);
+  temporaryCanvas.width = sourceWidth;
+  temporaryCanvas.height = sourceHeight;
+  let stream;
+  try {
+    // A zero frame-rate track lets us explicitly request exactly one frame per
+    // painted annotation where the browser supports CanvasCaptureMediaStreamTrack.
+    stream = temporaryCanvas.captureStream?.(0);
+  } catch (error) {
+    temporaryCanvas.width = 0;
+    temporaryCanvas.height = 0;
+    throw makeError('VIDEO_RECORDING_UNSUPPORTED', error?.message || 'captureStream failed');
+  }
   if (!stream) {
     temporaryCanvas.width = 0;
     temporaryCanvas.height = 0;
@@ -161,13 +216,14 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
     stopTracks(stream);
     temporaryCanvas.width = 0;
     temporaryCanvas.height = 0;
-    throw error;
+    throw makeError('VIDEO_RECORDING_UNSUPPORTED', error?.message || 'MediaRecorder failed');
   }
 
   const parts = [];
   let settled = false;
   let stopping = false;
   let cancelled = false;
+  let frameCount = 0;
   let resolveResult;
   let rejectResult;
   const result = new Promise((resolve, reject) => { resolveResult = resolve; rejectResult = reject; });
@@ -182,7 +238,13 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
     settled = true;
     cleanup();
     if (error) rejectResult(error);
-    else resolveResult(new Blob(parts, { type: mimeType }));
+    else {
+      const blob = new Blob(parts, { type: mimeType });
+      // Blob remains a normal Blob for download/playback, while this diagnostic
+      // metadata is useful to callers and costs no additional frame storage.
+      try { Object.defineProperty(blob, 'frameCount', { value: frameCount, enumerable: false }); } catch { /* Blob may be sealed */ }
+      resolveResult(blob);
+    }
   };
   const onData = (event) => {
     if (event?.data && (typeof event.data.size !== 'number' || event.data.size > 0)) parts.push(event.data);
@@ -209,8 +271,10 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
 
   try {
     recorder.start();
-    const list = Array.isArray(frames) ? frames : [];
-    const sampleList = Array.isArray(samples) ? samples : [];
+    const videoTracks = typeof stream.getVideoTracks === 'function'
+      ? stream.getVideoTracks()
+      : (stream.getTracks?.() || []);
+    const requestFrame = videoTracks.find((track) => typeof track?.requestFrame === 'function');
     for (let index = 0; index < list.length; index += 1) {
       if (typeof options.shouldCancel === 'function' && options.shouldCancel()) {
         stopRecorder(true);
@@ -226,8 +290,18 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
         index,
         list.length,
       );
-      // Let the browser's MediaRecorder observe the newly painted canvas.
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      frameCount += 1;
+      if (requestFrame) {
+        try { requestFrame.requestFrame(); } catch (error) {
+          throw makeError('VIDEO_RECORDING_UNSUPPORTED', error?.message || 'requestFrame failed');
+        }
+        // Yield to the event loop so the requested frame reaches the recorder.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      } else {
+        // Without requestFrame, pace the canvas at the requested FPS; a zero
+        // delay can collapse all annotations into one encoded frame.
+        await new Promise((resolve) => setTimeout(resolve, 1000 / rate));
+      }
     }
     if (!stopping) stopRecorder(false);
   } catch (error) {
