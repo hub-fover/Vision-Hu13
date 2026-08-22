@@ -319,19 +319,21 @@ async function handleFiles(fileList) {
       const frames = [];
       const imageFiles = files.slice(0, 150);
       for (let index = 0; index < imageFiles.length; index += 1) {
-        frames.push(await imageFrame(imageFiles[index]));
+        const frame = await imageFrame(imageFiles[index]);
+        frames.push(frame);
+        if (frame.url) frameUrls.push(frame.url);
         setStatus(`正在读取照片……${index + 1}/${imageFiles.length}`);
       }
-      editorFrame = frames[0].canvas; frames.forEach((frame) => { if (frame.url) frameUrls.push(frame.url); });
+      editorFrame = frames[0].canvas;
       if (frames.length < 2) { dispatch({ type: 'CLEAR' }); setStatus('单张照片只能用于设置 ROI。请至少选择两张连续照片，或选择一段视频。'); }
       else { dispatch({ type: 'SET_FRAMES', frames }); setStatus(`已读取 ${frames.length} 张照片，将按文件顺序估计位移。`); }
     }
     drawEditor(); updateSetupChecklist();
-  } catch (error) { dispatch({ type: 'ERROR', error: Object.assign(error, { code: error.code || 'DECODE_FAILED' }) }); }
+  } catch (error) { releaseFrameUrls(); dispatch({ type: 'ERROR', error: Object.assign(error, { code: error.code || 'DECODE_FAILED' }) }); }
 }
 
 document.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => { cancelActiveWork(); releaseFrameUrls(); if (button.dataset.mode !== MODES.LIVE) stopStream(); editorPoints = []; editorFrame = null; $('scaleInput').value = ''; dispatch({ type: 'SET_MODE', mode: button.dataset.mode }); drawEditor(); setStatus(button.dataset.mode === MODES.LIVE ? '先启动后置相机并冻结首帧，再设置目标框和标尺。' : '点击“用样例体验”，或导入一段视频/至少两张照片。'); }));
-$('sampleButton').addEventListener('click', () => { cancelActiveWork(); releaseFrameUrls(); stopStream(); const frames = buildSampleFrames(240, 30); editorFrame = frames[0].canvas; editorPoints = [[120, 100], [280, 100]]; $('scaleInput').value = '100'; dispatch({ type: 'SET_SCALE', scale: scaleReference() }); dispatch({ type: 'SET_FRAMES', frames }); setStatus('样例已准备，正在计算 2 Hz 位移。'); drawEditor(); runMeasure(); });
+$('sampleButton').addEventListener('click', () => { cancelActiveWork(); releaseFrameUrls(); stopStream(); const frames = buildSampleFrames(240, 30); editorFrame = frames[0].canvas; editorPoints = [[120, 100], [280, 100]]; $('scaleInput').value = '100'; dispatch({ type: 'SET_FPS', fps: 30 }); dispatch({ type: 'SET_SCALE', scale: scaleReference() }); dispatch({ type: 'SET_FRAMES', frames }); setStatus('样例已准备，正在计算 2 Hz 位移。'); drawEditor(); runMeasure(); });
 $('fileInput').addEventListener('change', (event) => { handleFiles(event.target.files); event.target.value = ''; }); $('galleryInput').addEventListener('change', (event) => { handleFiles(event.target.files); event.target.value = ''; });
 $('scaleInput').addEventListener('input', updateScale); $('unitInput').addEventListener('change', updateScale); $('methodInput').addEventListener('change', (event) => { dispatch({ type: 'SET_METHOD', method: event.target.value }); setStatus('跟踪方法已更新，确认设置后可以重新测量。'); });
 $('roiMode').addEventListener('click', () => { editMode = 'roi'; $('roiMode').setAttribute('aria-pressed', 'true'); $('scaleMode').setAttribute('aria-pressed', 'false'); drawEditor(); setStatus('目标框模式：拖动圆点调整大小，拖动框内可整体移动。'); });
