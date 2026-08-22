@@ -306,6 +306,9 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
     failure = nativeError?.code
       ? nativeError
       : makeError('VIDEO_RECORDING_FAILED', nativeError?.message || 'MediaRecorder failed');
+    // Some implementations leave the recorder active after an error event.
+    // Stop it best-effort; `settled` makes a subsequent stop event harmless.
+    try { recorder.stop(); } catch { /* already stopped */ }
     settle(failure);
   };
   const hasEventTarget = typeof recorder.addEventListener === 'function';
