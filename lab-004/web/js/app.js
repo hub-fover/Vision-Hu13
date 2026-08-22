@@ -5,7 +5,7 @@ import { drawSeries } from './signal.js';
 import { describeError } from './errors.js';
 import { WorkerClient } from './worker-client.js';
 import { moveRoi, nearestRoiHandle, resizeRoi, roiContains } from './editor.js';
-import { createAnnotatedVideo, replaceVideoUrl, releaseVideoUrl } from './video.js';
+import { createAnnotatedVideo, replaceVideoUrl, releaseVideoUrl, drawMeasurementOverlay } from './video.js';
 
 const $ = (id) => document.getElementById(id);
 let state = createState();
@@ -56,6 +56,45 @@ function cloneFrame(frame, source = 'camera-reference') {
   const context = canvas.getContext('2d', { willReadFrequently: true });
   if (frame?.canvas) context.drawImage(frame.canvas, 0, 0, canvas.width, canvas.height);
   return { canvas, source, timeS: 0 };
+}
+
+function clearLiveOverlay() {
+  const canvas = $('liveCanvas');
+  const context = canvas?.getContext?.('2d');
+  context?.clearRect?.(0, 0, canvas.width, canvas.height);
+}
+
+function scaleMetresPerPixel(scale = {}) {
+  const p1 = scale.p1 || [0, 0];
+  const p2 = scale.p2 || [0, 0];
+  const pixels = Math.hypot(Number(p2[0]) - Number(p1[0]), Number(p2[1]) - Number(p1[1]));
+  const unitFactor = scale.unit === 'mm' ? 0.001 : scale.unit === 'cm' ? 0.01 : scale.unit === 'm' ? 1 : 0;
+  const real = Number(scale.realDistance);
+  return pixels > 0 && unitFactor > 0 && real > 0 ? real * unitFactor / pixels : null;
+}
+
+function updateLivePreview(frame, reference, roi, scale) {
+  if (!frame?.canvas || !reference?.canvas) return;
+  try {
+    const motion = motionFromFrames([reference, frame], roi, 30, { detectCameraDrift: true })[1];
+    if (!motion || motion.errorCode) {
+      clearLiveOverlay();
+      $('readoutX').textContent = '—'; $('readoutY').textContent = '—'; $('readoutMagnitude').textContent = '—'; $('readoutScore').textContent = '—';
+      $('readoutCamera').textContent = motion?.errorCode === 'BACKGROUND_UNTRACKABLE' ? '待确认' : '移动';
+      return;
+    }
+    const mPerPx = scaleMetresPerPixel(scale);
+    const magnitudePx = Math.hypot(motion.offsetX, motion.offsetY);
+    const sample = { dxPx: motion.offsetX, dyPx: motion.offsetY, score: motion.score, magnitudeM: mPerPx === null ? null : magnitudePx * mPerPx };
+    drawMeasurementOverlay($('liveCanvas'), sample, roi, scale);
+    $('readoutX').textContent = mPerPx === null ? `${motion.offsetX.toFixed(2)} px` : `${(motion.offsetX * mPerPx * 1000).toFixed(2)} mm`;
+    $('readoutY').textContent = mPerPx === null ? `${motion.offsetY.toFixed(2)} px` : `${(motion.offsetY * mPerPx * 1000).toFixed(2)} mm`;
+    $('readoutMagnitude').textContent = mPerPx === null ? `${magnitudePx.toFixed(2)} px` : `${(magnitudePx * mPerPx * 1000).toFixed(2)} mm`;
+    $('readoutScore').textContent = Number(motion.score).toFixed(2);
+    $('readoutCamera').textContent = '稳定';
+  } catch {
+    clearLiveOverlay();
+  }
 }
 
 function setStatus(message) {
@@ -149,6 +188,7 @@ function clearResultView() {
   $('readoutX').textContent = '—'; $('readoutY').textContent = '—'; $('readoutMagnitude').textContent = '—'; $('readoutScore').textContent = '—'; $('readoutCamera').textContent = '待检';
   $('chartEmpty').classList.remove('hidden'); drawSeries($('displacementChart'), []);
   ['downloadCsv', 'downloadJson', 'shareResult'].forEach((id) => { $(id).disabled = true; });
+  clearLiveOverlay();
   clearResultVideo();
 }
 
@@ -335,11 +375,11 @@ async function runMeasure() {
     if (state.mode === MODES.LIVE && stream) {
       await preflightCamera(token, roiSnapshot);
       const durationMs = selectedDurationMs();
-      const captured = await captureLiveFrames($('cameraVideo'), { durationMs, maxFrames: Math.ceil(durationMs / 1000 * 30) + 1, shouldCancel: () => token !== captureToken, onProgress: (value) => { setProgress('采集画面', value * 0.62); setStatus(`正在采集画面……${Math.round(value * 100)}%，请保持手机完全不动`); } });
+      const reference = cloneFrame({ canvas: editorFrame }, 'camera-reference');
+      const captured = await captureLiveFrames($('cameraVideo'), { durationMs, maxFrames: Math.ceil(durationMs / 1000 * 30) + 1, shouldCancel: () => token !== captureToken, onProgress: (value) => { setProgress('采集画面', value * 0.62); setStatus(`正在采集画面……${Math.round(value * 100)}%，请保持手机完全不动`); }, onFrame: (frame, info) => { if (info.index === 0 || info.index % 2 === 0) updateLivePreview(frame, reference, roiSnapshot, scaleSnapshot); } });
       if (!captured.frames || captured.frames.length < 1 || !editorFrame) throw Object.assign(new Error('INVALID_FRAME'), { code: 'INVALID_FRAME' });
       fpsForRun = captured.fps;
       const frameStep = 1 / Math.max(1, fpsForRun);
-      const reference = cloneFrame({ canvas: editorFrame }, 'camera-reference');
       const followup = captured.frames.map((frame) => ({ ...frame, timeS: Number.isFinite(Number(frame.timeS)) ? Number(frame.timeS) + frameStep : frameStep }));
       videoFramesForResult = [reference, ...followup];
       motions = motionFromFrames(videoFramesForResult, roiSnapshot, fpsForRun, { detectCameraDrift: true });

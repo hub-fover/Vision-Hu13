@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="description" content="LAB 004：在固定摄像头下观察目标的二维位移和振动频率。">
-  <title>普通摄像头位移测量 · LAB 004</title>
+  <title>手机视频位移测量 · LAB 004</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <main class="app">
     <header class="topbar">
-      <div><p class="eyebrow">LAB 004 / LOCAL VISION</p><h1>普通摄像头，真的能测出物体动了几毫米吗？</h1><p class="lede">固定相机，给画面里的两个点当标尺，观察一个目标的像素位移和振动频率。</p></div>
+      <div><p class="eyebrow">LAB 004 / LOCAL VISION</p><h1>手机拍一段视频，能看出物体动了几毫米吗？</h1><p class="lede">固定相机，给画面里的两个点当标尺，观察一个目标的像素位移和振动频率。</p></div>
       <div class="privacy"><span class="dot"></span>仅在本页处理<br><small>不上传照片，不保存记录</small></div>
     </header>
     <nav class="tabs" aria-label="测量模式"><button class="tab active" data-mode="sample" aria-pressed="true">样例回放</button><button class="tab" data-mode="live" aria-pressed="false">实时测量</button></nav>
@@ -26,7 +26,7 @@
         </section>
         <section class="panel live-panel hidden" id="livePanel">
           <div class="panel-heading"><div><span class="section-kicker">STEP 01</span><h2>固定相机，再开始测量</h2></div></div>
-          <div class="video-stage"><video id="cameraVideo" autoplay playsinline muted></video><canvas id="liveCanvas"></canvas><div class="roi-handle" id="roiHandle" hidden></div></div>
+          <div class="video-stage"><video id="cameraVideo" autoplay playsinline muted></video><canvas id="liveCanvas" width="640" height="360" aria-label="实时位移叠加层"></canvas><div class="roi-handle" id="roiHandle" hidden></div></div>
           <div class="action-row"><button class="button primary" id="startCamera">开始后置相机</button><button class="button secondary" id="freezeCamera" disabled>冻结首帧</button><button class="button quiet" id="stopCamera" disabled>停止</button><button class="button secondary hidden" id="reinitializeButton" type="button">重新框选并初始化</button></div>
           <p class="status" id="liveStatus">需要 HTTPS 或 localhost，以及摄像头权限。建议先把手机靠在桌面或三脚架上。</p>
           <label class="button secondary file-button">从相册选择<input id="galleryInput" type="file" accept="video/*,image/*" multiple></label>

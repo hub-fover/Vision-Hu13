@@ -38,6 +38,57 @@ function pointXY(point) {
   return [finite(point?.x), finite(point?.y)];
 }
 
+/** Draw only the live measurement layer over the camera preview. */
+export function drawMeasurementOverlay(canvas, sample = {}, roi = {}, scale = {}) {
+  if (!canvas) return;
+  const context = canvas.getContext?.('2d');
+  if (!context) return;
+  const width = finite(canvas.width, 640);
+  const height = finite(canvas.height, 360);
+  context.clearRect?.(0, 0, width, height);
+  const x = finite(roi.x);
+  const y = finite(roi.y);
+  const roiWidth = Math.max(0, finite(roi.width));
+  const roiHeight = Math.max(0, finite(roi.height));
+  const dxPx = finite(sample.dxPx);
+  const dyPx = finite(sample.dyPx);
+  const currentX = x + dxPx;
+  const currentY = y + dyPx;
+  const startX = x + roiWidth / 2;
+  const startY = y + roiHeight / 2;
+  const endX = startX + dxPx;
+  const endY = startY + dyPx;
+  context.save?.();
+  context.lineWidth = 2;
+  context.strokeStyle = '#8ef2d5';
+  setDash(context, [8, 6]);
+  drawLine(context, x, y, x + roiWidth, y);
+  drawLine(context, x + roiWidth, y, x + roiWidth, y + roiHeight);
+  drawLine(context, x + roiWidth, y + roiHeight, x, y + roiHeight);
+  drawLine(context, x, y + roiHeight, x, y);
+  setDash(context, []);
+  context.strokeStyle = '#ffd166';
+  drawLine(context, currentX, currentY, currentX + roiWidth, currentY);
+  drawLine(context, currentX + roiWidth, currentY, currentX + roiWidth, currentY + roiHeight);
+  drawLine(context, currentX + roiWidth, currentY + roiHeight, currentX, currentY + roiHeight);
+  drawLine(context, currentX, currentY + roiHeight, currentX, currentY);
+  drawLine(context, startX, startY, endX, endY);
+  const angle = Math.atan2(dyPx, dxPx);
+  const head = 9;
+  drawLine(context, endX, endY, endX + Math.cos(angle + Math.PI * 0.82) * head, endY + Math.sin(angle + Math.PI * 0.82) * head);
+  drawLine(context, endX, endY, endX + Math.cos(angle - Math.PI * 0.82) * head, endY + Math.sin(angle - Math.PI * 0.82) * head);
+  context.fillStyle = '#ffffff';
+  context.font = '600 14px system-ui, sans-serif';
+  const mPerPx = metresPerPixel(scale);
+  const magnitudeM = Number.isFinite(Number(sample.magnitudeM))
+    ? Number(sample.magnitudeM)
+    : (mPerPx === null ? null : Math.hypot(dxPx, dyPx) * mPerPx);
+  const score = Number.isFinite(Number(sample.score)) ? `${(Number(sample.score) * 100).toFixed(0)}%` : '—';
+  const labels = ['相对于初始帧', `Δx: ${dxPx.toFixed(2)} px`, `Δy: ${dyPx.toFixed(2)} px`, `位移: ${distanceLabel(magnitudeM, scale.unit)}`, `置信度: ${score}`];
+  labels.forEach((label, index) => context.fillText?.(label, 12, 24 + index * 19));
+  context.restore?.();
+}
+
 function metresPerPixel(scale = {}) {
   const direct = [scale.metresPerPixel, scale.mPerPx, scale.scaleMPerPx]
     .map(Number).find(Number.isFinite);

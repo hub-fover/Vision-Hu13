@@ -4,6 +4,7 @@ import { buildSampleFrames } from '../js/measurement.js';
 import {
   createAnnotatedVideo,
   drawAnnotatedFrame,
+  drawMeasurementOverlay,
   getRecordingMimeType,
   releaseVideoUrl,
   replaceVideoUrl,
@@ -104,6 +105,21 @@ test('annotated moving frame exposes non-zero pixel and metric deltas', () => {
     'the displayed magnitude should include the millimetre unit');
   assert.ok(segments.some(([type]) => type === 'move') && segments.some(([type]) => type === 'line'),
     'the moving frame should include a displacement arrow segment');
+});
+
+test('live measurement overlay exposes relative pixel and metric deltas', () => {
+  const labels = [];
+  const context = {
+    clearRect() {}, save() {}, restore() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, setLineDash() {},
+    fillText(text) { labels.push(String(text)); },
+  };
+  const canvas = { width: 640, height: 360, getContext: () => context };
+  drawMeasurementOverlay(canvas, { dxPx: 2, dyPx: -1, magnitudeM: 0.00224, score: 0.91 }, { x: 220, y: 110, width: 180, height: 120 }, { unit: 'mm' });
+  assert.ok(labels.includes('相对于初始帧'));
+  assert.ok(labels.some((text) => text.includes('Δx: 2.00 px')));
+  assert.ok(labels.some((text) => text.includes('Δy: -1.00 px')));
+  assert.ok(labels.some((text) => text.includes('位移: 2.24 mm')));
+  assert.ok(labels.some((text) => text.includes('置信度: 91%')));
 });
 
 test('recording MIME detection returns null without MediaRecorder', () => {
