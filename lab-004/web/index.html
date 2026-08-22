@@ -19,6 +19,7 @@
         <section class="panel source-panel" id="samplePanel">
           <div class="panel-heading"><div><span class="section-kicker">STEP 01</span><h2>先用样例看结果</h2></div><span class="badge">30 fps · 2 Hz</span></div>
           <p class="muted">样例模拟一个固定相机观察下的小幅正弦运动。你可以先熟悉曲线，再换成自己的相机。</p>
+          <ol class="path-guide" aria-label="使用步骤"><li><b>小白</b>：点击“用样例体验”，不需要准备素材。</li><li><b>进阶</b>：导入一段视频，或按时间顺序选择至少两张照片。</li><li><b>测量</b>：在首帧框住目标，点两处已知距离，再开始分析。</li></ol>
           <div class="sample-visual" id="sampleVisual"><div class="sample-grid"></div><div class="sample-target" id="sampleTarget"></div><span class="sample-caption">确定性运动样例</span></div>
           <div class="action-row"><button class="button primary" id="sampleButton">用样例体验</button><label class="button secondary file-button">选择视频或照片序列<input id="fileInput" type="file" accept="video/*,image/*" capture="environment" multiple></label></div>
           <p class="source-note" id="sampleSource">来源：仓库内置生成样例，不代表手机实拍精度。</p>
@@ -26,15 +27,15 @@
         <section class="panel live-panel hidden" id="livePanel">
           <div class="panel-heading"><div><span class="section-kicker">STEP 01</span><h2>固定相机，再开始测量</h2></div></div>
           <div class="video-stage"><video id="cameraVideo" autoplay playsinline muted></video><canvas id="liveCanvas"></canvas><div class="roi-handle" id="roiHandle" hidden></div></div>
-          <div class="action-row"><button class="button primary" id="startCamera">开始后置相机</button><button class="button secondary" id="freezeCamera" disabled>冻结首帧</button><button class="button quiet" id="stopCamera" disabled>停止</button></div>
-          <p class="status" id="liveStatus">需要 HTTPS 或 localhost，以及摄像头权限。</p>
+          <div class="action-row"><button class="button primary" id="startCamera">开始后置相机</button><button class="button secondary" id="freezeCamera" disabled>冻结首帧</button><button class="button quiet" id="stopCamera" disabled>停止</button><button class="button secondary hidden" id="reinitializeButton" type="button">重新框选并初始化</button></div>
+          <p class="status" id="liveStatus">需要 HTTPS 或 localhost，以及摄像头权限。建议先把手机靠在桌面或三脚架上。</p>
           <label class="button secondary file-button">从相册选择<input id="galleryInput" type="file" accept="video/*,image/*" multiple></label>
         </section>
         <section class="panel setup-panel" id="setupPanel">
           <div class="panel-heading"><div><span class="section-kicker">STEP 02</span><h2>框选目标和标尺</h2></div><span class="badge" id="setupState">等待样例</span></div>
           <div class="editor-toolbar"><button class="button secondary compact" id="roiMode" type="button" aria-pressed="true">调整目标框</button><button class="button secondary compact" id="scaleMode" type="button" aria-pressed="false">设置两点标尺</button><button class="button quiet compact" id="clearScale" type="button">清除标尺点</button></div><div class="editor-stage"><canvas id="targetCanvas" width="640" height="360" aria-label="目标区域编辑画布"></canvas><div class="editor-help" id="editorHint">按住圆点拖动四角，框内可整体移动</div></div>
           <div class="form-grid"><label>真实距离<input id="scaleInput" type="number" min="0" step="any" placeholder="例如 100" inputmode="decimal"></label><label>单位<select id="unitInput"><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option></select></label><label>采样 FPS<input id="fpsInput" type="number" min="1" max="120" step="1" value="30" inputmode="numeric"></label><label>跟踪方法<select id="methodInput"><option value="template">模板匹配（推荐）</option><option value="flow" disabled>光流增强（Python 离线）</option></select></label><label class="duration-field">实时采集时长<select id="durationInput"><option value="2">2 秒</option><option value="4" selected>4 秒</option><option value="8">8 秒</option><option value="15">15 秒</option></select></label></div>
-          <p class="hint">两点必须在同一刚性平面上。相机一旦移动，毫米结果会被判为无效。照片序列的 FPS 请按原始拍摄间隔填写；实时模式可选择采集时长。</p><p class="setup-checklist" id="setupChecklist" aria-live="polite"></p>
+          <p class="hint">两点必须在同一刚性平面上。相机一旦移动，毫米结果会被判为无效。照片序列的 FPS 请按原始拍摄间隔填写；实时模式可选择采集时长。</p><p class="setup-checklist" id="setupChecklist" aria-live="polite"></p><div class="progress-line hidden" id="progressLine"><span id="progressLabel">准备中</span><progress id="progressBar" max="1" value="0"></progress><span id="progressValue">0%</span></div>
           <div class="action-row"><button class="button primary" id="measureButton" disabled>开始测量</button><button class="button secondary" id="resetButton" type="button">重新设置</button><button class="button quiet" id="cancelButton" disabled>取消</button></div>
         </section>
       </div>

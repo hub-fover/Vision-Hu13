@@ -23,6 +23,17 @@ let resultVideoBlob = null;
 let resultVideoFrames = [];
 let statusMessage = '加载样例后，这里会显示像素位移、毫米位移和主频。';
 
+function setProgress(label, value = 0, visible = true) {
+  const line = $('progressLine');
+  if (!line) return;
+  line.classList.toggle('hidden', !visible);
+  if (!visible) return;
+  const progress = Math.max(0, Math.min(1, Number(value) || 0));
+  $('progressLabel').textContent = label;
+  $('progressBar').value = progress;
+  $('progressValue').textContent = `${Math.round(progress * 100)}%`;
+}
+
 function selectedFps() {
   const value = Number($('fpsInput')?.value);
   return Number.isFinite(value) && value >= 1 && value <= 120 ? value : 30;
@@ -127,6 +138,8 @@ function render() {
   $('setupState').textContent = state.frames.length > 1 ? `${state.frames.length} 帧已加载` : '等待输入';
   $('statusPill').textContent = state.status === 'success' ? '已完成' : state.status === 'running' ? '计算中' : state.error ? '需重新设置' : '未开始';
   $('status').textContent = state.error ? describeError(state.error) : statusMessage;
+  const recoveryCodes = new Set(['CAMERA_MOVED', 'BACKGROUND_UNTRACKABLE', 'TEMPLATE_LOST', 'SCENE_CHANGED']);
+  $('reinitializeButton').classList.toggle('hidden', state.mode !== MODES.LIVE || !recoveryCodes.has(state.error?.code));
   updateSetupChecklist();
   if (state.result) renderResult(state.result); else clearResultView();
 }
@@ -160,11 +173,20 @@ function clearResultVideo() {
 
 function renderResult(result) {
   const mm = result.displacement.peakToPeakM * 1000;
-  $('status').textContent = '跟踪完成。相机保持稳定，下面的数值是参考级估计。';
+  const diagnosticError = result.diagnostics?.errorCode || result.errors?.[0] || null;
+  const validRatio = Number(result.diagnostics?.validRatio || 0);
+  const partial = diagnosticError && !['CAMERA_MOVED', 'BACKGROUND_UNTRACKABLE'].includes(diagnosticError);
+  $('status').textContent = diagnosticError === 'CAMERA_MOVED'
+    ? '检测到相机移动，毫米结果无效。请固定相机后重新设置。'
+    : diagnosticError === 'BACKGROUND_UNTRACKABLE'
+      ? '背景纹理不足，无法确认相机是否稳定。请把镜头固定在有纹理的背景前再试。'
+      : partial
+        ? `跟踪完成，但有 ${(100 - validRatio * 100).toFixed(0)}% 的帧未通过质量检查；请把它当作参考。`
+        : '跟踪完成。相机保持稳定，下面的数值是参考级估计。';
   $('metricDisplacement').textContent = `${mm.toFixed(2)} mm`;
   $('metricFrequency').textContent = result.spectrum ? result.spectrum.frequencyHz.toFixed(2) : '—';
   $('metricFps').textContent = Number(result.diagnostics.fps).toFixed(1);
-  $('metricValid').textContent = `${(result.diagnostics.validRatio * 100).toFixed(0)}%`;
+  $('metricValid').textContent = `${(validRatio * 100).toFixed(0)}%`;
   $('chartEmpty').classList.toggle('hidden', result.displacement.samples.length >= 128);
   drawSeries($('displacementChart'), result.displacement.samples);
   const last = result.displacement.samples.at(-1);
@@ -173,7 +195,7 @@ function renderResult(result) {
     $('readoutY').textContent = `${(last.dyM * 1000).toFixed(2)} mm`;
     $('readoutMagnitude').textContent = `${(Math.hypot(last.dxM, last.dyM) * 1000).toFixed(2)} mm`;
     $('readoutScore').textContent = last.score.toFixed(2);
-    $('readoutCamera').textContent = result.diagnostics.cameraStable ? '稳定' : '移动';
+    $('readoutCamera').textContent = diagnosticError === 'BACKGROUND_UNTRACKABLE' ? '待确认' : result.diagnostics.cameraStable ? '稳定' : '移动';
   }
   ['downloadCsv', 'downloadJson', 'shareResult'].forEach((id) => { $(id).disabled = false; });
   $('resultVideoPanel').classList.remove('hidden');
@@ -249,11 +271,31 @@ editor.addEventListener('pointermove', (event) => {
 
 function updateScale() { dispatch({ type: 'SET_SCALE', scale: scaleReference() }); setStatus('标尺已更新，确认两点和真实距离后可以重新测量。'); }
 
+async function preflightCamera(token, roi) {
+  setStatus('正在进行 2 秒相机稳定性预检……0%');
+  const captured = await captureLiveFrames($('cameraVideo'), {
+    durationMs: 2000,
+    maxFrames: 60,
+    shouldCancel: () => token !== captureToken,
+    onProgress: (value) => setStatus(`正在进行 2 秒相机稳定性预检……${Math.round(value * 100)}%`),
+  });
+  if (token !== captureToken) throw Object.assign(new Error('CANCELLED'), { code: 'CANCELLED' });
+  if (!captured.frames.length || !editorFrame) throw Object.assign(new Error('INVALID_FRAME'), { code: 'INVALID_FRAME' });
+  const fps = captured.fps || 30;
+  const reference = cloneFrame({ canvas: editorFrame }, 'camera-reference');
+  const followup = captured.frames.map((frame) => ({ ...frame, timeS: (Number(frame.timeS) || 0) + 1 / fps }));
+  const motions = motionFromFrames([reference, ...followup], roi, fps, { detectCameraDrift: true });
+  const failure = motions.slice(1).find((motion) => motion.errorCode);
+  if (failure) throw Object.assign(new Error(failure.errorCode), { code: failure.errorCode, driftPx: failure.cameraDriftPx });
+  setStatus('预检通过，相机稳定，开始采集测量画面……');
+}
+
 async function createResultVideo(frames, result, token, fps, roi, scale) {
   const panel = $('resultVideoPanel');
   if (!panel || !Array.isArray(frames) || frames.length < 2) return;
   panel.classList.remove('hidden');
   $('videoStatus').textContent = '正在生成逐帧标注视频……';
+  setProgress('生成结果视频', 0.92);
   $('downloadVideo').disabled = true;
   resultVideoFrames = frames;
   try {
@@ -273,6 +315,7 @@ async function createResultVideo(frames, result, token, fps, roi, scale) {
     $('downloadVideo').disabled = true;
   } finally {
     resultVideoFrames = [];
+    setProgress('', 0, false);
   }
 }
 
@@ -282,6 +325,7 @@ async function runMeasure() {
   const scaleSnapshot = scaleReference();
   const methodSnapshot = $('methodInput').value;
   clearResultVideo();
+  setProgress('准备分析', 0.02);
   dispatch({ type: 'RUNNING' });
   try {
     worker ??= new WorkerClient();
@@ -289,8 +333,9 @@ async function runMeasure() {
     let videoFramesForResult;
     let fpsForRun = state.mode === MODES.SAMPLE ? 30 : selectedFps();
     if (state.mode === MODES.LIVE && stream) {
+      await preflightCamera(token, roiSnapshot);
       const durationMs = selectedDurationMs();
-      const captured = await captureLiveFrames($('cameraVideo'), { durationMs, maxFrames: Math.ceil(durationMs / 1000 * 30) + 1, shouldCancel: () => token !== captureToken, onProgress: (value) => setStatus(`正在采集画面……${Math.round(value * 100)}%，请保持手机完全不动`) });
+      const captured = await captureLiveFrames($('cameraVideo'), { durationMs, maxFrames: Math.ceil(durationMs / 1000 * 30) + 1, shouldCancel: () => token !== captureToken, onProgress: (value) => { setProgress('采集画面', value * 0.62); setStatus(`正在采集画面……${Math.round(value * 100)}%，请保持手机完全不动`); } });
       if (!captured.frames || captured.frames.length < 1 || !editorFrame) throw Object.assign(new Error('INVALID_FRAME'), { code: 'INVALID_FRAME' });
       fpsForRun = captured.fps;
       const frameStep = 1 / Math.max(1, fpsForRun);
@@ -298,6 +343,8 @@ async function runMeasure() {
       const followup = captured.frames.map((frame) => ({ ...frame, timeS: Number.isFinite(Number(frame.timeS)) ? Number(frame.timeS) + frameStep : frameStep }));
       videoFramesForResult = [reference, ...followup];
       motions = motionFromFrames(videoFramesForResult, roiSnapshot, fpsForRun, { detectCameraDrift: true });
+      const motionFailure = motions.slice(1).find((motion) => motion.errorCode);
+      if (motionFailure) throw Object.assign(new Error(motionFailure.errorCode), { code: motionFailure.errorCode });
       state = { ...state, fps: fpsForRun };
     } else if (state.mode === MODES.SAMPLE) {
       videoFramesForResult = state.frames[0]?.source === 'sample' ? state.frames : buildSampleFrames(state.frames.length || 240, state.fps);
@@ -308,6 +355,7 @@ async function runMeasure() {
       motions = videoFramesForResult[0]?.canvas ? motionFromFrames(videoFramesForResult, roiSnapshot, fpsForRun, { detectCameraDrift: true }) : videoFramesForResult;
     }
     if (token !== captureToken) throw Object.assign(new Error('CANCELLED'), { code: 'CANCELLED' });
+    setProgress('分析位移', 0.68);
     requestId = worker.seq + 1;
     const result = await worker.request('measure', { motions, roi: roiSnapshot, scale: scaleSnapshot, method: methodSnapshot, fps: fpsForRun });
     if (token !== captureToken) throw Object.assign(new Error('CANCELLED'), { code: 'CANCELLED' });
@@ -315,15 +363,26 @@ async function runMeasure() {
       dispatch({ type: 'ERROR', error: Object.assign(new Error(result.diagnostics.errorCode), { code: result.diagnostics.errorCode }) });
       return;
     }
+    const lastSample = result.displacement.samples.at(-1);
+    if (Number(result.diagnostics?.validRatio) < 0.5 || (lastSample && !lastSample.valid)) {
+      throw Object.assign(new Error('TEMPLATE_LOST'), { code: 'TEMPLATE_LOST' });
+    }
+    setProgress('整理结果', 0.86);
     dispatch({ type: 'RESULT', result });
     await createResultVideo(videoFramesForResult, result, token, fpsForRun, roiSnapshot, scaleSnapshot);
-  } catch (error) { if (error?.code !== 'CANCELLED' || token === captureToken) dispatch({ type: 'ERROR', error }); } finally { requestId = null; }
+  } catch (error) { if (error?.code !== 'CANCELLED' || token === captureToken) dispatch({ type: 'ERROR', error }); } finally { requestId = null; if (token === captureToken && state.status !== 'running') setProgress('', 0, false); }
 }
 
 async function handleFiles(fileList) {
   const rawFiles = [...fileList]; if (!rawFiles.length) return;
-  const hasVideo = rawFiles.some((file) => file.type.startsWith('video/'));
-  const hasImages = rawFiles.some((file) => file.type.startsWith('image/'));
+  const isVideo = (file) => file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v|ogv)$/i.test(file.name || '');
+  const isImage = (file) => file.type.startsWith('image/') || /\.(jpe?g|png|webp|avif|gif|bmp)$/i.test(file.name || '');
+  const hasVideo = rawFiles.some(isVideo);
+  const hasImages = rawFiles.some(isImage);
+  if (rawFiles.some((file) => !isVideo(file) && !isImage(file))) {
+    setStatus('无法识别这个文件。请选择 MP4/WebM 视频，或 JPEG/PNG/WebP 照片。');
+    return;
+  }
   if (hasVideo && hasImages || hasVideo && rawFiles.length > 1) {
     setStatus('请只选择一段视频，或只选择同一组照片；视频和照片不能混选。');
     return;
@@ -336,9 +395,9 @@ async function handleFiles(fileList) {
     if (stream) stopStream();
     releaseFrameUrls();
     editorPoints = []; editorFrame = null; $('scaleInput').value = ''; dispatch({ type: 'CLEAR' }); setStatus('正在读取本地素材……');
-    if (files[0].type.startsWith('video/')) {
+    if (isVideo(files[0])) {
       if (files.length > 1) setStatus('检测到视频，将只读取第一段视频。');
-      const result = await videoFrames(files[0], { onProgress: (value) => setStatus(`正在抽取视频帧……${Math.round(value * 100)}%`), shouldCancel: () => inputToken !== captureToken });
+      const result = await videoFrames(files[0], { onProgress: (value) => { setProgress('读取视频帧', value * 0.45); setStatus(`正在抽取视频帧……${Math.round(value * 100)}%`); }, shouldCancel: () => inputToken !== captureToken });
       if (inputToken !== captureToken) { releaseVideoUrl(result.url); releaseFrameUrls(); return; }
       editorFrame = result.frames[0].canvas; frameUrls.push(result.url); dispatch({ type: 'SET_FRAMES', frames: result.frames }); state = { ...state, fps: result.fps }; $('fpsInput').value = String(Math.round(result.fps)); setStatus(`已读取 ${result.frames.length} 帧，帧率约 ${result.fps.toFixed(1)} fps。`);
       if (result.sampled) setStatus(`视频较长，已抽取 ${result.frames.length} 帧，实际分析 FPS 约 ${result.fps.toFixed(1)}；结果仍可用于参考观察。`);
@@ -351,14 +410,15 @@ async function handleFiles(fileList) {
         if (inputToken !== captureToken) { if (frame.url) releaseVideoUrl(frame.url); releaseFrameUrls(); return; }
         frames.push(frame);
         if (frame.url) frameUrls.push(frame.url);
+        setProgress('读取照片', ((index + 1) / imageFiles.length) * 0.45);
         setStatus(`正在读取照片……${index + 1}/${imageFiles.length}`);
       }
       editorFrame = frames[0].canvas;
       if (frames.length < 2) { dispatch({ type: 'CLEAR' }); setStatus('单张照片只能用于设置 ROI。请至少选择两张连续照片，或选择一段视频。'); }
       else { dispatch({ type: 'SET_FRAMES', frames }); const fps = selectedFps(); state = { ...state, fps }; setStatus(`已读取 ${frames.length} 张照片（按文件名排序），将按 ${fps} FPS 估计位移。`); }
     }
-    drawEditor(); updateSetupChecklist();
-  } catch (error) { releaseFrameUrls(); if (inputToken !== captureToken) return; dispatch({ type: 'ERROR', error: Object.assign(error, { code: error.code || 'DECODE_FAILED' }) }); }
+    drawEditor(); updateSetupChecklist(); setProgress('', 0, false);
+  } catch (error) { releaseFrameUrls(); setProgress('', 0, false); if (inputToken !== captureToken) return; dispatch({ type: 'ERROR', error: Object.assign(error, { code: error.code || 'DECODE_FAILED' }) }); }
 }
 
 document.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => { cancelActiveWork(); releaseFrameUrls(); if (button.dataset.mode !== MODES.LIVE) stopStream(); editorPoints = []; editorFrame = null; $('scaleInput').value = ''; dispatch({ type: 'SET_MODE', mode: button.dataset.mode }); drawEditor(); setStatus(button.dataset.mode === MODES.LIVE ? '先启动后置相机并冻结首帧，再设置目标框和标尺。' : '点击“用样例体验”，或导入一段视频/至少两张照片。'); }));
@@ -369,6 +429,7 @@ $('roiMode').addEventListener('click', () => { editMode = 'roi'; $('roiMode').se
 $('scaleMode').addEventListener('click', () => { editMode = 'scale'; $('roiMode').setAttribute('aria-pressed', 'false'); $('scaleMode').setAttribute('aria-pressed', 'true'); drawEditor(); setStatus('标尺模式：点击或拖动 P1、P2，输入它们之间的真实距离。'); });
 $('clearScale').addEventListener('click', () => { editorPoints = []; dispatch({ type: 'SET_SCALE', scale: { p1: [0, 0], p2: [0, 0], realDistance: Number($('scaleInput').value), unit: $('unitInput').value } }); drawEditor(); setStatus('标尺点已清除，请重新设置 P1 和 P2。'); }); $('measureButton').addEventListener('click', runMeasure);
 $('resetButton').addEventListener('click', () => { cancelActiveWork(); editorPoints = []; editorFrame = null; $('scaleInput').value = ''; dispatch({ type: 'CLEAR' }); setStatus(state.mode === MODES.LIVE ? '已清空设置。启动相机并冻结首帧后再开始。' : '已清空设置。点击“用样例体验”或导入自己的素材。'); drawEditor(); });
+$('reinitializeButton').addEventListener('click', () => { cancelActiveWork(); editorPoints = []; editorFrame = null; $('scaleInput').value = ''; dispatch({ type: 'CLEAR' }); $('liveStatus').textContent = '已清除旧结果。请保持相机固定，重新冻结首帧并框选目标。'; drawEditor(); });
 $('cancelButton').addEventListener('click', () => { cancelActiveWork(); dispatch({ type: 'ERROR', error: Object.assign(new Error('CANCELLED'), { code: 'CANCELLED' }) }); });
 $('startCamera').addEventListener('click', async () => { try { stopStream(); stream = await requestRearCamera(); const video = $('cameraVideo'); video.srcObject = stream; await video.play().catch(() => {}); if (video.readyState < 2) await new Promise((resolve) => video.addEventListener('loadeddata', resolve, { once: true })); $('startCamera').disabled = true; $('freezeCamera').disabled = false; $('stopCamera').disabled = false; setStatus('相机已启动。固定手机后冻结首帧，再设置目标框和尺度点。'); } catch (error) { stopStream(); $('liveStatus').textContent = describeError(error); } });
 $('freezeCamera').addEventListener('click', () => { const video = $('cameraVideo'); if (video.readyState < 2 || !video.videoWidth) { $('liveStatus').textContent = '相机画面还没准备好，请稍等一秒再冻结。'; return; } const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 360; const ctx = canvas.getContext('2d'); const sw = video.videoWidth, sh = video.videoHeight, scale = Math.min(640 / sw, 360 / sh); ctx.fillStyle = '#10252d'; ctx.fillRect(0, 0, 640, 360); ctx.drawImage(video, (640 - sw * scale) / 2, (360 - sh * scale) / 2, sw * scale, sh * scale); editorFrame = canvas; editorPoints = []; dispatch({ type: 'CLEAR' }); $('liveStatus').textContent = '首帧已冻结。先调整目标框，再设置 P1/P2 和真实距离；点击开始后会重新采集后续画面。'; drawEditor(); });
