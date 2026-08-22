@@ -194,6 +194,7 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
   temporaryCanvas.width = sourceWidth;
   temporaryCanvas.height = sourceHeight;
   let stream;
+  let requestFrame = null;
   try {
     // A zero frame-rate track lets us explicitly request exactly one frame per
     // painted annotation where the browser supports CanvasCaptureMediaStreamTrack.
@@ -207,6 +208,29 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
     temporaryCanvas.width = 0;
     temporaryCanvas.height = 0;
     throw makeError('VIDEO_RECORDING_UNSUPPORTED');
+  }
+
+  const streamTracks = () => (typeof stream.getVideoTracks === 'function'
+    ? stream.getVideoTracks()
+    : (typeof stream.getTracks === 'function' ? stream.getTracks() : null));
+  const initialTracks = streamTracks();
+  requestFrame = initialTracks?.find((track) => typeof track?.requestFrame === 'function') || null;
+  // CanvasCaptureMediaStreamTrack.requestFrame is unavailable in some Safari
+  // builds. Recreate the track with a non-zero rate so it can still encode.
+  if (!requestFrame && initialTracks) {
+    stopTracks(stream);
+    try {
+      stream = temporaryCanvas.captureStream?.(rate);
+    } catch (error) {
+      temporaryCanvas.width = 0;
+      temporaryCanvas.height = 0;
+      throw makeError('VIDEO_RECORDING_UNSUPPORTED', error?.message || 'captureStream failed');
+    }
+    if (!stream) {
+      temporaryCanvas.width = 0;
+      temporaryCanvas.height = 0;
+      throw makeError('VIDEO_RECORDING_UNSUPPORTED');
+    }
   }
 
   let recorder;
@@ -223,6 +247,7 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
   let settled = false;
   let stopping = false;
   let cancelled = false;
+  let failure = null;
   let frameCount = 0;
   let resolveResult;
   let rejectResult;
@@ -249,8 +274,11 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
   const onData = (event) => {
     if (event?.data && (typeof event.data.size !== 'number' || event.data.size > 0)) parts.push(event.data);
   };
-  const onStop = () => settle(cancelled ? makeError('CANCELLED') : null);
-  const onError = (event) => settle(event?.error || makeError('VIDEO_RECORDING_FAILED'));
+  const onStop = () => settle(failure || (cancelled ? makeError('CANCELLED') : null));
+  const onError = (event) => {
+    failure = event?.error || makeError('VIDEO_RECORDING_FAILED');
+    settle(failure);
+  };
   const hasEventTarget = typeof recorder.addEventListener === 'function';
   if (hasEventTarget) {
     recorder.addEventListener('dataavailable', onData);
@@ -266,15 +294,15 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
     cancelled ||= Boolean(isCancelled);
     if (stopping) return;
     stopping = true;
-    try { recorder.stop(); } catch (error) { settle(cancelled ? makeError('CANCELLED') : error); }
+    try { recorder.stop(); } catch (error) {
+      settle(failure || (cancelled ? makeError('CANCELLED') : error));
+    }
   };
 
   try {
-    recorder.start();
-    const videoTracks = typeof stream.getVideoTracks === 'function'
-      ? stream.getVideoTracks()
-      : (stream.getTracks?.() || []);
-    const requestFrame = videoTracks.find((track) => typeof track?.requestFrame === 'function');
+    try { recorder.start(); } catch (error) {
+      throw makeError('VIDEO_RECORDING_UNSUPPORTED', error?.message || 'MediaRecorder.start failed');
+    }
     for (let index = 0; index < list.length; index += 1) {
       if (typeof options.shouldCancel === 'function' && options.shouldCancel()) {
         stopRecorder(true);
@@ -295,18 +323,16 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
         try { requestFrame.requestFrame(); } catch (error) {
           throw makeError('VIDEO_RECORDING_UNSUPPORTED', error?.message || 'requestFrame failed');
         }
-        // Yield to the event loop so the requested frame reaches the recorder.
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      } else {
-        // Without requestFrame, pace the canvas at the requested FPS; a zero
-        // delay can collapse all annotations into one encoded frame.
-        await new Promise((resolve) => setTimeout(resolve, 1000 / rate));
       }
+      // Keep the generated video duration close to the source sampling rate.
+      // This also gives MediaRecorder time to consume a manually requested frame.
+      await new Promise((resolve) => setTimeout(resolve, 1000 / rate));
     }
     if (!stopping) stopRecorder(false);
   } catch (error) {
+    failure = error?.code ? error : makeError('VIDEO_RECORDING_UNSUPPORTED', error?.message || 'recording failed');
     if (!stopping) stopRecorder(false);
-    settle(error);
+    else settle(failure);
   }
   return result;
 }

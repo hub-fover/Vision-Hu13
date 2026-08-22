@@ -272,3 +272,49 @@ test('annotated video cancellation stops recorder and capture stream', async () 
     else globalThis.document = previousDocument;
   }
 });
+
+test('annotated video falls back to a timed capture track without requestFrame', async () => {
+  const previousRecorder = globalThis.MediaRecorder;
+  const previousDocument = globalThis.document;
+  const captureRates = [];
+  let stoppedTracks = 0;
+  class FallbackMediaRecorder {
+    static isTypeSupported() { return true; }
+    constructor() { this.handlers = {}; }
+    addEventListener(name, handler) { this.handlers[name] = handler; }
+    start() {
+      this.handlers.dataavailable?.({ data: new Blob(['fallback'], { type: 'video/webm' }) });
+    }
+    stop() { this.handlers.stop?.(); }
+  }
+  const context = {
+    drawImage() {}, fillText() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {},
+    save() {}, restore() {}, setLineDash() {},
+  };
+  const makeCanvas = () => ({
+    width: 640,
+    height: 360,
+    getContext: () => context,
+    captureStream: (rate) => {
+      captureRates.push(rate);
+      return {
+        getTracks: () => [{ stop() { stoppedTracks += 1; } }],
+      };
+    },
+  });
+  try {
+    globalThis.MediaRecorder = FallbackMediaRecorder;
+    globalThis.document = { createElement: () => makeCanvas() };
+    const frames = [{ canvas: makeCanvas() }, { canvas: makeCanvas() }];
+    const samples = [{ dxPx: 0, dyPx: 0, magnitudeM: 0 }, { dxPx: 1, dyPx: 0, magnitudeM: 0.001 }];
+    const result = await createAnnotatedVideo(frames, samples, { x: 10, y: 10, width: 100, height: 80 }, 30);
+    assert.ok(result.size > 0);
+    assert.deepEqual(captureRates, [0, 30]);
+    assert.equal(stoppedTracks, 2, 'the probe track and recording track are both released');
+  } finally {
+    if (previousRecorder === undefined) delete globalThis.MediaRecorder;
+    else globalThis.MediaRecorder = previousRecorder;
+    if (previousDocument === undefined) delete globalThis.document;
+    else globalThis.document = previousDocument;
+  }
+});
