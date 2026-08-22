@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildSampleFrames } from '../js/measurement.js';
-import { drawAnnotatedFrame, getRecordingMimeType } from '../js/video.js';
+import {
+  createAnnotatedVideo,
+  drawAnnotatedFrame,
+  getRecordingMimeType,
+  releaseVideoUrl,
+  replaceVideoUrl,
+} from '../js/video.js';
 
 test('sample frames are renderable 640x360 frames with motion metadata', () => {
   const frames = buildSampleFrames(12, 30);
@@ -16,6 +22,11 @@ test('sample frames are renderable 640x360 frames with motion metadata', () => {
     assert.equal(typeof frame.offsetY, 'number');
   });
   assert.equal(frames[0].timeS, 0);
+
+  const pixels = frames.map((frame) => frame.pixels ?? frame.imageData?.data ??
+    frame.canvas?.getContext?.('2d')?.getImageData(0, 0, frame.canvas.width, frame.canvas.height).data);
+  assert.ok(pixels.every(Boolean), 'each sample frame should expose inspectable pixels');
+  assert.notDeepEqual(Array.from(pixels[0]), Array.from(pixels[6]), 'motion must change rendered pixels');
 });
 
 test('annotated first frame explains zero displacement from the initial frame', () => {
@@ -61,5 +72,77 @@ test('recording MIME detection returns null without MediaRecorder', () => {
   } finally {
     if (previous === undefined) delete globalThis.MediaRecorder;
     else globalThis.MediaRecorder = previous;
+  }
+});
+
+test('recording MIME detection returns null when no supported type exists', () => {
+  const previous = globalThis.MediaRecorder;
+  try {
+    globalThis.MediaRecorder = class MediaRecorder {};
+    globalThis.MediaRecorder.isTypeSupported = () => false;
+    assert.equal(getRecordingMimeType(), null);
+  } finally {
+    if (previous === undefined) delete globalThis.MediaRecorder;
+    else globalThis.MediaRecorder = previous;
+  }
+});
+
+test('video URL replacement revokes the previous object URL', () => {
+  const calls = [];
+  const urlApi = {
+    createObjectURL(value) { calls.push(['create', value]); return 'blob:new'; },
+    revokeObjectURL(value) { calls.push(['revoke', value]); },
+  };
+  const blob = { type: 'video/webm' };
+
+  assert.equal(replaceVideoUrl('blob:old', blob, urlApi), 'blob:new');
+  releaseVideoUrl('blob:new', urlApi);
+  assert.deepEqual(calls, [['revoke', 'blob:old'], ['create', blob], ['revoke', 'blob:new']]);
+});
+
+test('annotated video records a Blob with the minimal MediaRecorder contract', async () => {
+  const previousRecorder = globalThis.MediaRecorder;
+  const previousDocument = globalThis.document;
+  const events = [];
+  class FakeMediaRecorder {
+    static isTypeSupported() { return true; }
+    constructor(stream, options) { this.stream = stream; this.options = options; this.handlers = {}; }
+    addEventListener(name, handler) { this.handlers[name] = handler; }
+    start() {
+      const event = { data: new Blob(['frame'], { type: 'video/webm' }) };
+      this.handlers.dataavailable?.(event);
+      this.ondataavailable?.(event);
+    }
+    stop() { this.handlers.stop?.(); this.onstop?.(); }
+  }
+  const context = {
+    clearRect() {}, drawImage() {}, fillText() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {},
+    save() {}, restore() {}, setLineDash() {},
+  };
+  const makeCanvas = () => ({
+    width: 640,
+    height: 360,
+    getContext: () => context,
+    captureStream: (fps) => ({ fps }),
+  });
+  try {
+    globalThis.MediaRecorder = FakeMediaRecorder;
+    globalThis.document = { createElement: (tag) => {
+      assert.equal(tag, 'canvas');
+      return makeCanvas();
+    } };
+    const frames = [{ canvas: makeCanvas(), timeS: 0 }, { canvas: makeCanvas(), timeS: 1 / 30 }];
+    const samples = [{ dxPx: 0, dyPx: 0, dxM: 0, dyM: 0, magnitudePx: 0, magnitudeM: 0, score: 1 },
+      { dxPx: 2, dyPx: 1, dxM: 0.002, dyM: 0.001, magnitudePx: 2.24, magnitudeM: 0.00224, score: 0.9 }];
+    const result = await createAnnotatedVideo(frames, samples, { x: 10, y: 10, width: 100, height: 80 }, 30);
+    assert.ok(result instanceof Blob);
+    assert.equal(result.type, 'video/webm');
+    events.push(result.size);
+    assert.ok(events[0] > 0);
+  } finally {
+    if (previousRecorder === undefined) delete globalThis.MediaRecorder;
+    else globalThis.MediaRecorder = previousRecorder;
+    if (previousDocument === undefined) delete globalThis.document;
+    else globalThis.document = previousDocument;
   }
 });
