@@ -3,8 +3,15 @@ import { dominantFrequency, summarize } from './signal.js';
 import { trackTemplateSequence } from './template.js';
 import { trackFlowSequence } from './flow.js';
 
-const SAMPLE_WIDTH = 640;
-const SAMPLE_HEIGHT = 360;
+const SAMPLE_LAYOUT = Object.freeze({
+  width: 640,
+  height: 360,
+  grid: 32,
+  targetX: 220,
+  targetY: 110,
+  targetWidth: 180,
+  targetHeight: 120,
+});
 
 function colour(value) {
   const match = String(value).match(/#([0-9a-f]{6})/i);
@@ -46,34 +53,47 @@ function makeCanvas(width, height) {
   return fallbackCanvas(width, height);
 }
 
+function sampleMotionAt(index, fps) {
+  const phase = 2 * Math.PI * 2 * index / fps;
+  return {
+    offsetX: Math.sin(phase) * 3,
+    offsetY: Math.cos(phase) * 0.8,
+    score: 0.94,
+  };
+}
+
 function renderSampleFrame(canvas, offsetX, offsetY, index) {
   const context = canvas.getContext('2d');
-  context.fillStyle = '#101923'; context.fillRect(0, 0, SAMPLE_WIDTH, SAMPLE_HEIGHT);
+  const { width, height, grid, targetX, targetY, targetWidth, targetHeight } = SAMPLE_LAYOUT;
+  context.fillStyle = '#101923'; context.fillRect(0, 0, width, height);
   context.strokeStyle = '#263747'; context.lineWidth = 1;
-  for (let x = 0; x <= SAMPLE_WIDTH; x += 32) { context.beginPath(); context.moveTo(x, 0); context.lineTo(x, SAMPLE_HEIGHT); context.stroke(); }
-  for (let y = 0; y <= SAMPLE_HEIGHT; y += 32) { context.beginPath(); context.moveTo(0, y); context.lineTo(SAMPLE_WIDTH, y); context.stroke(); }
-  const x = 220 + offsetX; const y = 110 + offsetY;
-  context.fillStyle = '#254d61'; context.fillRect(x, y, 180, 120);
-  context.fillStyle = '#82e4d2'; context.fillRect(x + 2, y + 2, 176, 4); context.fillRect(x + 2, y + 114, 176, 4);
+  for (let x = 0; x <= width; x += grid) { context.beginPath(); context.moveTo(x, 0); context.lineTo(x, height); context.stroke(); }
+  for (let y = 0; y <= height; y += grid) { context.beginPath(); context.moveTo(0, y); context.lineTo(width, y); context.stroke(); }
+  const x = targetX + offsetX; const y = targetY + offsetY;
+  context.fillStyle = '#254d61'; context.fillRect(x, y, targetWidth, targetHeight);
+  context.fillStyle = '#82e4d2'; context.fillRect(x + 2, y + 2, targetWidth - 4, 4); context.fillRect(x + 2, y + targetHeight - 6, targetWidth - 4, 4);
   context.fillStyle = '#d8fff6';
-  for (let tx = 12; tx < 170; tx += 22) for (let ty = 14; ty < 104; ty += 22) context.fillRect(x + tx, y + ty, 8, 8);
+  for (let tx = 12; tx < targetWidth - 10; tx += 22) for (let ty = 14; ty < targetHeight - 16; ty += 22) context.fillRect(x + tx, y + ty, 8, 8);
   context.fillStyle = '#f6fffd'; context.fillText(`TARGET ${String(index).padStart(3, '0')}`, x + 16, y + 64);
 }
 
 export function buildSampleFrames(count = 240, fps = 30) {
   const total = Math.max(0, Math.floor(Number(count) || 0));
   const rate = Number(fps) > 0 ? Number(fps) : 30;
+  const first = sampleMotionAt(0, rate);
   return Array.from({ length: total }, (_, i) => {
-    const phase = 2 * Math.PI * 2 * i / rate;
-    const offsetX = Math.sin(phase) * 3;
-    const offsetY = (Math.cos(phase) - 1) * 0.8;
-    const canvas = makeCanvas(SAMPLE_WIDTH, SAMPLE_HEIGHT);
+    const motion = sampleMotionAt(i, rate);
+    const offsetX = motion.offsetX - first.offsetX;
+    const offsetY = motion.offsetY - first.offsetY;
+    const canvas = makeCanvas(SAMPLE_LAYOUT.width, SAMPLE_LAYOUT.height);
     renderSampleFrame(canvas, offsetX, offsetY, i);
-    return { canvas, source: 'sample', timeS: i / rate, offsetX, offsetY, score: 0.94 };
+    return { canvas, source: 'sample', timeS: i / rate, offsetX, offsetY, score: motion.score };
   });
 }
 
 export function buildSampleMotion(count = 240, fps = 30) {
-  return buildSampleFrames(count, fps).map(({ canvas, source, ...motion }) => motion);
+  const total = Math.max(0, Math.floor(Number(count) || 0));
+  const rate = Number(fps) > 0 ? Number(fps) : 30;
+  return Array.from({ length: total }, (_, i) => sampleMotionAt(i, rate));
 }
 export function measureMotions(motions,{roi,scale,method='template',fps=30}={}){if(!Array.isArray(motions)||!motions.length)throw Object.assign(new Error('INVALID_FRAME'),{code:'INVALID_FRAME'});validateTarget(roi||{x:0,y:0,width:64,height:64},Math.max(roi?.x+roi?.width||0,640),Math.max(roi?.y+roi?.height||0,360));if(!scale?.p1||!scale?.p2)throw Object.assign(new Error('INVALID_SCALE'),{code:'INVALID_SCALE'});const mPerPx=metresPerPixel(scale.p1,scale.p2,scale.realDistance,scale.unit);const pixelSamples=(method==='flow'?trackFlowSequence:trackTemplateSequence)(motions,fps);const samples=pixelSamples.map(s=>({...s,dxM:s.dxPx*mPerPx,dyM:s.dyPx*mPerPx}));const magnitudes=samples.filter(s=>s.valid).map(s=>Math.hypot(s.dxPx,s.dyPx));const stats=summarize(magnitudes,mPerPx);const times=samples.map(s=>s.timeS),freq=dominantFrequency(times,samples.map(s=>s.dxM));return {schemaVersion:CONTRACTS.schemaVersion,method,scale:{...scale,realDistanceM:scale.realDistance*(scale.unit==='mm'?.001:scale.unit==='cm'?.01:1)},displacement:{samples,peakToPeakM:stats.peakToPeakM,rmsM:stats.rmsM,peakToPeakPx:magnitudes.length?Math.max(...magnitudes)-Math.min(...magnitudes):0},spectrum:freq,diagnostics:{cameraStable:true,backgroundTrackable:true,validRatio:samples.filter(s=>s.valid).length/samples.length,meanScore:samples.reduce((a,s)=>a+s.score,0)/samples.length,fps,errorCode:null},errors:[]};}
