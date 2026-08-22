@@ -20,7 +20,7 @@
           <div class="panel-heading"><div><span class="section-kicker">STEP 01</span><h2>先用样例看结果</h2></div><span class="badge">30 fps · 2 Hz</span></div>
           <p class="muted">样例模拟一个固定相机观察下的小幅正弦运动。你可以先熟悉曲线，再换成自己的相机。</p>
           <div class="sample-visual" id="sampleVisual"><div class="sample-grid"></div><div class="sample-target" id="sampleTarget"></div><span class="sample-caption">确定性运动样例</span></div>
-          <div class="action-row"><button class="button primary" id="sampleButton">用样例体验</button><label class="button secondary file-button">选择视频或帧<input id="fileInput" type="file" accept="video/*,image/*" capture="environment"></label></div>
+          <div class="action-row"><button class="button primary" id="sampleButton">用样例体验</button><label class="button secondary file-button">选择视频或照片序列<input id="fileInput" type="file" accept="video/*,image/*" capture="environment" multiple></label></div>
           <p class="source-note" id="sampleSource">来源：仓库内置生成样例，不代表手机实拍精度。</p>
         </section>
         <section class="panel live-panel hidden" id="livePanel">
@@ -28,13 +28,13 @@
           <div class="video-stage"><video id="cameraVideo" autoplay playsinline muted></video><canvas id="liveCanvas"></canvas><div class="roi-handle" id="roiHandle" hidden></div></div>
           <div class="action-row"><button class="button primary" id="startCamera">开始后置相机</button><button class="button secondary" id="freezeCamera" disabled>冻结首帧</button><button class="button quiet" id="stopCamera" disabled>停止</button></div>
           <p class="status" id="liveStatus">需要 HTTPS 或 localhost，以及摄像头权限。</p>
-          <label class="button secondary file-button">相册备用<input id="galleryInput" type="file" accept="video/*,image/*"></label>
+          <label class="button secondary file-button">从相册选择<input id="galleryInput" type="file" accept="video/*,image/*" multiple></label>
         </section>
         <section class="panel setup-panel" id="setupPanel">
           <div class="panel-heading"><div><span class="section-kicker">STEP 02</span><h2>框选目标和标尺</h2></div><span class="badge" id="setupState">等待样例</span></div>
-          <div class="editor-stage"><canvas id="targetCanvas" width="640" height="360" aria-label="目标区域编辑画布"></canvas><div class="editor-help">拖动矩形四角调整 ROI；再点画面上的两个尺度点。</div></div>
+          <div class="editor-toolbar"><button class="button secondary compact" id="roiMode" type="button" aria-pressed="true">调整目标框</button><button class="button secondary compact" id="scaleMode" type="button" aria-pressed="false">设置两点标尺</button><button class="button quiet compact" id="clearScale" type="button">清除标尺点</button></div><div class="editor-stage"><canvas id="targetCanvas" width="640" height="360" aria-label="目标区域编辑画布"></canvas><div class="editor-help" id="editorHint">按住圆点拖动四角，框内可整体移动</div></div>
           <div class="form-grid"><label>真实距离<input id="scaleInput" type="number" min="0" step="any" placeholder="例如 100"></label><label>单位<select id="unitInput"><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option></select></label><label>跟踪方法<select id="methodInput"><option value="template">模板匹配（默认）</option><option value="flow">Lucas–Kanade 光流</option></select></label></div>
-          <p class="hint">两点必须在同一刚性平面上。相机一旦移动，毫米结果会被判为无效。</p>
+          <p class="hint">两点必须在同一刚性平面上。相机一旦移动，毫米结果会被判为无效。</p><p class="setup-checklist" id="setupChecklist" aria-live="polite"></p>
           <div class="action-row"><button class="button primary" id="measureButton" disabled>开始测量</button><button class="button quiet" id="cancelButton" disabled>取消</button></div>
         </section>
       </div>

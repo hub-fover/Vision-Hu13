@@ -9,7 +9,7 @@ const defaultDestination = resolve(here, '../../web/lab-004');
 const excluded = new Set(['node_modules', 'package.json', 'package-lock.json', 'playwright.config.js', 'scripts', 'tests', 'test-results', 'README.md', 'manifest.local.json', '_review-manifest.json']);
 const required = [
   'index.html', 'styles.css', 'assets/samples/manifest.json',
-  'js/app.js', 'js/state.js', 'js/capture.js', 'js/measurement.js', 'js/template.js',
+  'js/app.js', 'js/state.js', 'js/capture.js', 'js/editor.js', 'js/measurement.js', 'js/template.js',
   'js/flow.js', 'js/signal.js', 'js/worker-client.js', 'js/measurement.worker.js', 'js/errors.js'
 ];
 
