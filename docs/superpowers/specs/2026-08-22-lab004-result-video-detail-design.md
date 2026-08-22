@@ -20,7 +20,7 @@
 - app.js 只负责状态、DOM 绑定和资源生命周期，不在结果视频模块中重复计算位移。
 - state.js 增加 resultVideoUrl、resultVideoBlob 和 resultVideoError 的可清理状态。
 
-视频模块输入为 frames、samples、roi、scale、fps，其中 samples[0] 必须代表相对于第一帧的零位移。输出为 url、blob、mimeType，或稳定错误码 VIDEO_RECORDING_UNSUPPORTED。
+视频模块输入为 frames、samples、roi、scale、fps 和可选的 options.shouldCancel()。其中 samples[0] 必须代表相对于第一帧的零位移。输出为 url、blob、mimeType，或稳定错误码 VIDEO_RECORDING_UNSUPPORTED。shouldCancel 返回 true 时必须停止 MediaRecorder、停止 captureStream 的 tracks、释放临时 Canvas，并抛出稳定错误码 CANCELLED。
 
 ## 文章结构
 

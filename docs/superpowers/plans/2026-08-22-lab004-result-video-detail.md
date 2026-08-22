@@ -38,7 +38,7 @@ Files:
 - Test: lab-004/web/tests/video.test.js
 
 - [ ] Step 1: 实现 drawAnnotatedFrame(canvas, frame, initialFrame, sample, roi, scale, index, total)：绘制当前帧、初始 ROI 虚线、位移箭头、中文指标、时间、帧序号和置信度。
-- [ ] Step 2: 实现 getRecordingMimeType() 按 vp9、vp8、webm 检查 MediaRecorder.isTypeSupported；实现 createAnnotatedVideo，用 canvas.captureStream(fps) 和 MediaRecorder 收集 Blob，并在无 API 时抛出 VIDEO_RECORDING_UNSUPPORTED。
+- [ ] Step 2: 实现 getRecordingMimeType() 按 vp9、vp8、webm 检查 MediaRecorder.isTypeSupported；实现 createAnnotatedVideo(frames, samples, roi, fps, options)，用 canvas.captureStream(fps) 和 MediaRecorder 收集 Blob，并在无 API 时抛出 VIDEO_RECORDING_UNSUPPORTED。options.shouldCancel() 返回 true 时停止 recorder 和全部 captureStream tracks、释放临时 Canvas，并抛出 CANCELLED。
 - [ ] Step 3: 实现 replaceVideoUrl(video, blob) 和 releaseVideoUrl(url)，替换前撤销旧 Blob URL。
 - [ ] Step 4: 运行单测：npm.cmd --prefix lab-004/web test。
 
