@@ -297,6 +297,7 @@ test('annotated video falls back to a timed capture track without requestFrame',
     getContext: () => context,
     captureStream: (rate) => {
       captureRates.push(rate);
+      if (captureRates.length === 1) return null;
       return {
         getTracks: () => [{ stop() { stoppedTracks += 1; } }],
       };
@@ -310,7 +311,46 @@ test('annotated video falls back to a timed capture track without requestFrame',
     const result = await createAnnotatedVideo(frames, samples, { x: 10, y: 10, width: 100, height: 80 }, 30);
     assert.ok(result.size > 0);
     assert.deepEqual(captureRates, [0, 30]);
-    assert.equal(stoppedTracks, 2, 'the probe track and recording track are both released');
+    assert.equal(stoppedTracks, 1, 'the timed recording track is released');
+  } finally {
+    if (previousRecorder === undefined) delete globalThis.MediaRecorder;
+    else globalThis.MediaRecorder = previousRecorder;
+    if (previousDocument === undefined) delete globalThis.document;
+    else globalThis.document = previousDocument;
+  }
+});
+
+test('annotated video forwards asynchronous recorder errors with a stable code', async () => {
+  const previousRecorder = globalThis.MediaRecorder;
+  const previousDocument = globalThis.document;
+  class ErrorMediaRecorder {
+    static isTypeSupported() { return true; }
+    constructor() { this.handlers = {}; }
+    addEventListener(name, handler) { this.handlers[name] = handler; }
+    start() {
+      setTimeout(() => this.handlers.error?.({ error: new Error('encoder failed') }), 1);
+    }
+    stop() { this.handlers.stop?.(); }
+  }
+  const context = {
+    drawImage() {}, fillText() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {},
+    save() {}, restore() {}, setLineDash() {},
+  };
+  const makeCanvas = () => ({
+    width: 640,
+    height: 360,
+    getContext: () => context,
+    captureStream: () => ({ getTracks: () => [{ stop() {} }] }),
+  });
+  try {
+    globalThis.MediaRecorder = ErrorMediaRecorder;
+    globalThis.document = { createElement: () => makeCanvas() };
+    const frames = [{ canvas: makeCanvas() }, { canvas: makeCanvas() }];
+    const samples = [{ dxPx: 0 }, { dxPx: 1 }];
+    await assert.rejects(
+      () => createAnnotatedVideo(frames, samples, { x: 0, y: 0, width: 100, height: 80 }, 30),
+      (error) => error?.code === 'VIDEO_RECORDING_FAILED',
+    );
   } finally {
     if (previousRecorder === undefined) delete globalThis.MediaRecorder;
     else globalThis.MediaRecorder = previousRecorder;

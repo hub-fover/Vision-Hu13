@@ -196,11 +196,13 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
   let stream;
   let requestFrame = null;
   let timedCapture = false;
+  let zeroRateError = null;
   try {
     // A zero frame-rate track lets us explicitly request exactly one frame per
     // painted annotation where the browser supports CanvasCaptureMediaStreamTrack.
     stream = temporaryCanvas.captureStream?.(0);
   } catch (error) {
+    zeroRateError = error;
     // A few implementations reject a zero-rate track outright. Retry with a
     // timed track before reporting that local recording is unavailable.
     try {
@@ -213,9 +215,19 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
     }
   }
   if (!stream) {
-    temporaryCanvas.width = 0;
-    temporaryCanvas.height = 0;
-    throw makeError('VIDEO_RECORDING_UNSUPPORTED');
+    try {
+      stream = temporaryCanvas.captureStream?.(rate);
+      timedCapture = true;
+    } catch (fallbackError) {
+      temporaryCanvas.width = 0;
+      temporaryCanvas.height = 0;
+      throw makeError('VIDEO_RECORDING_UNSUPPORTED', fallbackError?.message || zeroRateError?.message || 'captureStream failed');
+    }
+    if (!stream) {
+      temporaryCanvas.width = 0;
+      temporaryCanvas.height = 0;
+      throw makeError('VIDEO_RECORDING_UNSUPPORTED', zeroRateError?.message || 'captureStream unavailable');
+    }
   }
 
   const streamTracks = () => (typeof stream.getVideoTracks === 'function'
@@ -261,6 +273,10 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
   let resolveResult;
   let rejectResult;
   const result = new Promise((resolve, reject) => { resolveResult = resolve; rejectResult = reject; });
+  // The recorder can emit an error before this async function has returned its
+  // adopted promise. Mark the internal promise handled while preserving the
+  // rejection for callers awaiting createAnnotatedVideo().
+  result.catch(() => {});
 
   const cleanup = () => {
     stopTracks(stream);
