@@ -28,7 +28,10 @@
     "INSUFFICIENT_SAMPLES": "More samples are required for spectrum analysis.",
     "RUNTIME_MISSING": "The local computer-vision runtime is unavailable.",
     "PERMISSION_DENIED": "Camera permission was denied.",
-    "CANCELLED": "The operation was cancelled."
+    "CANCELLED": "The operation was cancelled.",
+    "VIDEO_RECORDING_UNSUPPORTED": "The browser cannot create a local result video.",
+    "VIDEO_RECORDING_FAILED": "The local result video encoder failed.",
+    "VIDEO_RECORDING_CANCELLED": "The result video recording was cancelled."
   },
   "types": {
     "ScaleReference": {"fields": {"p1Px": "[x,y]", "p2Px": "[x,y]", "realDistanceM": "positive number", "unit": "mm|cm|m"}},

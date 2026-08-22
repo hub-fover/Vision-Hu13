@@ -1,10 +1,11 @@
 import { createState, reducer, MODES } from './state.js';
 import { requestRearCamera, imageFrame, videoFrames, motionFromFrames, captureLiveFrames } from './capture.js';
-import { buildSampleMotion } from './measurement.js';
+import { buildSampleMotion, buildSampleFrames } from './measurement.js';
 import { drawSeries } from './signal.js';
 import { describeError } from './errors.js';
 import { WorkerClient } from './worker-client.js';
 import { moveRoi, nearestRoiHandle, resizeRoi, roiContains } from './editor.js';
+import { createAnnotatedVideo, replaceVideoUrl, releaseVideoUrl } from './video.js';
 
 const $ = (id) => document.getElementById(id);
 let state = createState();
@@ -17,6 +18,9 @@ let editMode = 'roi';
 let drag = null;
 let captureToken = 0;
 let frameUrls = [];
+let resultVideoUrl = null;
+let resultVideoBlob = null;
+let resultVideoFrames = [];
 let statusMessage = '加载样例后，这里会显示像素位移、毫米位移和主频。';
 
 function setStatus(message) {
@@ -29,6 +33,7 @@ function cancelActiveWork() {
   captureToken += 1;
   if (requestId) worker?.cancel(requestId);
   requestId = null;
+  clearResultVideo();
 }
 
 function stopStream() {
@@ -60,7 +65,8 @@ function scalePixels() {
 }
 
 function inputReady() {
-  return state.frames.length > 1 && editorPoints.length === 2 && Number.isFinite(Number($('scaleInput').value)) &&
+  const hasInput = state.mode === MODES.LIVE ? Boolean(editorFrame) : state.frames.length > 1;
+  return hasInput && editorPoints.length === 2 && Number.isFinite(Number($('scaleInput').value)) &&
     Number($('scaleInput').value) > 0 && scalePixels() >= 40 &&
     state.roi.width >= 64 && state.roi.height >= 64;
 }
@@ -69,7 +75,7 @@ function updateSetupChecklist() {
   const checklist = $('setupChecklist');
   if (!checklist) return;
   const missing = [];
-  if (state.frames.length < 2) missing.push('先加载样例，或导入至少两帧照片/一段视频');
+  if ((state.mode === MODES.LIVE ? !editorFrame : state.frames.length < 2)) missing.push(state.mode === MODES.LIVE ? '先加载样例，或启动相机并冻结首帧' : '先加载样例，或导入至少两帧照片/一段视频');
   if (editorPoints.length !== 2) missing.push('切换到“设置两点标尺”，点击 P1 和 P2');
   if (!Number.isFinite(Number($('scaleInput').value)) || Number($('scaleInput').value) <= 0) missing.push('输入两点之间的真实距离');
   if (editorPoints.length === 2 && scalePixels() < 40) missing.push('把 P1、P2 拉开至少 40 像素');
@@ -100,9 +106,29 @@ function render() {
 
 function clearResultView() {
   $('metricDisplacement').textContent = '—'; $('metricFrequency').textContent = '—'; $('metricFps').textContent = '—'; $('metricValid').textContent = '—';
-  $('readoutX').textContent = '—'; $('readoutY').textContent = '—'; $('readoutScore').textContent = '—'; $('readoutCamera').textContent = '待检';
+  $('readoutX').textContent = '—'; $('readoutY').textContent = '—'; $('readoutMagnitude').textContent = '—'; $('readoutScore').textContent = '—'; $('readoutCamera').textContent = '待检';
   $('chartEmpty').classList.remove('hidden'); drawSeries($('displacementChart'), []);
   ['downloadCsv', 'downloadJson', 'shareResult'].forEach((id) => { $(id).disabled = true; });
+  clearResultVideo();
+}
+
+function clearResultVideo() {
+  const video = $('motionVideo');
+  if (resultVideoUrl) releaseVideoUrl(resultVideoUrl);
+  resultVideoUrl = null;
+  resultVideoBlob = null;
+  resultVideoFrames = [];
+  if (video) {
+    video.pause?.();
+    video.removeAttribute('src');
+    video.load?.();
+  }
+  const panel = $('resultVideoPanel');
+  if (panel) panel.classList.add('hidden');
+  const status = $('videoStatus');
+  if (status) status.textContent = '测量完成后生成带 Δx、Δy 和位移标注的结果视频。';
+  const button = $('downloadVideo');
+  if (button) button.disabled = true;
 }
 
 function renderResult(result) {
@@ -118,10 +144,12 @@ function renderResult(result) {
   if (last) {
     $('readoutX').textContent = `${(last.dxM * 1000).toFixed(2)} mm`;
     $('readoutY').textContent = `${(last.dyM * 1000).toFixed(2)} mm`;
+    $('readoutMagnitude').textContent = `${(Math.hypot(last.dxM, last.dyM) * 1000).toFixed(2)} mm`;
     $('readoutScore').textContent = last.score.toFixed(2);
     $('readoutCamera').textContent = result.diagnostics.cameraStable ? '稳定' : '移动';
   }
   ['downloadCsv', 'downloadJson', 'shareResult'].forEach((id) => { $(id).disabled = false; });
+  $('resultVideoPanel').classList.remove('hidden');
 }
 
 function drawEditor() {
@@ -193,23 +221,65 @@ editor.addEventListener('pointermove', (event) => {
 
 function updateScale() { dispatch({ type: 'SET_SCALE', scale: scaleReference() }); setStatus('标尺已更新，确认两点和真实距离后可以重新测量。'); }
 
+async function createResultVideo(frames, result, token, fps) {
+  const panel = $('resultVideoPanel');
+  if (!panel || !Array.isArray(frames) || frames.length < 2) return;
+  panel.classList.remove('hidden');
+  $('videoStatus').textContent = '正在生成逐帧标注视频……';
+  $('downloadVideo').disabled = true;
+  resultVideoFrames = frames;
+  try {
+    const blob = await createAnnotatedVideo(frames, result.displacement.samples, state.roi, fps, {
+      scale: scaleReference(),
+      frameDelayMs: 5,
+      shouldCancel: () => token !== captureToken,
+    });
+    if (token !== captureToken || state.result !== result) return;
+    resultVideoBlob = blob;
+    resultVideoUrl = replaceVideoUrl($('motionVideo'), blob);
+    $('motionVideo').load?.();
+    $('downloadVideo').disabled = false;
+    $('videoStatus').textContent = '已生成：每一帧都标出相对于初始帧的 Δx、Δy 和位移。';
+  } catch (error) {
+    if (token !== captureToken || error?.code === 'CANCELLED' || error?.code === 'VIDEO_RECORDING_CANCELLED') return;
+    $('videoStatus').textContent = describeError(error);
+    $('downloadVideo').disabled = true;
+  } finally {
+    resultVideoFrames = [];
+  }
+}
+
 async function runMeasure() {
-  dispatch({ type: 'RUNNING' }); const token = ++captureToken;
+  const token = ++captureToken;
+  clearResultVideo();
+  dispatch({ type: 'RUNNING' });
   try {
     worker ??= new WorkerClient();
     let motions;
+    let videoFramesForResult;
+    let fpsForRun = state.fps;
     if (state.mode === MODES.LIVE && stream) {
       const captured = await captureLiveFrames($('cameraVideo'), { shouldCancel: () => token !== captureToken, onProgress: (value) => setStatus(`正在采集画面……${Math.round(value * 100)}%`) });
-      state = { ...state, fps: captured.fps };
-      motions = motionFromFrames(captured.frames, state.roi, captured.fps);
+      if (!captured.frames || captured.frames.length < 2) throw Object.assign(new Error('INVALID_FRAME'), { code: 'INVALID_FRAME' });
+      fpsForRun = captured.fps;
+      motions = motionFromFrames(captured.frames, state.roi, fpsForRun);
+      videoFramesForResult = captured.frames;
+      state = { ...state, fps: fpsForRun };
+    } else if (state.mode === MODES.SAMPLE) {
+      videoFramesForResult = state.frames[0]?.source === 'sample' ? state.frames : buildSampleFrames(state.frames.length || 240, state.fps);
+      motions = buildSampleMotion(videoFramesForResult.length, fpsForRun);
     } else {
-      motions = state.frames[0]?.canvas ? motionFromFrames(state.frames, state.roi, state.fps) : state.frames;
+      videoFramesForResult = state.frames;
+      if (!Array.isArray(videoFramesForResult) || videoFramesForResult.length < 2) throw Object.assign(new Error('INVALID_FRAME'), { code: 'INVALID_FRAME' });
+      motions = videoFramesForResult[0]?.canvas ? motionFromFrames(videoFramesForResult, state.roi, fpsForRun) : videoFramesForResult;
     }
     if (token !== captureToken) throw Object.assign(new Error('CANCELLED'), { code: 'CANCELLED' });
     requestId = worker.seq + 1;
-    const result = await worker.request('measure', { motions, roi: state.roi, scale: scaleReference(), method: $('methodInput').value, fps: state.fps });
+    const result = await worker.request('measure', { motions, roi: state.roi, scale: scaleReference(), method: $('methodInput').value, fps: fpsForRun });
+    if (token !== captureToken) throw Object.assign(new Error('CANCELLED'), { code: 'CANCELLED' });
     dispatch({ type: 'RESULT', result });
-  } catch (error) { dispatch({ type: 'ERROR', error }); } finally { requestId = null; }
+    await createResultVideo(videoFramesForResult, result, token, fpsForRun);
+  } catch (error) { if (error?.code !== 'CANCELLED' || token === captureToken) dispatch({ type: 'ERROR', error }); } finally { requestId = null; }
 }
 
 async function handleFiles(fileList) {
@@ -234,7 +304,7 @@ async function handleFiles(fileList) {
 }
 
 document.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => { cancelActiveWork(); if (button.dataset.mode !== MODES.LIVE) stopStream(); editorPoints = []; editorFrame = null; $('scaleInput').value = ''; dispatch({ type: 'SET_MODE', mode: button.dataset.mode }); drawEditor(); setStatus(button.dataset.mode === MODES.LIVE ? '先启动后置相机并冻结首帧，再设置目标框和标尺。' : '点击“用样例体验”，或导入一段视频/至少两张照片。'); }));
-$('sampleButton').addEventListener('click', () => { cancelActiveWork(); stopStream(); editorFrame = null; editorPoints = [[120, 100], [280, 100]]; $('scaleInput').value = '100'; dispatch({ type: 'SET_SCALE', scale: scaleReference() }); dispatch({ type: 'SET_FRAMES', frames: buildSampleMotion(240, 30) }); setStatus('样例已准备，正在计算 2 Hz 位移。'); drawEditor(); runMeasure(); });
+$('sampleButton').addEventListener('click', () => { cancelActiveWork(); stopStream(); const frames = buildSampleFrames(240, 30); editorFrame = frames[0].canvas; editorPoints = [[120, 100], [280, 100]]; $('scaleInput').value = '100'; dispatch({ type: 'SET_SCALE', scale: scaleReference() }); dispatch({ type: 'SET_FRAMES', frames }); setStatus('样例已准备，正在计算 2 Hz 位移。'); drawEditor(); runMeasure(); });
 $('fileInput').addEventListener('change', (event) => { handleFiles(event.target.files); event.target.value = ''; }); $('galleryInput').addEventListener('change', (event) => { handleFiles(event.target.files); event.target.value = ''; });
 $('scaleInput').addEventListener('input', updateScale); $('unitInput').addEventListener('change', updateScale); $('methodInput').addEventListener('change', (event) => { dispatch({ type: 'SET_METHOD', method: event.target.value }); setStatus('跟踪方法已更新，确认设置后可以重新测量。'); });
 $('roiMode').addEventListener('click', () => { editMode = 'roi'; $('roiMode').setAttribute('aria-pressed', 'true'); $('scaleMode').setAttribute('aria-pressed', 'false'); drawEditor(); setStatus('目标框模式：拖动圆点调整大小，拖动框内可整体移动。'); });
@@ -242,12 +312,13 @@ $('scaleMode').addEventListener('click', () => { editMode = 'scale'; $('roiMode'
 $('clearScale').addEventListener('click', () => { editorPoints = []; dispatch({ type: 'SET_SCALE', scale: { p1: [0, 0], p2: [0, 0], realDistance: Number($('scaleInput').value), unit: $('unitInput').value } }); drawEditor(); setStatus('标尺点已清除，请重新设置 P1 和 P2。'); }); $('measureButton').addEventListener('click', runMeasure);
 $('cancelButton').addEventListener('click', () => { cancelActiveWork(); dispatch({ type: 'ERROR', error: Object.assign(new Error('CANCELLED'), { code: 'CANCELLED' }) }); });
 $('startCamera').addEventListener('click', async () => { try { stopStream(); stream = await requestRearCamera(); const video = $('cameraVideo'); video.srcObject = stream; await video.play().catch(() => {}); if (video.readyState < 2) await new Promise((resolve) => video.addEventListener('loadeddata', resolve, { once: true })); $('startCamera').disabled = true; $('freezeCamera').disabled = false; $('stopCamera').disabled = false; setStatus('相机已启动。固定手机后冻结首帧，再设置目标框和尺度点。'); } catch (error) { stopStream(); $('liveStatus').textContent = describeError(error); } });
-$('freezeCamera').addEventListener('click', () => { const video = $('cameraVideo'); if (video.readyState < 2 || !video.videoWidth) { $('liveStatus').textContent = '相机画面还没准备好，请稍等一秒再冻结。'; return; } const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 360; const ctx = canvas.getContext('2d'); const sw = video.videoWidth, sh = video.videoHeight, scale = Math.min(640 / sw, 360 / sh); ctx.fillStyle = '#10252d'; ctx.fillRect(0, 0, 640, 360); ctx.drawImage(video, (640 - sw * scale) / 2, (360 - sh * scale) / 2, sw * scale, sh * scale); editorFrame = canvas; editorPoints = []; dispatch({ type: 'SET_FRAMES', frames: [{ canvas, source: 'camera' }, { canvas, source: 'camera' }] }); $('liveStatus').textContent = '首帧已冻结。先调整目标框，再设置 P1/P2 和真实距离。'; drawEditor(); });
+$('freezeCamera').addEventListener('click', () => { const video = $('cameraVideo'); if (video.readyState < 2 || !video.videoWidth) { $('liveStatus').textContent = '相机画面还没准备好，请稍等一秒再冻结。'; return; } const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 360; const ctx = canvas.getContext('2d'); const sw = video.videoWidth, sh = video.videoHeight, scale = Math.min(640 / sw, 360 / sh); ctx.fillStyle = '#10252d'; ctx.fillRect(0, 0, 640, 360); ctx.drawImage(video, (640 - sw * scale) / 2, (360 - sh * scale) / 2, sw * scale, sh * scale); editorFrame = canvas; editorPoints = []; dispatch({ type: 'CLEAR' }); $('liveStatus').textContent = '首帧已冻结。先调整目标框，再设置 P1/P2 和真实距离；点击开始后会重新采集后续画面。'; drawEditor(); });
 $('stopCamera').addEventListener('click', () => { cancelActiveWork(); stopStream(); editorPoints = []; editorFrame = null; $('scaleInput').value = ''; dispatch({ type: 'CLEAR' }); $('liveStatus').textContent = '相机已停止。重新开始后可以再次冻结画面。'; drawEditor(); });
 
 function download(name, text, type) { const url = URL.createObjectURL(new Blob([text], { type })); const anchor = document.createElement('a'); anchor.href = url; anchor.download = name; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 0); }
 $('downloadJson').addEventListener('click', () => state.result && download('lab004-measurement.json', JSON.stringify(state.result, null, 2), 'application/json'));
 $('downloadCsv').addEventListener('click', () => { if (!state.result) return; const rows = ['frameIndex,timeS,dxPx,dyPx,dxM,dyM,score,valid,errorCode', ...state.result.displacement.samples.map((sample) => [sample.frameIndex, sample.timeS, sample.dxPx, sample.dyPx, sample.dxM, sample.dyM, sample.score, sample.valid, sample.errorCode || ''].join(','))]; download('lab004-displacement.csv', rows.join('\n'), 'text/csv'); });
+$('downloadVideo').addEventListener('click', () => { if (!resultVideoBlob) return; const url = URL.createObjectURL(resultVideoBlob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'lab004-annotated-measurement.webm'; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); });
 $('shareResult').addEventListener('click', async () => { if (!state.result) return; const text = JSON.stringify(state.result); if (navigator.share) try { await navigator.share({ title: 'LAB004 视觉位移测量', text }); return; } catch {} download('lab004-measurement.json', text, 'application/json'); });
-window.addEventListener('pagehide', () => { stopStream(); frameUrls.forEach((url) => URL.revokeObjectURL(url)); worker?.terminate(); });
+window.addEventListener('pagehide', () => { cancelActiveWork(); stopStream(); frameUrls.forEach((url) => URL.revokeObjectURL(url)); worker?.terminate(); });
 drawEditor(); render();

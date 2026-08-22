@@ -44,7 +44,13 @@
           <p class="status" id="status">加载样例后，这里会显示像素位移、毫米位移和主频。</p>
           <div class="metric-grid" id="metrics"><div class="metric"><span>合位移</span><strong id="metricDisplacement">—</strong><small>峰峰值</small></div><div class="metric"><span>主频</span><strong id="metricFrequency">—</strong><small>Hz</small></div><div class="metric"><span>采样 FPS</span><strong id="metricFps">—</strong><small>真实时间戳</small></div><div class="metric"><span>有效比例</span><strong id="metricValid">—</strong><small>匹配质量</small></div></div>
           <div class="chart-wrap"><canvas id="displacementChart" width="720" height="280" aria-label="位移曲线"></canvas><div class="chart-empty" id="chartEmpty">完成 128 帧后显示频谱和主频</div></div>
-          <div class="sample-readout" id="liveReadout"><span>Δx <b id="readoutX">—</b></span><span>Δy <b id="readoutY">—</b></span><span>置信度 <b id="readoutScore">—</b></span><span>相机 <b id="readoutCamera">待检</b></span></div>
+          <div class="sample-readout" id="liveReadout"><span>Δx <b id="readoutX">—</b></span><span>Δy <b id="readoutY">—</b></span><span>位移 <b id="readoutMagnitude">—</b></span><span>置信度 <b id="readoutScore">—</b></span><span>相机 <b id="readoutCamera">待检</b></span></div>
+          <section class="result-video-panel hidden" id="resultVideoPanel" aria-live="polite">
+            <div class="panel-heading"><div><span class="section-kicker">逐帧回放</span><h3>目标相对于初始帧</h3></div><span class="badge">本地生成</span></div>
+            <video id="motionVideo" controls playsinline preload="metadata"></video>
+            <p class="status" id="videoStatus">测量完成后生成带 Δx、Δy 和位移标注的结果视频。</p>
+            <div class="action-row"><button class="button secondary" id="downloadVideo" disabled>下载结果视频</button></div>
+          </section>
           <div class="action-row result-actions"><button class="button secondary" id="downloadCsv" disabled>下载 CSV</button><button class="button secondary" id="downloadJson" disabled>下载 JSON</button><button class="button secondary" id="shareResult" disabled>分享</button></div>
         </section>
         <section class="panel boundary-panel"><span class="section-kicker">边界</span><p>这是固定相机、近似平面目标的参考级估计。它不替代卷尺、激光测距仪或工程传感器；纹理不足、相机移动或目标丢失时，结果会主动清空。</p></section>

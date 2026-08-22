@@ -358,9 +358,14 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
           throw makeError('VIDEO_RECORDING_UNSUPPORTED', error?.message || 'requestFrame failed');
         }
       }
-      // Keep the generated video duration close to the source sampling rate.
-      // This also gives MediaRecorder time to consume a manually requested frame.
-      await new Promise((resolve) => setTimeout(resolve, 1000 / rate));
+      // Give MediaRecorder time to consume a manually requested frame. Callers
+      // may shorten this delay for a quick local preview; source timestamps are
+      // still painted into every annotation so the temporal relationship stays
+      // inspectable.
+      const delayMs = Number.isFinite(Number(options.frameDelayMs))
+        ? Math.max(1, Number(options.frameDelayMs))
+        : 1000 / rate;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
     if (!stopping) stopRecorder(false);
   } catch (error) {
