@@ -195,14 +195,22 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
   temporaryCanvas.height = sourceHeight;
   let stream;
   let requestFrame = null;
+  let timedCapture = false;
   try {
     // A zero frame-rate track lets us explicitly request exactly one frame per
     // painted annotation where the browser supports CanvasCaptureMediaStreamTrack.
     stream = temporaryCanvas.captureStream?.(0);
   } catch (error) {
-    temporaryCanvas.width = 0;
-    temporaryCanvas.height = 0;
-    throw makeError('VIDEO_RECORDING_UNSUPPORTED', error?.message || 'captureStream failed');
+    // A few implementations reject a zero-rate track outright. Retry with a
+    // timed track before reporting that local recording is unavailable.
+    try {
+      stream = temporaryCanvas.captureStream?.(rate);
+      timedCapture = true;
+    } catch (fallbackError) {
+      temporaryCanvas.width = 0;
+      temporaryCanvas.height = 0;
+      throw makeError('VIDEO_RECORDING_UNSUPPORTED', fallbackError?.message || error?.message || 'captureStream failed');
+    }
   }
   if (!stream) {
     temporaryCanvas.width = 0;
@@ -217,7 +225,7 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
   requestFrame = initialTracks?.find((track) => typeof track?.requestFrame === 'function') || null;
   // CanvasCaptureMediaStreamTrack.requestFrame is unavailable in some Safari
   // builds. Recreate the track with a non-zero rate so it can still encode.
-  if (!requestFrame) {
+  if (!requestFrame && !timedCapture) {
     if (initialTracks) stopTracks(stream);
     try {
       stream = temporaryCanvas.captureStream?.(rate);
@@ -231,6 +239,7 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
       temporaryCanvas.height = 0;
       throw makeError('VIDEO_RECORDING_UNSUPPORTED');
     }
+    timedCapture = true;
   }
 
   let recorder;
@@ -276,6 +285,7 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
   };
   const onStop = () => settle(failure || (cancelled ? makeError('CANCELLED') : null));
   const onError = (event) => {
+    stopping = true;
     failure = event?.error || makeError('VIDEO_RECORDING_FAILED');
     settle(failure);
   };
@@ -304,6 +314,7 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
       throw makeError('VIDEO_RECORDING_UNSUPPORTED', error?.message || 'MediaRecorder.start failed');
     }
     for (let index = 0; index < list.length; index += 1) {
+      if (settled || stopping || failure) break;
       if (typeof options.shouldCancel === 'function' && options.shouldCancel()) {
         stopRecorder(true);
         break;
