@@ -336,6 +336,7 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
     try { recorder.start(); } catch (error) {
       throw makeError('VIDEO_RECORDING_UNSUPPORTED', error?.message || 'MediaRecorder.start failed');
     }
+    const recordingStartedAt = performance.now();
     for (let index = 0; index < list.length; index += 1) {
       if (settled || stopping || failure) break;
       if (typeof options.shouldCancel === 'function' && options.shouldCancel()) {
@@ -362,9 +363,11 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
       // may shorten this delay for a quick local preview; source timestamps are
       // still painted into every annotation so the temporal relationship stays
       // inspectable.
-      const delayMs = Number.isFinite(Number(options.frameDelayMs))
-        ? Math.max(1, Number(options.frameDelayMs))
-        : 1000 / rate;
+      const explicitDelay = Number(options.frameDelayMs);
+      const targetElapsed = ((index + 1) * 1000) / rate;
+      const delayMs = Number.isFinite(explicitDelay)
+        ? Math.max(1, explicitDelay)
+        : Math.max(1, targetElapsed - (performance.now() - recordingStartedAt));
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
     if (!stopping) stopRecorder(false);

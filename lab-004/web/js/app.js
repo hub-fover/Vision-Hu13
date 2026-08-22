@@ -306,20 +306,24 @@ async function runMeasure() {
 
 async function handleFiles(fileList) {
   const files = [...fileList]; if (!files.length) return;
+  let inputToken = captureToken;
   try {
     cancelActiveWork();
+    inputToken = captureToken;
     if (stream) stopStream();
     releaseFrameUrls();
     editorPoints = []; editorFrame = null; $('scaleInput').value = ''; dispatch({ type: 'CLEAR' }); setStatus('正在读取本地素材……');
     if (files[0].type.startsWith('video/')) {
       if (files.length > 1) setStatus('检测到视频，将只读取第一段视频。');
       const result = await videoFrames(files[0], { onProgress: (value) => setStatus(`正在抽取视频帧……${Math.round(value * 100)}%`) });
+      if (inputToken !== captureToken) { releaseVideoUrl(result.url); releaseFrameUrls(); return; }
       editorFrame = result.frames[0].canvas; frameUrls.push(result.url); dispatch({ type: 'SET_FRAMES', frames: result.frames }); state = { ...state, fps: result.fps }; setStatus(`已读取 ${result.frames.length} 帧，帧率约 ${result.fps.toFixed(1)} fps。`);
     } else {
       const frames = [];
       const imageFiles = files.slice(0, 150);
       for (let index = 0; index < imageFiles.length; index += 1) {
         const frame = await imageFrame(imageFiles[index]);
+        if (inputToken !== captureToken) { if (frame.url) releaseVideoUrl(frame.url); releaseFrameUrls(); return; }
         frames.push(frame);
         if (frame.url) frameUrls.push(frame.url);
         setStatus(`正在读取照片……${index + 1}/${imageFiles.length}`);
@@ -329,7 +333,7 @@ async function handleFiles(fileList) {
       else { dispatch({ type: 'SET_FRAMES', frames }); setStatus(`已读取 ${frames.length} 张照片，将按文件顺序估计位移。`); }
     }
     drawEditor(); updateSetupChecklist();
-  } catch (error) { releaseFrameUrls(); dispatch({ type: 'ERROR', error: Object.assign(error, { code: error.code || 'DECODE_FAILED' }) }); }
+  } catch (error) { releaseFrameUrls(); if (inputToken !== captureToken) return; dispatch({ type: 'ERROR', error: Object.assign(error, { code: error.code || 'DECODE_FAILED' }) }); }
 }
 
 document.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => { cancelActiveWork(); releaseFrameUrls(); if (button.dataset.mode !== MODES.LIVE) stopStream(); editorPoints = []; editorFrame = null; $('scaleInput').value = ''; dispatch({ type: 'SET_MODE', mode: button.dataset.mode }); drawEditor(); setStatus(button.dataset.mode === MODES.LIVE ? '先启动后置相机并冻结首帧，再设置目标框和标尺。' : '点击“用样例体验”，或导入一段视频/至少两张照片。'); }));
