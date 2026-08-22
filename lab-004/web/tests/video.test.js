@@ -39,6 +39,7 @@ test('sample frames are renderable 640x360 frames with motion metadata', () => {
 
 test('annotated first frame explains zero displacement from the initial frame', () => {
   const labels = [];
+  const strokes = [];
   const context = {
     save() {},
     restore() {},
@@ -46,7 +47,7 @@ test('annotated first frame explains zero displacement from the initial frame', 
     beginPath() {},
     moveTo() {},
     lineTo() {},
-    stroke() {},
+    stroke() { strokes.push('stroke'); },
     fillText(text) { labels.push(String(text)); },
     setLineDash() {},
   };
@@ -70,12 +71,14 @@ test('annotated first frame explains zero displacement from the initial frame', 
   assert.ok(labels.some((text) => text.includes('Δx: 0.00 px')));
   assert.ok(labels.some((text) => text.includes('Δy: 0.00 px')));
   assert.ok(labels.some((text) => text.includes('位移: 0.00 mm')));
+  assert.ok(strokes.length > 0, 'the initial ROI and zero-length displacement marker should be drawn');
 });
 
 test('annotated moving frame exposes non-zero pixel and metric deltas', () => {
   const labels = [];
+  const segments = [];
   const context = {
-    save() {}, restore() {}, drawImage() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {},
+    save() {}, restore() {}, drawImage() {}, beginPath() {}, moveTo(x, y) { segments.push(['move', x, y]); }, lineTo(x, y) { segments.push(['line', x, y]); }, stroke() {},
     fillText(text) { labels.push(String(text)); }, setLineDash() {},
   };
   const canvas = { width: 640, height: 360, getContext: () => context };
@@ -97,8 +100,10 @@ test('annotated moving frame exposes non-zero pixel and metric deltas', () => {
 
   assert.ok(labels.some((text) => text.includes('Δx: 3.00 px')));
   assert.ok(labels.some((text) => text.includes('Δy: -2.00 px')));
-  assert.ok(labels.some((text) => text.includes('3.61')),
-    'the displayed magnitude should be approximately 3.61 px/mm');
+  assert.ok(labels.some((text) => text.includes('位移: 3.61 mm')),
+    'the displayed magnitude should include the millimetre unit');
+  assert.ok(segments.some(([type]) => type === 'move') && segments.some(([type]) => type === 'line'),
+    'the moving frame should include a displacement arrow segment');
 });
 
 test('recording MIME detection returns null without MediaRecorder', () => {
@@ -135,8 +140,7 @@ test('video URL replacement updates the element and revokes the previous object 
 
   assert.equal(replaceVideoUrl(video, blob, urlApi), 'blob:new');
   assert.equal(video.src, 'blob:new');
-  releaseVideoUrl(video, urlApi);
-  assert.equal(video.src, '');
+  releaseVideoUrl('blob:new', urlApi);
   assert.deepEqual(calls, [['revoke', 'blob:old'], ['create', blob], ['revoke', 'blob:new']]);
 });
 
@@ -213,6 +217,7 @@ test('annotated video cancellation stops recorder and capture stream', async () 
   const previousDocument = globalThis.document;
   let recorderStopped = false;
   let trackStopped = false;
+  let temporaryCanvas = null;
   let cancelChecks = 0;
   class FakeMediaRecorder {
     static isTypeSupported() { return true; }
@@ -241,7 +246,10 @@ test('annotated video cancellation stops recorder and capture stream', async () 
   });
   try {
     globalThis.MediaRecorder = FakeMediaRecorder;
-    globalThis.document = { createElement: () => makeCanvas() };
+    globalThis.document = { createElement: () => {
+      temporaryCanvas = makeCanvas();
+      return temporaryCanvas;
+    } };
     const frames = [{ canvas: makeCanvas(), timeS: 0 }, { canvas: makeCanvas(), timeS: 1 / 30 }];
     const samples = [{ dxPx: 0, dyPx: 0, dxM: 0, dyM: 0, magnitudePx: 0, magnitudeM: 0, score: 1 },
       { dxPx: 1, dyPx: 0, dxM: 0.001, dyM: 0, magnitudePx: 1, magnitudeM: 0.001, score: 0.9 }];
@@ -255,6 +263,8 @@ test('annotated video cancellation stops recorder and capture stream', async () 
     );
     assert.equal(recorderStopped, true);
     assert.equal(trackStopped, true);
+    assert.equal(temporaryCanvas.width, 0);
+    assert.equal(temporaryCanvas.height, 0);
   } finally {
     if (previousRecorder === undefined) delete globalThis.MediaRecorder;
     else globalThis.MediaRecorder = previousRecorder;
