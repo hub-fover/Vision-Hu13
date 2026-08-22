@@ -23,6 +23,20 @@ let resultVideoBlob = null;
 let resultVideoFrames = [];
 let statusMessage = '加载样例后，这里会显示像素位移、毫米位移和主频。';
 
+function releaseFrameUrls() {
+  frameUrls.forEach((url) => { try { URL.revokeObjectURL(url); } catch {} });
+  frameUrls = [];
+}
+
+function cloneFrame(frame, source = 'camera-reference') {
+  const canvas = document.createElement('canvas');
+  canvas.width = frame?.canvas?.width || 640;
+  canvas.height = frame?.canvas?.height || 360;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (frame?.canvas) context.drawImage(frame.canvas, 0, 0, canvas.width, canvas.height);
+  return { canvas, source, timeS: 0 };
+}
+
 function setStatus(message) {
   statusMessage = message;
   const element = $('status');
@@ -93,6 +107,8 @@ function render() {
   $('measureButton').disabled = !inputReady() || state.status === 'running';
   $('cancelButton').disabled = state.status !== 'running';
   $('sampleButton').disabled = state.status === 'running';
+  const editingDisabled = state.status === 'running';
+  ['roiMode', 'scaleMode', 'clearScale', 'scaleInput', 'unitInput', 'methodInput'].forEach((id) => { if ($(id)) $(id).disabled = editingDisabled; });
   document.querySelectorAll('input[type="file"]').forEach((input) => {
     input.disabled = state.status === 'running';
     input.closest('.file-button')?.classList.toggle('is-disabled', state.status === 'running');
@@ -202,6 +218,7 @@ function setEditorPoint(point) {
 
 const editor = $('targetCanvas');
 editor.addEventListener('pointerdown', (event) => {
+  if (state.status === 'running') return;
   event.preventDefault(); editor.setPointerCapture(event.pointerId); const point = pointerPoint(event);
   if (editMode === 'scale') { setEditorPoint(point); return; }
   const r = state.roi;
@@ -221,7 +238,7 @@ editor.addEventListener('pointermove', (event) => {
 
 function updateScale() { dispatch({ type: 'SET_SCALE', scale: scaleReference() }); setStatus('标尺已更新，确认两点和真实距离后可以重新测量。'); }
 
-async function createResultVideo(frames, result, token, fps) {
+async function createResultVideo(frames, result, token, fps, roi, scale) {
   const panel = $('resultVideoPanel');
   if (!panel || !Array.isArray(frames) || frames.length < 2) return;
   panel.classList.remove('hidden');
@@ -229,9 +246,8 @@ async function createResultVideo(frames, result, token, fps) {
   $('downloadVideo').disabled = true;
   resultVideoFrames = frames;
   try {
-    const blob = await createAnnotatedVideo(frames, result.displacement.samples, state.roi, fps, {
-      scale: scaleReference(),
-      frameDelayMs: 5,
+    const blob = await createAnnotatedVideo(frames, result.displacement.samples, roi, fps, {
+      scale,
       shouldCancel: () => token !== captureToken,
     });
     if (token !== captureToken || state.result !== result) return;
@@ -251,6 +267,9 @@ async function createResultVideo(frames, result, token, fps) {
 
 async function runMeasure() {
   const token = ++captureToken;
+  const roiSnapshot = { ...state.roi };
+  const scaleSnapshot = scaleReference();
+  const methodSnapshot = $('methodInput').value;
   clearResultVideo();
   dispatch({ type: 'RUNNING' });
   try {
@@ -260,10 +279,13 @@ async function runMeasure() {
     let fpsForRun = state.fps;
     if (state.mode === MODES.LIVE && stream) {
       const captured = await captureLiveFrames($('cameraVideo'), { shouldCancel: () => token !== captureToken, onProgress: (value) => setStatus(`正在采集画面……${Math.round(value * 100)}%`) });
-      if (!captured.frames || captured.frames.length < 2) throw Object.assign(new Error('INVALID_FRAME'), { code: 'INVALID_FRAME' });
+      if (!captured.frames || captured.frames.length < 1 || !editorFrame) throw Object.assign(new Error('INVALID_FRAME'), { code: 'INVALID_FRAME' });
       fpsForRun = captured.fps;
-      motions = motionFromFrames(captured.frames, state.roi, fpsForRun);
-      videoFramesForResult = captured.frames;
+      const frameStep = 1 / Math.max(1, fpsForRun);
+      const reference = cloneFrame({ canvas: editorFrame }, 'camera-reference');
+      const followup = captured.frames.map((frame) => ({ ...frame, timeS: Number.isFinite(Number(frame.timeS)) ? Number(frame.timeS) + frameStep : frameStep }));
+      videoFramesForResult = [reference, ...followup];
+      motions = motionFromFrames(videoFramesForResult, roiSnapshot, fpsForRun);
       state = { ...state, fps: fpsForRun };
     } else if (state.mode === MODES.SAMPLE) {
       videoFramesForResult = state.frames[0]?.source === 'sample' ? state.frames : buildSampleFrames(state.frames.length || 240, state.fps);
@@ -271,14 +293,14 @@ async function runMeasure() {
     } else {
       videoFramesForResult = state.frames;
       if (!Array.isArray(videoFramesForResult) || videoFramesForResult.length < 2) throw Object.assign(new Error('INVALID_FRAME'), { code: 'INVALID_FRAME' });
-      motions = videoFramesForResult[0]?.canvas ? motionFromFrames(videoFramesForResult, state.roi, fpsForRun) : videoFramesForResult;
+      motions = videoFramesForResult[0]?.canvas ? motionFromFrames(videoFramesForResult, roiSnapshot, fpsForRun) : videoFramesForResult;
     }
     if (token !== captureToken) throw Object.assign(new Error('CANCELLED'), { code: 'CANCELLED' });
     requestId = worker.seq + 1;
-    const result = await worker.request('measure', { motions, roi: state.roi, scale: scaleReference(), method: $('methodInput').value, fps: fpsForRun });
+    const result = await worker.request('measure', { motions, roi: roiSnapshot, scale: scaleSnapshot, method: methodSnapshot, fps: fpsForRun });
     if (token !== captureToken) throw Object.assign(new Error('CANCELLED'), { code: 'CANCELLED' });
     dispatch({ type: 'RESULT', result });
-    await createResultVideo(videoFramesForResult, result, token, fpsForRun);
+    await createResultVideo(videoFramesForResult, result, token, fpsForRun, roiSnapshot, scaleSnapshot);
   } catch (error) { if (error?.code !== 'CANCELLED' || token === captureToken) dispatch({ type: 'ERROR', error }); } finally { requestId = null; }
 }
 
@@ -287,14 +309,19 @@ async function handleFiles(fileList) {
   try {
     cancelActiveWork();
     if (stream) stopStream();
-    frameUrls.forEach((url) => URL.revokeObjectURL(url)); frameUrls = [];
+    releaseFrameUrls();
     editorPoints = []; editorFrame = null; $('scaleInput').value = ''; dispatch({ type: 'CLEAR' }); setStatus('正在读取本地素材……');
     if (files[0].type.startsWith('video/')) {
       if (files.length > 1) setStatus('检测到视频，将只读取第一段视频。');
       const result = await videoFrames(files[0], { onProgress: (value) => setStatus(`正在抽取视频帧……${Math.round(value * 100)}%`) });
       editorFrame = result.frames[0].canvas; frameUrls.push(result.url); dispatch({ type: 'SET_FRAMES', frames: result.frames }); state = { ...state, fps: result.fps }; setStatus(`已读取 ${result.frames.length} 帧，帧率约 ${result.fps.toFixed(1)} fps。`);
     } else {
-      const frames = await Promise.all(files.slice(0, 150).map((file) => imageFrame(file)));
+      const frames = [];
+      const imageFiles = files.slice(0, 150);
+      for (let index = 0; index < imageFiles.length; index += 1) {
+        frames.push(await imageFrame(imageFiles[index]));
+        setStatus(`正在读取照片……${index + 1}/${imageFiles.length}`);
+      }
       editorFrame = frames[0].canvas; frames.forEach((frame) => { if (frame.url) frameUrls.push(frame.url); });
       if (frames.length < 2) { dispatch({ type: 'CLEAR' }); setStatus('单张照片只能用于设置 ROI。请至少选择两张连续照片，或选择一段视频。'); }
       else { dispatch({ type: 'SET_FRAMES', frames }); setStatus(`已读取 ${frames.length} 张照片，将按文件顺序估计位移。`); }
@@ -303,8 +330,8 @@ async function handleFiles(fileList) {
   } catch (error) { dispatch({ type: 'ERROR', error: Object.assign(error, { code: error.code || 'DECODE_FAILED' }) }); }
 }
 
-document.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => { cancelActiveWork(); if (button.dataset.mode !== MODES.LIVE) stopStream(); editorPoints = []; editorFrame = null; $('scaleInput').value = ''; dispatch({ type: 'SET_MODE', mode: button.dataset.mode }); drawEditor(); setStatus(button.dataset.mode === MODES.LIVE ? '先启动后置相机并冻结首帧，再设置目标框和标尺。' : '点击“用样例体验”，或导入一段视频/至少两张照片。'); }));
-$('sampleButton').addEventListener('click', () => { cancelActiveWork(); stopStream(); const frames = buildSampleFrames(240, 30); editorFrame = frames[0].canvas; editorPoints = [[120, 100], [280, 100]]; $('scaleInput').value = '100'; dispatch({ type: 'SET_SCALE', scale: scaleReference() }); dispatch({ type: 'SET_FRAMES', frames }); setStatus('样例已准备，正在计算 2 Hz 位移。'); drawEditor(); runMeasure(); });
+document.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => { cancelActiveWork(); releaseFrameUrls(); if (button.dataset.mode !== MODES.LIVE) stopStream(); editorPoints = []; editorFrame = null; $('scaleInput').value = ''; dispatch({ type: 'SET_MODE', mode: button.dataset.mode }); drawEditor(); setStatus(button.dataset.mode === MODES.LIVE ? '先启动后置相机并冻结首帧，再设置目标框和标尺。' : '点击“用样例体验”，或导入一段视频/至少两张照片。'); }));
+$('sampleButton').addEventListener('click', () => { cancelActiveWork(); releaseFrameUrls(); stopStream(); const frames = buildSampleFrames(240, 30); editorFrame = frames[0].canvas; editorPoints = [[120, 100], [280, 100]]; $('scaleInput').value = '100'; dispatch({ type: 'SET_SCALE', scale: scaleReference() }); dispatch({ type: 'SET_FRAMES', frames }); setStatus('样例已准备，正在计算 2 Hz 位移。'); drawEditor(); runMeasure(); });
 $('fileInput').addEventListener('change', (event) => { handleFiles(event.target.files); event.target.value = ''; }); $('galleryInput').addEventListener('change', (event) => { handleFiles(event.target.files); event.target.value = ''; });
 $('scaleInput').addEventListener('input', updateScale); $('unitInput').addEventListener('change', updateScale); $('methodInput').addEventListener('change', (event) => { dispatch({ type: 'SET_METHOD', method: event.target.value }); setStatus('跟踪方法已更新，确认设置后可以重新测量。'); });
 $('roiMode').addEventListener('click', () => { editMode = 'roi'; $('roiMode').setAttribute('aria-pressed', 'true'); $('scaleMode').setAttribute('aria-pressed', 'false'); drawEditor(); setStatus('目标框模式：拖动圆点调整大小，拖动框内可整体移动。'); });
@@ -313,12 +340,12 @@ $('clearScale').addEventListener('click', () => { editorPoints = []; dispatch({ 
 $('cancelButton').addEventListener('click', () => { cancelActiveWork(); dispatch({ type: 'ERROR', error: Object.assign(new Error('CANCELLED'), { code: 'CANCELLED' }) }); });
 $('startCamera').addEventListener('click', async () => { try { stopStream(); stream = await requestRearCamera(); const video = $('cameraVideo'); video.srcObject = stream; await video.play().catch(() => {}); if (video.readyState < 2) await new Promise((resolve) => video.addEventListener('loadeddata', resolve, { once: true })); $('startCamera').disabled = true; $('freezeCamera').disabled = false; $('stopCamera').disabled = false; setStatus('相机已启动。固定手机后冻结首帧，再设置目标框和尺度点。'); } catch (error) { stopStream(); $('liveStatus').textContent = describeError(error); } });
 $('freezeCamera').addEventListener('click', () => { const video = $('cameraVideo'); if (video.readyState < 2 || !video.videoWidth) { $('liveStatus').textContent = '相机画面还没准备好，请稍等一秒再冻结。'; return; } const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 360; const ctx = canvas.getContext('2d'); const sw = video.videoWidth, sh = video.videoHeight, scale = Math.min(640 / sw, 360 / sh); ctx.fillStyle = '#10252d'; ctx.fillRect(0, 0, 640, 360); ctx.drawImage(video, (640 - sw * scale) / 2, (360 - sh * scale) / 2, sw * scale, sh * scale); editorFrame = canvas; editorPoints = []; dispatch({ type: 'CLEAR' }); $('liveStatus').textContent = '首帧已冻结。先调整目标框，再设置 P1/P2 和真实距离；点击开始后会重新采集后续画面。'; drawEditor(); });
-$('stopCamera').addEventListener('click', () => { cancelActiveWork(); stopStream(); editorPoints = []; editorFrame = null; $('scaleInput').value = ''; dispatch({ type: 'CLEAR' }); $('liveStatus').textContent = '相机已停止。重新开始后可以再次冻结画面。'; drawEditor(); });
+$('stopCamera').addEventListener('click', () => { cancelActiveWork(); releaseFrameUrls(); stopStream(); editorPoints = []; editorFrame = null; $('scaleInput').value = ''; dispatch({ type: 'CLEAR' }); $('liveStatus').textContent = '相机已停止。重新开始后可以再次冻结画面。'; drawEditor(); });
 
 function download(name, text, type) { const url = URL.createObjectURL(new Blob([text], { type })); const anchor = document.createElement('a'); anchor.href = url; anchor.download = name; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 0); }
 $('downloadJson').addEventListener('click', () => state.result && download('lab004-measurement.json', JSON.stringify(state.result, null, 2), 'application/json'));
 $('downloadCsv').addEventListener('click', () => { if (!state.result) return; const rows = ['frameIndex,timeS,dxPx,dyPx,dxM,dyM,score,valid,errorCode', ...state.result.displacement.samples.map((sample) => [sample.frameIndex, sample.timeS, sample.dxPx, sample.dyPx, sample.dxM, sample.dyM, sample.score, sample.valid, sample.errorCode || ''].join(','))]; download('lab004-displacement.csv', rows.join('\n'), 'text/csv'); });
-$('downloadVideo').addEventListener('click', () => { if (!resultVideoBlob) return; const url = URL.createObjectURL(resultVideoBlob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'lab004-annotated-measurement.webm'; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); });
+$('downloadVideo').addEventListener('click', () => { if (!resultVideoBlob) return; const url = URL.createObjectURL(resultVideoBlob); const anchor = document.createElement('a'); const extension = String(resultVideoBlob.type || '').toLowerCase().includes('mp4') ? 'mp4' : 'webm'; anchor.href = url; anchor.download = `lab004-annotated-measurement.${extension}`; anchor.click(); setTimeout(() => { URL.revokeObjectURL(url); anchor.remove(); }, 5000); });
 $('shareResult').addEventListener('click', async () => { if (!state.result) return; const text = JSON.stringify(state.result); if (navigator.share) try { await navigator.share({ title: 'LAB004 视觉位移测量', text }); return; } catch {} download('lab004-measurement.json', text, 'application/json'); });
-window.addEventListener('pagehide', () => { cancelActiveWork(); stopStream(); frameUrls.forEach((url) => URL.revokeObjectURL(url)); worker?.terminate(); });
+window.addEventListener('pagehide', () => { cancelActiveWork(); stopStream(); releaseFrameUrls(); worker?.terminate(); worker = null; });
 drawEditor(); render();
