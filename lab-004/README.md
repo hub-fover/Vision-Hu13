@@ -32,5 +32,8 @@ python -m camera_measurement analyze-frames frames \
 `roi.json` contains `xPx`, `yPx`, `widthPx`, and `heightPx`. `scale.json`
 contains `p1Px`, `p2Px`, `realDistance` and `unit` (`mm`, `cm`, or `m`).
 The CLI also accepts `measure-video` for MP4/WebM and `track --camera 0` for
-local camera capture. DIC is a Python-only teaching mode; the browser's main
-flow uses template matching and optional optical flow.
+local camera capture. DIC and Lucas--Kanade flow are Python teaching modes;
+the browser's public flow uses template matching so the same rule is visible
+in the sample, imported media, and live camera paths. The result report keeps
+`dx/dy`, combined displacement, a millimetre reference, time-series samples,
+and a dominant frequency when the sampling conditions support it.

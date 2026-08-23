@@ -9,8 +9,9 @@ and their real separation. The camera must remain fixed. Each
 `TrackingSample` reports pixel and metre displacement, a matching score, a
 valid flag, and an optional stable error code.
 
-The default tracker is template matching. `flow` is an optional Lucas–Kanade
-teaching path, and `dic` is Python-only. A report includes displacement
+The default tracker is template matching. `flow` is a Lucas–Kanade Python
+teaching path, and `dic` is Python-only; the browser keeps template matching
+as its public path so its evidence remains directly inspectable. A report includes displacement
 statistics, a spectrum peak when at least 128 monotonic samples are available,
 and diagnostics for camera/background stability and valid ratio.
 

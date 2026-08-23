@@ -184,7 +184,7 @@ function render() {
 }
 
 function clearResultView() {
-  $('metricDisplacement').textContent = '—'; $('metricFrequency').textContent = '—'; $('metricFps').textContent = '—'; $('metricValid').textContent = '—';
+  $('metricDisplacement').textContent = '—'; $('metricPixel').textContent = '—'; $('metricFrequency').textContent = '—'; $('metricFps').textContent = '—'; $('metricValid').textContent = '—';
   $('readoutX').textContent = '—'; $('readoutY').textContent = '—'; $('readoutMagnitude').textContent = '—'; $('readoutScore').textContent = '—'; $('readoutCamera').textContent = '待检';
   $('chartEmpty').classList.remove('hidden'); drawSeries($('displacementChart'), []);
   ['downloadCsv', 'downloadJson', 'shareResult'].forEach((id) => { $(id).disabled = true; });
@@ -224,6 +224,7 @@ function renderResult(result) {
         ? `跟踪完成，但有 ${(100 - validRatio * 100).toFixed(0)}% 的帧未通过质量检查；请把它当作参考。`
         : '跟踪完成。相机保持稳定，下面的数值是参考级估计。';
   $('metricDisplacement').textContent = `${mm.toFixed(2)} mm`;
+  $('metricPixel').textContent = `${Number(result.displacement.peakToPeakPx || 0).toFixed(2)} px`;
   $('metricFrequency').textContent = result.spectrum ? result.spectrum.frequencyHz.toFixed(2) : '—';
   $('metricFps').textContent = Number(result.diagnostics.fps).toFixed(1);
   $('metricValid').textContent = `${(validRatio * 100).toFixed(0)}%`;
