@@ -8,6 +8,23 @@
   "frames": {"count": 240, "fps": 30, "format": "deterministic-motion-json"},
   "groundTruth": {"frequencyHz": 2, "amplitudePx": 3, "scaleReferenceMm": 100, "scaleReferencePx": 160},
   "processing": "Generated locally for automated checks; it is not a phone capture and does not claim measurement-grade accuracy.",
+  "scenarios": [
+    {"id": "synthetic-sine-2hz", "label": "桌面小幅振动", "kind": "generated", "groundTruth": {"frequencyHz": 2, "amplitudePx": 3}},
+    {"id": "phone-pan-speed", "label": "手机横向移动（静止场景）", "kind": "generated", "groundTruth": {"velocityPxPerS": 6, "model": "lk-ransac-affine"}},
+    {"id": "car-speed", "label": "汽车横向移动", "kind": "generated", "groundTruth": {"velocityPxPerS": 4}},
+    {"id": "bridge-vibration", "label": "桥梁垂向振动", "kind": "generated", "groundTruth": {"frequencyHz": 1.2, "amplitudePx": 4}},
+    {"id": "airplane-trajectory", "label": "飞机二维轨迹", "kind": "generated", "groundTruth": {"projection": "2D only"}}
+  ],
+  "gifSamples": [
+    {"path": "gifs/car-speed.gif", "scenarioId": "car-speed", "kind": "generated", "license": "MIT", "sha256": "f10d51c79e3a4d0b0840bc450668ee57db652a91b4990e431456195dc8564714", "frames": 45, "fps": 8, "dimensions": "480x270"},
+    {"path": "gifs/bridge-vibration.gif", "scenarioId": "bridge-vibration", "kind": "generated", "license": "MIT", "sha256": "3833997e06860c7d2de61778af66d9a1aca89269083bc9171388f195baad10c5", "frames": 45, "fps": 8, "dimensions": "480x270"},
+    {"path": "gifs/airplane-trajectory.gif", "scenarioId": "airplane-trajectory", "kind": "generated", "license": "MIT", "sha256": "9b7eb388451d265098a458d17ad2b18a4d1f5a9ab7d1897cd1f2c8dc68b6950d", "frames": 45, "fps": 8, "dimensions": "480x270"},
+    {"path": "gifs/flight-landing-pune-clip.gif", "scenarioId": "real-airplane", "kind": "real", "author": "Subhashish Panigrahi", "source": "Wikimedia Commons · Flight landing Pune Airport", "license": "CC BY-SA 3.0", "sha256": "34f04bca917e8b55621b4d65d829c55410aac90bf62a6026f701a2270e8319ea", "frames": 45, "fps": 8, "dimensions": "480x270"}
+  ],
+  "videoSamples": [
+    {"path": "videos/flight-landing-pune-clip.mp4", "scenarioId": "real-airplane", "kind": "real", "author": "Subhashish Panigrahi", "source": "Wikimedia Commons · Flight landing Pune Airport", "license": "CC BY-SA 3.0", "sha256": "29d5094b9c789b9d79cb0ec8cbbea2b98a98321c449a359d5b29652651fabe9b", "durationS": 8, "fps": 30, "dimensions": "640x360", "browser": "download fallback"},
+    {"path": "videos/flight-landing-pune-clip.webm", "scenarioId": "real-airplane", "kind": "real", "author": "Subhashish Panigrahi", "source": "Wikimedia Commons · Flight landing Pune Airport", "license": "CC BY-SA 3.0", "sha256": "17e7e11b2bb8ca5ac22b4932b30f24fccde68bfe3ec918ad34ace59cdc99ae44", "durationS": 8, "fps": 30, "dimensions": "640x360", "browser": "VP8 WebM"}
+  ],
   "sha256": "b56c51d063278f05d1f9de648df4b592f24793629dbfc6f9ac21bd052ddb768e",
   "samples": [{"path": "motion.json", "sha256": "b56c51d063278f05d1f9de648df4b592f24793629dbfc6f9ac21bd052ddb768e"}]
 }

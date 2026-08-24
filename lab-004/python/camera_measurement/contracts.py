@@ -67,6 +67,41 @@ class MeasurementOptions:
 
 
 @dataclass
+class VelocitySample:
+    frame_index: int
+    time_s: float
+    vx_mps: float = 0.0
+    vy_mps: float = 0.0
+    speed_mps: float = 0.0
+    valid: bool = True
+    error_code: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "frameIndex": self.frame_index, "timeS": self.time_s,
+            "vxMps": self.vx_mps, "vyMps": self.vy_mps,
+            "speedMps": self.speed_mps, "valid": self.valid,
+            "errorCode": self.error_code,
+        }
+
+
+@dataclass
+class VelocitySummary:
+    samples: list[VelocitySample] = field(default_factory=list)
+    mean_speed_mps: float = 0.0
+    peak_speed_mps: float = 0.0
+    quality: str = "reference-only"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "samples": [sample.to_dict() for sample in self.samples],
+            "meanSpeedMps": self.mean_speed_mps,
+            "peakSpeedMps": self.peak_speed_mps,
+            "quality": self.quality,
+        }
+
+
+@dataclass
 class TrackingSample:
     frame_index: int
     time_s: float
@@ -121,6 +156,10 @@ class TrackingDiagnostics:
     mean_score: float = 0.0
     fps: float = TARGET_ANALYSIS_FPS
     error_code: str | None = None
+    motion_model: str | None = None
+    inlier_count: int = 0
+    inlier_ratio: float = 0.0
+    median_reprojection_error_px: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -130,6 +169,10 @@ class TrackingDiagnostics:
             "meanScore": self.mean_score,
             "fps": self.fps,
             "errorCode": self.error_code,
+            "motionModel": self.motion_model,
+            "inlierCount": self.inlier_count,
+            "inlierRatio": self.inlier_ratio,
+            "medianReprojectionErrorPx": self.median_reprojection_error_px,
         }
 
 
@@ -138,6 +181,7 @@ class MeasurementReport:
     schema_version: str = SCHEMA_VERSION
     displacement: DisplacementSeries = field(default_factory=DisplacementSeries)
     spectrum: SpectrumPeak | None = None
+    velocity: VelocitySummary | None = None
     diagnostics: TrackingDiagnostics = field(default_factory=TrackingDiagnostics)
     method: str = "template"
     scale: ScaleReference | None = None
@@ -155,6 +199,7 @@ class MeasurementReport:
             "scale": self.scale.to_dict() if self.scale else None,
             "displacement": self.displacement.to_dict(),
             "spectrum": self.spectrum.to_dict() if self.spectrum else None,
+            "velocity": self.velocity.to_dict() if self.velocity else None,
             "diagnostics": self.diagnostics.to_dict(),
             "errors": self.errors,
         }

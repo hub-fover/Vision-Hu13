@@ -5,6 +5,7 @@ import {
   createAnnotatedVideo,
   drawAnnotatedFrame,
   drawMeasurementOverlay,
+  drawRecoveryOverlay,
   getRecordingMimeType,
   releaseVideoUrl,
   replaceVideoUrl,
@@ -120,6 +121,20 @@ test('live measurement overlay exposes relative pixel and metric deltas', () => 
   assert.ok(labels.some((text) => text.includes('Δy: -1.00 px')));
   assert.ok(labels.some((text) => text.includes('位移: 2.24 mm')));
   assert.ok(labels.some((text) => text.includes('置信度: 91%')));
+});
+
+test('recovery overlay keeps the last ROI visible without stale measurements', () => {
+  const labels = [];
+  const rectangles = [];
+  const context = {
+    clearRect() {}, save() {}, restore() {}, setLineDash() {},
+    strokeRect(x, y, width, height) { rectangles.push([x, y, width, height]); },
+    fillText(text) { labels.push(String(text)); },
+  };
+  const canvas = { width: 640, height: 360, getContext: () => context };
+  drawRecoveryOverlay(canvas, { x: 220, y: 110, width: 180, height: 120 });
+  assert.deepEqual(rectangles, [[220, 110, 180, 120]]);
+  assert.ok(labels.some((text) => text.includes('测量已暂停')));
 });
 
 test('recording MIME detection returns null without MediaRecorder', () => {

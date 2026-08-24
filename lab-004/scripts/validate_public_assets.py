@@ -28,6 +28,24 @@ def main() -> int:
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         if digest != sample.get("sha256"):
             raise SystemExit(f"sample SHA-256 mismatch: {path}")
+    for sample in manifest.get("gifSamples", []):
+        path = manifest_path.parent / sample["path"]
+        if path.suffix.lower() != ".gif" or not path.is_file():
+            raise SystemExit(f"missing GIF sample: {path}")
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if digest != sample.get("sha256"):
+            raise SystemExit(f"GIF SHA-256 mismatch: {path}")
+        if sample.get("kind") == "real" and not sample.get("license"):
+            raise SystemExit(f"real GIF sample is missing license: {path}")
+    for sample in manifest.get("videoSamples", []):
+        path = manifest_path.parent / sample["path"]
+        if path.suffix.lower() not in {".mp4", ".webm", ".mov"} or not path.is_file():
+            raise SystemExit(f"missing video sample: {path}")
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if digest != sample.get("sha256"):
+            raise SystemExit(f"video SHA-256 mismatch: {path}")
+        if sample.get("kind") == "real" and not sample.get("license"):
+            raise SystemExit(f"real video sample is missing license: {path}")
     print(f"LAB 004 public assets: PASS ({manifest['sampleId']})")
     return 0
 

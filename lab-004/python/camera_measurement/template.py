@@ -83,7 +83,8 @@ def _background_shift(reference_gray: np.ndarray, frame_gray: np.ndarray, region
 
 
 def track_template_sequence(
-    frames: list[np.ndarray], region: TargetRegion, *, fps: float = 30.0, min_score: float = MIN_TEMPLATE_SCORE
+    frames: list[np.ndarray], region: TargetRegion, *, fps: float = 30.0,
+    min_score: float = MIN_TEMPLATE_SCORE, allow_camera_motion: bool = False,
 ) -> list[TrackingSample]:
     try:
         fps_value = float(fps)
@@ -101,7 +102,7 @@ def track_template_sequence(
     for index, frame in enumerate(frames[1:], 1):
         try:
             drift = _background_shift(gray, _gray(frame), region)
-            if drift > 1.5:
+            if not allow_camera_motion and drift > 1.5:
                 samples.append(TrackingSample(index, index / fps_value, valid=False, error_code="CAMERA_MOVED"))
                 continue
             match = match_template(reference, frame, region, min_score)

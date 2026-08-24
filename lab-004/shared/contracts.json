@@ -4,6 +4,7 @@
   "targetAnalysisFps": 30,
   "maxWorkingSetMiB": 320,
   "defaultMethod": "template",
+  "speedMethod": "camera-speed",
   "minScaleLengthPx": 40,
   "minTemplateSizePx": 64,
   "minTemplateScore": 0.55,
@@ -36,11 +37,13 @@
   "types": {
     "ScaleReference": {"fields": {"p1Px": "[x,y]", "p2Px": "[x,y]", "realDistanceM": "positive number", "unit": "mm|cm|m"}},
     "TargetRegion": {"fields": {"xPx": "number", "yPx": "number", "widthPx": "positive number", "heightPx": "positive number"}},
-    "MeasurementOptions": {"fields": {"method": "template|flow|dic", "fps": "positive number", "maxCameraDriftPx": "positive number", "minTemplateScore": "0..1"}},
+    "MeasurementOptions": {"fields": {"method": "template|flow|dic|camera-speed", "fps": "positive number", "maxCameraDriftPx": "positive number", "minTemplateScore": "0..1"}},
     "TrackingSample": {"fields": {"frameIndex": "integer", "timeS": "number", "dxPx": "number", "dyPx": "number", "dxM": "number", "dyM": "number", "score": "number", "valid": "boolean", "errorCode": "error code|null"}},
     "DisplacementSeries": {"fields": {"samples": "TrackingSample[]", "peakToPeakM": "number", "rmsM": "number", "peakToPeakPx": "number"}},
     "SpectrumPeak": {"fields": {"frequencyHz": "number", "amplitude": "number", "prominence": "number"}},
-    "MeasurementReport": {"fields": {"schemaVersion": "lab004.measurement.v1", "method": "template|flow|dic", "scale": "ScaleReference|null", "displacement": "DisplacementSeries", "spectrum": "SpectrumPeak|null", "diagnostics": "TrackingDiagnostics", "errors": "error code[]"}},
-    "TrackingDiagnostics": {"fields": {"cameraStable": "boolean", "backgroundTrackable": "boolean", "validRatio": "number", "meanScore": "number", "fps": "number", "errorCode": "error code|null"}}
+    "MeasurementReport": {"fields": {"schemaVersion": "lab004.measurement.v1", "method": "template|flow|dic|camera-speed", "scale": "ScaleReference|null", "displacement": "DisplacementSeries", "spectrum": "SpectrumPeak|null", "velocity": "VelocitySummary|null", "diagnostics": "TrackingDiagnostics", "errors": "error code[]"}},
+    "VelocitySample": {"fields": {"frameIndex": "integer", "timeS": "number", "vxMps": "number", "vyMps": "number", "speedMps": "number", "valid": "boolean", "errorCode": "error code|null"}},
+    "VelocitySummary": {"fields": {"samples": "VelocitySample[]", "meanSpeedMps": "number", "peakSpeedMps": "number", "quality": "reference-only"}},
+    "TrackingDiagnostics": {"fields": {"cameraStable": "boolean", "backgroundTrackable": "boolean", "validRatio": "number", "meanScore": "number", "fps": "number", "errorCode": "error code|null", "motionModel": "string|null", "inlierCount": "integer", "inlierRatio": "number", "medianReprojectionErrorPx": "number"}}
   }
 }

@@ -29,7 +29,7 @@ def _json_file(path: str | Path) -> dict:
 def _common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--target-roi", required=True, help="JSON file containing xPx/yPx/widthPx/heightPx")
     parser.add_argument("--scale-points", required=True, help="JSON file containing p1Px/p2Px/realDistance/unit")
-    parser.add_argument("--method", choices=("template", "flow", "dic"), default="template")
+    parser.add_argument("--method", choices=("template", "flow", "dic", "camera-speed"), default="template")
     parser.add_argument("--output", required=True)
     parser.add_argument("--debug-dir")
 

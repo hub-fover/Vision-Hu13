@@ -89,6 +89,36 @@ export function drawMeasurementOverlay(canvas, sample = {}, roi = {}, scale = {}
   context.restore?.();
 }
 
+/** Keep the last target location visible while a live run waits for reinitialisation. */
+export function drawRecoveryOverlay(canvas, roi = {}, label = '测量已暂停 · 请重新框选') {
+  if (!canvas) return;
+  const context = canvas.getContext?.('2d');
+  if (!context) return;
+  const width = finite(canvas.width, 640);
+  const height = finite(canvas.height, 360);
+  const x = Math.max(0, Math.min(width, finite(roi.x)));
+  const y = Math.max(0, Math.min(height, finite(roi.y)));
+  const roiWidth = Math.max(0, Math.min(width - x, finite(roi.width)));
+  const roiHeight = Math.max(0, Math.min(height - y, finite(roi.height)));
+  context.clearRect?.(0, 0, width, height);
+  context.save?.();
+  context.strokeStyle = '#a9b5b8';
+  context.fillStyle = '#d7e0e1';
+  context.lineWidth = 2;
+  setDash(context, [8, 6]);
+  if (typeof context.strokeRect === 'function') context.strokeRect(x, y, roiWidth, roiHeight);
+  else {
+    drawLine(context, x, y, x + roiWidth, y);
+    drawLine(context, x + roiWidth, y, x + roiWidth, y + roiHeight);
+    drawLine(context, x + roiWidth, y + roiHeight, x, y + roiHeight);
+    drawLine(context, x, y + roiHeight, x, y);
+  }
+  setDash(context, []);
+  context.font = '600 14px system-ui, sans-serif';
+  context.fillText?.(label, 12, 24);
+  context.restore?.();
+}
+
 function metresPerPixel(scale = {}) {
   const direct = [scale.metresPerPixel, scale.mPerPx, scale.scaleMPerPx]
     .map(Number).find(Number.isFinite);
@@ -116,6 +146,7 @@ export function drawAnnotatedFrame(
   scale = {},
   index,
   total,
+  annotation = {},
 ) {
   if (!canvas) return;
   const context = canvas.getContext?.('2d');
@@ -184,17 +215,27 @@ export function drawAnnotatedFrame(
     ? `帧: ${Number(index) + 1}/${Number.isFinite(Number(total)) ? Number(total) : '?'}`
     : null;
   const labels = [
-    '相对于初始帧',
+    annotation.speedMode ? '手机移动测速 · LK + RANSAC' : '相对于初始帧',
     `Δx: ${dxPx.toFixed(2)} px`,
     `Δy: ${dyPx.toFixed(2)} px`,
     `位移: ${distanceLabel(magnitudeM, scale.unit)}`,
   ];
+  if (annotation.speedMode) {
+    const velocity = annotation.velocity?.samples?.find?.((item) => Number(item.frameIndex) === Number(index));
+    if (velocity?.valid) labels.push(`速度: ${(Number(velocity.speedMps || 0) * 3.6).toFixed(1)} km/h`);
+  }
   if (timeS !== null) labels.push(`时间: ${timeS.toFixed(2)} s`);
   if (frameLabel) labels.push(frameLabel);
   if (confidence !== null) labels.push(`置信度: ${(confidence * 100).toFixed(0)}%`);
   if (typeof context.fillText === 'function') {
     const leftText = 12;
     let textY = 24;
+    // Keep annotations legible over bright sky, runway, or other real footage.
+    if (typeof context.fillRect === 'function') {
+      context.fillStyle = 'rgba(6, 20, 25, 0.82)';
+      context.fillRect(4, 4, 250, 12 + labels.length * 19);
+      context.fillStyle = '#ffffff';
+    }
     labels.forEach((label) => {
       context.fillText(label, leftText, textY);
       textY += 19;
@@ -403,6 +444,7 @@ export async function createAnnotatedVideo(frames, samples, roi, fps, options = 
         options.scale || options.measurementScale || {},
         index,
         list.length,
+        { speedMode: Boolean(options.speedMode), velocity: options.velocity },
       );
       frameCount += 1;
       if (requestFrame) {

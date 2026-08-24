@@ -13,11 +13,12 @@ import numpy as np
 from .contracts import DisplacementSeries, MeasurementReport, ScaleReference, TrackingDiagnostics, TrackingSample
 from .dic import estimate_dic_translation
 from .errors import MeasurementError
-from .flow import track_flow_sequence
+from .flow import track_camera_motion_sequence, track_flow_sequence
 from .scale import pixels_to_metres, validate_scale_reference
 from .signal import dominant_frequency, resample_series, summarize_signal
 from .target import TargetRegion, validate_target_region
 from .template import track_template_sequence
+from .speed import velocity_from_samples
 
 
 def measure_frames(
@@ -43,7 +44,7 @@ def measure_frames(
         validate_target_region(background_region, (shape[1], shape[0]))
     validate_scale_reference(scale, (shape[1], shape[0]))
     method = str(method).lower()
-    if method not in {"template", "flow", "dic"}:
+    if method not in {"template", "flow", "dic", "camera-speed"}:
         raise MeasurementError("INVALID_FRAME", f"Unknown tracking method: {method}")
     if timestamps_s is None:
         timestamps_s = np.arange(len(frames), dtype=np.float64) / fps_value
@@ -51,8 +52,12 @@ def measure_frames(
         timestamps_s = np.asarray(timestamps_s, dtype=np.float64)
         if len(timestamps_s) != len(frames):
             raise MeasurementError("FPS_UNSTABLE", "Timestamp count does not match frame count.")
-    if method == "template":
-        samples = track_template_sequence(frames, region, fps=fps_value)
+    if method == "camera-speed":
+        samples, diagnostics = track_camera_motion_sequence(frames, region, fps=fps_value)
+    elif method == "template":
+        samples = track_template_sequence(
+            frames, region, fps=fps_value,
+        )
         diagnostics = _diagnostics_from_samples(samples, fps_value)
     elif method == "flow":
         samples, diagnostics = track_flow_sequence(frames, region, fps=fps_value, background_region=background_region)
@@ -77,7 +82,10 @@ def measure_frames(
     peak_to_peak_m, rms_m = summarize_signal(magnitudes, scale_m_per_px)
     series = DisplacementSeries(samples=samples, peak_to_peak_m=peak_to_peak_m, rms_m=rms_m, peak_to_peak_px=float(np.ptp(magnitudes)) if magnitudes.size else 0.0)
     spectrum = None
+    velocity = None
     errors: list[str] = []
+    if method == "camera-speed":
+        velocity = velocity_from_samples(samples, scale_m_per_px, timestamps_s)
     blocking_error = diagnostics.error_code in {"CAMERA_MOVED", "BACKGROUND_UNTRACKABLE", "TEMPLATE_LOST", "SCENE_CHANGED"}
     if len(valid_samples) >= 2 and not blocking_error:
         try:
@@ -93,7 +101,8 @@ def measure_frames(
         errors.append(diagnostics.error_code)
     errors.extend(sorted({sample.error_code for sample in samples if sample.error_code}))
     report = MeasurementReport(
-        displacement=series, spectrum=spectrum, diagnostics=diagnostics, method=method, scale=scale, errors=errors,
+        displacement=series, spectrum=spectrum, velocity=velocity,
+        diagnostics=diagnostics, method=method, scale=scale, errors=errors,
     )
     if debug_dir is not None:
         write_debug(report, debug_dir)
@@ -128,6 +137,12 @@ def write_debug(report: MeasurementReport, debug_dir: str | Path) -> None:
         writer.writerow(["frameIndex", "timeS", "dxPx", "dyPx", "dxM", "dyM", "score", "valid", "errorCode"])
         for sample in samples:
             writer.writerow([sample.frame_index, sample.time_s, sample.dx_px, sample.dy_px, sample.dx_m, sample.dy_m, sample.score, sample.valid, sample.error_code or ""])
+    if report.velocity is not None:
+        with (directory / "velocity.csv").open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["frameIndex", "timeS", "vxMps", "vyMps", "speedMps", "valid", "errorCode"])
+            for sample in report.velocity.samples:
+                writer.writerow([sample.frame_index, sample.time_s, sample.vx_mps, sample.vy_mps, sample.speed_mps, sample.valid, sample.error_code or ""])
     spectrum_payload = report.spectrum.to_dict() if report.spectrum else {
         "error": report.errors[0] if report.errors else "INSUFFICIENT_SAMPLES"
     }

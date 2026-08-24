@@ -52,7 +52,7 @@ async function stagePages(destination = defaultDestination) {
   await mkdir(resolve(target, 'assets/samples'), { recursive: true });
   await cp(resolve(assetSource, 'samples/manifest.json'), resolve(target, 'assets/samples/manifest.json'));
   const manifest = JSON.parse(await readFile(resolve(assetSource, 'samples/manifest.json'), 'utf8'));
-  for (const sample of manifest.samples || []) {
+  for (const sample of [...(manifest.samples || []), ...(manifest.gifSamples || []), ...(manifest.videoSamples || [])]) {
     if (!sample.path) continue;
     const sourcePath = resolve(assetSource, 'samples', sample.path);
     const destinationPath = resolve(target, 'assets/samples', sample.path);
