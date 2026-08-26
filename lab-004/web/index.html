@@ -1,70 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="description" content="LAB 004：在固定摄像头下观察目标的二维位移和振动频率。">
-  <title>手机视频位移测量 · LAB 004</title>
-  <link rel="stylesheet" href="./styles.css">
-</head>
-<body>
-  <main class="app">
-    <header class="topbar">
-      <div><p class="eyebrow">LAB 004 / LOCAL VISION</p><h1>手机拍一段视频，能看出物体动了几毫米吗？</h1><p class="lede">固定相机，给画面里的两个点当标尺，观察一个目标的像素位移和振动频率。</p></div>
-      <div class="privacy"><span class="dot"></span>仅在本页处理<br><small>不上传照片，不保存记录</small></div>
-    </header>
-    <nav class="tabs" aria-label="测量模式"><button class="tab active" data-mode="sample" aria-pressed="true">样例回放</button><button class="tab" data-mode="live" aria-pressed="false">实时测量</button></nav>
-    <div class="pipeline-strip" aria-label="视觉测量链路"><span>真实运动</span><b>→</b><span>图像变化</span><b>→</b><span>像素位移</span><b>→</b><span>尺度换算</span><b>→</b><span>物理量</span></div>
-    <section class="workspace">
-      <div class="capture-column">
-        <section class="panel source-panel" id="samplePanel">
-          <div class="panel-heading"><div><span class="section-kicker">STEP 01</span><h2>先用样例看结果</h2></div><span class="badge" id="sampleBadge">30 fps · 2 Hz</span></div>
-          <p class="muted">样例模拟固定相机下的小幅运动；飞机案例可切换为“静止地面参照测速”，用地面静止物的表观位移反算参考速度。</p>
-          <ol class="path-guide" aria-label="使用步骤"><li><b>小白</b>：点击“用样例体验”，不需要准备素材。</li><li><b>进阶</b>：导入一段视频，或按时间顺序选择至少两张照片。</li><li><b>测量</b>：在首帧框住目标，点两处已知距离，再开始分析。</li></ol>
-          <label class="scenario-picker">样例场景<select id="sampleScenario"><option value="synthetic-sine-2hz">桌面小幅振动（默认）</option><option value="phone-pan-speed">手机横向移动（静止场景）</option><option value="car-speed">汽车横向移动（生成）</option><option value="bridge-vibration">桥梁垂向振动（生成）</option><option value="airplane-trajectory">飞机二维轨迹（生成）</option></select></label>
-          <div class="sample-visual" id="sampleVisual"><div class="sample-grid"></div><div class="sample-target" id="sampleTarget"></div><span class="sample-caption" id="sampleCaption">确定性运动样例</span></div>
-          <figure class="sample-gif-preview hidden" id="sampleGifPanel"><img id="sampleGifPreview" alt="当前样例 GIF 预览" loading="lazy"><figcaption id="sampleGifCaption">选择生成场景后显示 GIF 预览。GIF 只用于看素材，测量仍使用确定性帧序列。</figcaption></figure>
-          <figure class="sample-gif-preview real-sample-preview"><img src="./assets/samples/gifs/flight-landing-pune-clip.gif" alt="真实飞机降落 GIF 素材" loading="lazy"><figcaption>真实素材：Flight landing Pune Airport，Wikimedia Commons，CC BY-SA 3.0。它用于展示真实运动，不作为默认测量 ground truth。</figcaption></figure>
-          <div class="action-row"><button class="button primary" id="sampleButton">用样例体验</button><button class="button secondary" id="airplaneButton" type="button">打开真实飞机视频测速</button><label class="button secondary file-button">选择视频或照片序列<input id="fileInput" type="file" accept="video/*,image/*" capture="environment" multiple></label></div>
-          <p class="source-note" id="sampleSource">确定性正弦运动 · 2 Hz · 3 px。生成素材仅用于可复现演示，不代表实拍精度。</p>
-        </section>
-        <section class="panel live-panel hidden" id="livePanel">
-          <div class="panel-heading"><div><span class="section-kicker">STEP 01</span><h2>固定相机，再开始测量</h2></div></div>
-          <div class="video-stage"><video id="cameraVideo" autoplay playsinline muted></video><canvas id="liveCanvas" width="640" height="360" aria-label="实时位移叠加层"></canvas><div class="roi-handle" id="roiHandle" hidden></div></div>
-          <div class="action-row"><button class="button primary" id="startCamera">开始后置相机</button><button class="button secondary" id="freezeCamera" disabled>冻结首帧</button><button class="button quiet" id="stopCamera" disabled>停止</button><button class="button secondary hidden" id="reinitializeButton" type="button">重新框选并初始化</button></div>
-          <p class="status" id="liveStatus">需要 HTTPS 或 localhost，以及摄像头权限。建议先把手机靠在桌面或三脚架上。</p>
-          <div class="capture-advice"><strong>拍摄前检查</strong><ul><li>手机固定，镜头不要跟着目标移动。</li><li>目标和背景都要有纹理，避免纯白墙或反光。</li><li>尽量锁定焦距和曝光，保持目标在画面内。</li></ul></div>
-          <label class="button secondary file-button">从相册选择<input id="galleryInput" type="file" accept="video/*,image/*" multiple></label>
-          <p class="source-note">也可以直接导入一段 MP4/WebM，或按文件名顺序选择至少两张连续照片。</p>
-        </section>
-        <section class="panel setup-panel" id="setupPanel">
-          <div class="panel-heading"><div><span class="section-kicker">STEP 02</span><h2>框选目标和标尺</h2></div><span class="badge" id="setupState">等待样例</span></div>
-          <div class="editor-toolbar"><button class="button secondary compact" id="roiMode" type="button" aria-pressed="true">调整目标框</button><button class="button secondary compact" id="scaleMode" type="button" aria-pressed="false">设置两点标尺</button><button class="button quiet compact" id="clearScale" type="button">清除标尺点</button></div><div class="editor-stage"><canvas id="targetCanvas" width="640" height="360" aria-label="目标区域编辑画布"></canvas><div class="editor-help" id="editorHint">按住圆点拖动四角，框内可整体移动</div></div>
-          <div class="form-grid"><label>真实距离<input id="scaleInput" type="number" min="0" step="any" placeholder="例如 100" inputmode="decimal" aria-describedby="scaleHint"></label><label>单位<select id="unitInput" aria-label="真实距离单位"><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option></select></label><label>采样 FPS<input id="fpsInput" type="number" min="1" max="120" step="1" value="30" inputmode="numeric" aria-describedby="fpsHint"></label><label>跟踪方法<select id="methodInput"><option value="template">模板匹配（推荐）</option><option value="flow" disabled>光流增强（Python 离线）</option></select></label><label class="duration-field">实时采集时长<select id="durationInput"><option value="2">2 秒</option><option value="5" selected>5 秒</option><option value="8">8 秒</option><option value="15">15 秒</option></select></label></div>
-          <p class="hint" id="scaleHint">两点必须在同一刚性平面上，尽量选画面里真实长度已知、间距较大的两个点。相机一旦移动，毫米结果会被判为无效。</p><p class="hint" id="fpsHint">照片序列的 FPS 请按原始拍摄间隔填写；实时模式使用相机真实时间戳。默认 5 秒约 150 帧，达到主频分析所需的 128 帧。</p><p class="setup-checklist" id="setupChecklist" aria-live="polite"></p><div class="progress-line hidden" id="progressLine"><span id="progressLabel">准备中</span><progress id="progressBar" max="1" value="0"></progress><span id="progressValue">0%</span></div>
-          <div class="action-row"><button class="button primary" id="measureButton" disabled>开始测量</button><button class="button secondary" id="resetButton" type="button">重新设置</button><button class="button quiet" id="cancelButton" disabled>取消</button></div>
-        </section>
-      </div>
-      <aside class="results-column">
-        <section class="panel result-panel" id="resultPanel" aria-live="polite">
-          <div class="panel-heading"><div><span class="section-kicker">OUTPUT</span><h2>位移结果</h2></div><span class="status-pill" id="statusPill">未开始</span></div>
-          <p class="status" id="status">加载样例后，这里会显示像素位移、毫米位移和主频。</p>
-          <div class="metric-grid" id="metrics"><div class="metric"><span>合位移</span><strong id="metricDisplacement">—</strong><small>峰峰值</small></div><div class="metric"><span>像素位移</span><strong id="metricPixel">—</strong><small>合位移峰峰值</small></div><div class="metric"><span>主频</span><strong id="metricFrequency">—</strong><small>Hz</small></div><div class="metric"><span>采样 FPS</span><strong id="metricFps">—</strong><small>真实时间戳</small></div><div class="metric"><span>有效比例</span><strong id="metricValid">—</strong><small>匹配质量</small></div></div><p class="result-explainer">峰峰值 = 这段记录中的最大值减最小值；主频表示最明显的重复运动频率。两者都依赖相机稳定和足够长的记录。</p>
-          <div class="chart-wrap"><canvas id="displacementChart" width="720" height="280" aria-label="Δx、Δy 和合位移曲线"></canvas><div class="chart-empty" id="chartEmpty">完成 128 帧后显示频谱和主频</div></div><div class="chart-legend" aria-label="曲线图例"><span><i class="legend-x"></i>Δx</span><span><i class="legend-y"></i>Δy</span><span><i class="legend-magnitude"></i>合位移</span></div>
-          <div class="sample-readout" id="liveReadout"><span>Δx <b id="readoutX">—</b></span><span>Δy <b id="readoutY">—</b></span><span>位移 <b id="readoutMagnitude">—</b></span><span>置信度 <b id="readoutScore">—</b></span><span>相机 <b id="readoutCamera">待检</b></span></div>
-          <section class="result-video-panel hidden" id="resultVideoPanel" aria-live="polite">
-            <div class="panel-heading"><div><span class="section-kicker">逐帧回放</span><h3 id="resultVideoTitle">目标相对于初始帧</h3></div><span class="badge">本地生成</span></div>
-            <video id="motionVideo" controls playsinline preload="metadata"></video>
-            <p class="status" id="videoStatus">测量完成后生成带 Δx、Δy 和位移标注的结果视频。</p>
-            <div class="action-row"><button class="button secondary" id="downloadVideo" disabled>下载结果视频</button></div>
-          </section>
-          <div class="action-row result-actions"><button class="button secondary" id="downloadCsv" disabled>下载 CSV</button><button class="button secondary" id="downloadJson" disabled>下载 JSON</button><button class="button secondary" id="shareResult" disabled>分享</button></div>
-        </section>
-        <section class="panel boundary-panel"><span class="section-kicker">边界</span><p>这是固定相机、近似平面目标的参考级估计。它不替代卷尺、激光测距仪或工程传感器；纹理不足、相机移动或目标丢失时，结果会主动清空。</p></section>
-      </aside>
-    </section>
-    <footer><span>LAB 004 · 视觉位移测量</span><span>浏览器内存处理 · 无上传</span></footer>
-  </main>
-  <script type="module" src="./js/app.js"></script>
-</body>
-</html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="description" content="用手机观察静止世界，反算参考级表观速度。"><title>静止世界速度计 · LAB 004</title><link rel="stylesheet" href="./styles.css"></head>
+<body><main class="app"><header class="topbar"><div><p class="eyebrow">LAB 004 / STATIC SCENE SPEED</p><h1>拿手机对着静止物走几步，能算出你走多快吗？</h1><p class="lede">不靠 GPS，只观察静止世界在画面里的移动，反算参考级表观速度。</p></div><div class="privacy"><span class="dot"></span>只在本页处理<br><small>不上传、不保存</small></div></header>
+<nav class="tabs" aria-label="测速入口"><button class="tab active" data-mode="sample">样例体验</button><button class="tab" data-mode="live">实时后置相机</button></nav>
+<section class="challenge-strip" aria-label="快速挑战"><strong>三种挑战</strong><button data-challenge="slow">慢速移动</button><button data-challenge="fast">快速移动</button><button data-challenge="texture">不同环境</button></section>
+<section class="workspace"><div class="capture-column"><section class="panel" id="samplePanel"><div class="panel-heading"><div><span class="section-kicker">STEP 01</span><h2>先用样例看懂</h2></div><span class="badge">静止纹理 · 光流</span></div><p class="muted">样例模拟手机横向移动、地面保持静止。完成后你可以换成自己的视频。</p><div class="sample-visual" id="sampleVisual"><div class="sample-grid"></div><div class="sample-target"></div><span class="sample-caption">确定性静止场景样例</span></div><div class="action-row"><button class="button primary" id="sampleButton">用样例体验</button><label class="button secondary file-button">导入 MP4/WebM<input id="fileInput" type="file" accept="video/mp4,video/webm,video/*"></label></div><p class="source-note" id="sampleSource">样例仅用于验证处理链路，不代表手机实拍精度。</p></section>
+<section class="panel live-panel hidden" id="livePanel"><div class="panel-heading"><div><span class="section-kicker">STEP 01</span><h2>拿手机对准静止物</h2></div></div><div class="video-stage"><video id="cameraVideo" autoplay playsinline muted></video><canvas id="liveCanvas" width="640" height="360"></canvas></div><div class="action-row"><button class="button primary" id="startCamera">开始后置相机</button><button class="button secondary" id="freezeCamera" disabled>冻结首帧</button><button class="button quiet" id="stopCamera" disabled>停止</button></div><p class="status" id="liveStatus">需要 HTTPS 或 localhost，以及摄像头权限。权限失败时可切换到视频导入。</p><div class="capture-advice"><strong>拍摄建议</strong><ul><li>选地砖、砖墙、门框或路面标线等静止纹理。</li><li>手机沿一个方向平移，不要急转、变焦或跟着行人移动。</li><li>尽量锁定焦距和曝光，保持画面连续。</li></ul></div><label class="button secondary file-button">导入视频备用<input id="galleryInput" type="file" accept="video/mp4,video/webm,video/*"></label></section>
+<section class="panel setup-panel"><div class="panel-heading"><div><span class="section-kicker">STEP 02</span><h2>框选静止物，设置标尺</h2></div><span class="badge" id="setupState">等待样例或视频</span></div><div class="editor-stage"><canvas id="targetCanvas" width="640" height="360" aria-label="框选静止区域和尺度点"></canvas><div class="editor-help" id="editorHint">先框选有纹理的静止区域，再点击两点设置标尺</div></div><div class="form-grid"><label>实测距离<input id="scaleInput" type="number" min="0" step="any" value="1" inputmode="decimal"></label><label>单位<select id="unitInput"><option value="m">m</option><option value="cm">cm</option><option value="mm">mm</option></select></label></div><p class="hint" id="scaleHint">两点必须在同一平面，距离请用卷尺等工具实测，不能猜门宽或地砖尺寸。</p><p class="setup-checklist" id="setupChecklist"></p><div class="action-row"><button class="button primary" id="measureButton" disabled>开始测速</button><button class="button secondary" id="resetButton">重新设置</button><button class="button quiet" id="cancelButton" disabled>取消</button></div></section></div>
+<aside class="results-column"><section class="panel result-panel"><div class="panel-heading"><div><span class="section-kicker">OUTPUT</span><h2>参考级速度</h2></div><span class="status-pill" id="statusPill">未开始</span></div><p class="status" id="status">完成设置后，这里会显示速度、方向和有效比例。</p><div class="metric-grid"><div class="metric"><span>当前速度</span><strong id="metricVelocity">—</strong><small>m/s</small></div><div class="metric"><span>当前速度</span><strong id="metricVelocityKmh">—</strong><small>km/h</small></div><div class="metric"><span>方向</span><strong id="metricDirection">—</strong><small>度</small></div><div class="metric"><span>平均速度</span><strong id="metricMeanSpeed">—</strong><small>m/s</small></div><div class="metric"><span>峰值速度</span><strong id="metricPeakSpeed">—</strong><small>m/s</small></div><div class="metric"><span>有效比例</span><strong id="metricValid">—</strong><small>跟踪质量</small></div></div><div class="chart-wrap"><canvas id="speedChart" width="720" height="280" aria-label="速度曲线"></canvas><div class="chart-empty" id="chartEmpty">完成测速后显示速度曲线</div></div><details class="diagnostics"><summary>高级诊断</summary><pre id="diagnosticsText">尚未运行</pre></details><div class="action-row result-actions"><button class="button secondary" id="downloadCsv" disabled>下载 CSV</button><button class="button secondary" id="downloadJson" disabled>下载 JSON</button><button class="button secondary" id="shareResult" disabled>分享</button></div></section><section class="panel boundary-panel"><span class="section-kicker">边界</span><p>这是局部平面、参考级表观速度，不是 GPS 地速或测量级结果。急转、变焦、动态背景、纹理不足或目标丢失时，数字会主动清空。</p></section></aside></section><footer><span>LAB 004 · 世界在移动，速度可见</span><span>浏览器内存处理 · 无上传</span></footer></main><script type="module" src="./js/app.js"></script></body></html>
