@@ -6,11 +6,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const source = resolve(here, '../web');
 const assetSource = resolve(here, '../assets');
 const defaultDestination = resolve(here, '../../web/lab-004');
-const excluded = new Set(['node_modules', 'package.json', 'package-lock.json', 'playwright.config.js', 'scripts', 'tests', 'test-results', 'README.md', 'manifest.local.json', '_review-manifest.json']);
+const excluded = new Set(['node_modules', 'vendor', 'package.json', 'package-lock.json', 'playwright.config.js', 'scripts', 'tests', 'test-results', 'README.md', 'manifest.local.json', '_review-manifest.json']);
 const required = [
   'index.html', 'styles.css', 'assets/samples/manifest.json',
-  'js/app.js', 'js/state.js', 'js/capture.js', 'js/editor.js', 'js/measurement.js', 'js/template.js',
-  'js/flow.js', 'js/signal.js', 'js/video.js', 'js/worker-client.js', 'js/measurement.worker.js', 'js/errors.js'
+  'js/app.js', 'js/state.js', 'js/capture.js', 'js/measurement.js', 'js/flow.js',
+  'js/worker-client.js', 'js/measurement.worker.js', 'js/errors.js', 'js/contracts.js'
 ];
 
 async function listFiles(root, current = root) {
@@ -40,7 +40,9 @@ async function validatePagesStage(destination = defaultDestination) {
   const html = await readFile(resolve(root, 'index.html'), 'utf8');
   if (/<script[^>]+opencv\.js/i.test(html)) throw new Error('OpenCV.js must remain Worker-lazy-loaded');
   const manifest = JSON.parse(await readFile(resolve(root, 'assets/samples/manifest.json'), 'utf8'));
-  if (!(manifest.sampleId || (Array.isArray(manifest.samples) && manifest.samples.length))) throw new Error('sample manifest is empty');
+  if (manifest.schema !== 'lab004.static-scene-speed-samples.v2') throw new Error('unexpected sample manifest schema');
+  if (!(manifest.sampleId && Array.isArray(manifest.samples) && manifest.samples.length)) throw new Error('sample manifest is empty');
+  if (files.some(path => /(?:airplane|bridge|car-speed|flight-landing|template\.js|signal\.js|video\.js)/i.test(path))) throw new Error('legacy sample/runtime staged');
   return { files };
 }
 
@@ -52,7 +54,7 @@ async function stagePages(destination = defaultDestination) {
   await mkdir(resolve(target, 'assets/samples'), { recursive: true });
   await cp(resolve(assetSource, 'samples/manifest.json'), resolve(target, 'assets/samples/manifest.json'));
   const manifest = JSON.parse(await readFile(resolve(assetSource, 'samples/manifest.json'), 'utf8'));
-  for (const sample of [...(manifest.samples || []), ...(manifest.gifSamples || []), ...(manifest.videoSamples || [])]) {
+  for (const sample of (manifest.samples || [])) {
     if (!sample.path) continue;
     const sourcePath = resolve(assetSource, 'samples', sample.path);
     const destinationPath = resolve(target, 'assets/samples', sample.path);

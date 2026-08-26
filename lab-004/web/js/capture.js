@@ -148,7 +148,7 @@ export function motionFromFramesFlowRansac(frames, roi, fps = 30, { maxFeatures 
     }
     const fitted = fitRansac(pairs, 2);
     if (!fitted || fitted.inlierRatio < minInlierRatio) {
-      motions.push({ offsetX: 0, offsetY: 0, score: 0, timeS: Number.isFinite(frames[index].timeS) ? frames[index].timeS : index / fps, cameraStable: true, backgroundTrackable: pairs.length >= 6, motionModel: 'lk-ransac-affine', inlierCount: fitted?.inlierCount || 0, inlierRatio: fitted?.inlierRatio || 0, medianReprojectionErrorPx: fitted?.medianError || 0, errorCode: 'TEMPLATE_LOST' });
+      motions.push({ offsetX: 0, offsetY: 0, score: 0, timeS: Number.isFinite(frames[index].timeS) ? frames[index].timeS : index / fps, cameraStable: true, backgroundTrackable: pairs.length >= 6, motionModel: 'lk-ransac-affine', inlierCount: fitted?.inlierCount || 0, inlierRatio: fitted?.inlierRatio || 0, medianReprojectionErrorPx: fitted?.medianError || 0, errorCode: 'FLOW_LOST' });
       previous = current;
       continue;
     }

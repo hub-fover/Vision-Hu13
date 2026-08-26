@@ -10,8 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def main() -> int:
     contract = json.loads((ROOT / "shared/contracts.json").read_text(encoding="utf-8"))
-    if contract.get("schemaVersion") != "lab004.measurement.v1":
-        raise SystemExit("measurement schema changed")
+    if contract.get("schemaVersion") != "lab004.static-scene-speed.v2":
+        raise SystemExit("static scene speed schema changed")
     if contract["analysisMaxSide"] != 1280 or contract["maxWorkingSetMiB"] != 320:
         raise SystemExit("analysis or memory budget changed")
     sources = []
@@ -24,10 +24,10 @@ def main() -> int:
         raise SystemExit("browser persistence or telemetry API found")
     if re.search(r"https?://", joined):
         raise SystemExit("remote runtime or upload URL found")
-    for required in ("trackTemplateSequence", "trackFlowSequence", "dominantFrequency"):
+    for required in ("motionFromFramesFlowRansac", "measureMotions", "velocityMps", "RANSAC"):
         if required not in joined:
             raise SystemExit(f"missing runtime operation: {required}")
-    for forbidden in ("solvePnPGeneric", "solvePnP", "Three.js", "three.module", "camera-pose"):
+    for forbidden in ("solvePnPGeneric", "solvePnP", "Three.js", "three.module", "camera-pose", "dominantFrequency", "spectrum", "DIC", "airplane", "camera-speed", "trackTemplateSequence"):
         if forbidden in joined:
             raise SystemExit(f"legacy pose runtime found: {forbidden}")
     print("LAB 004 acceptance: PASS")

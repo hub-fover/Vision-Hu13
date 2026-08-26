@@ -11,10 +11,6 @@ TARGET_ANALYSIS_FPS = 30.0
 MAX_WORKING_SET_MIB = 320
 MIN_SCALE_LENGTH_PX = 40.0
 MAX_CAMERA_DRIFT_PX = 1.5
-MIN_TEMPLATE_SIZE_PX = 64
-MIN_TEMPLATE_SCORE = 0.55
-MIN_SAMPLES_FOR_SPECTRUM = 128
-FREQUENCY_BAND_HZ = (0.2, 12.0)
 QUALITY_STABLE_CONFIDENCE = 0.8
 QUALITY_REFERENCE_CONFIDENCE = 0.5
 
@@ -49,11 +45,6 @@ class StaticSceneRegion:
         return {"xPx": self.x_px, "yPx": self.y_px, "widthPx": self.width_px, "heightPx": self.height_px}
 
 
-# Source compatibility for old notebooks; the v2 public contract calls this
-# StaticSceneRegion.
-TargetRegion = StaticSceneRegion
-
-
 @dataclass(frozen=True)
 class SpeedOptions:
     fps: float = TARGET_ANALYSIS_FPS
@@ -64,9 +55,6 @@ class SpeedOptions:
 
     def to_dict(self) -> dict[str, Any]:
         return {"fps": self.fps, "maxCameraDriftPx": self.max_camera_drift_px, "maxForwardBackwardErrorPx": self.max_forward_backward_error_px, "minInlierRatio": self.min_inlier_ratio, "minTrackedPoints": self.min_tracked_points}
-
-
-MeasurementOptions = SpeedOptions
 
 
 @dataclass
@@ -99,16 +87,6 @@ class SpeedSeries:
 
 
 @dataclass(frozen=True)
-class SpectrumPeak:
-    frequency_hz: float
-    amplitude: float
-    prominence: float
-
-    def to_dict(self) -> dict[str, float]:
-        return {"frequencyHz": self.frequency_hz, "amplitude": self.amplitude, "prominence": self.prominence}
-
-
-@dataclass(frozen=True)
 class SpeedDiagnostics:
     inlier_count: int = 0
     inlier_ratio: float = 0.0
@@ -136,10 +114,6 @@ class SpeedDiagnostics:
             "failureIntervals": list(self.failure_intervals),
             "errorCode": self.error_code,
         }
-
-
-TrackingDiagnostics = SpeedDiagnostics
-TrackingSample = SpeedSample
 
 
 @dataclass

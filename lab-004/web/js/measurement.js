@@ -19,7 +19,7 @@ function makeFrame(index, fps) {
   canvas._index = index; return { canvas, source: 'sample', timeS: t, offsetX: dx, offsetY: dy };
 }
 export function buildSampleFrames(count = 180, fps = 30) { return Array.from({ length: Math.max(2, count) }, (_, i) => makeFrame(i, fps)); }
-export function buildSampleMotion(count = 180, fps = 30) { return Array.from({ length: Math.max(2, count) }, (_, i) => ({ frameIndex: i, timeS: i / fps, dxPx: -24 * i / fps, dyPx: -4 * Math.sin(i / fps * Math.PI * 2), score: .94, valid: true, inlierCount: 80, inlierRatio: .9, medianReprojectionErrorPx: .4 })); }
+export function buildSampleFlowSeries(count = 180, fps = 30) { return Array.from({ length: Math.max(2, count) }, (_, i) => ({ frameIndex: i, timeS: i / fps, dxPx: -24 * i / fps, dyPx: -4 * Math.sin(i / fps * Math.PI * 2), score: .94, valid: true, inlierCount: 80, inlierRatio: .9, medianReprojectionErrorPx: .4 })); }
 
 export function measureMotions(motions, { roi = { x: 160, y: 90, width: 320, height: 180 }, scale, fps = 30 } = {}) {
   if (!Array.isArray(motions) || motions.length < 2) throw Object.assign(new Error('INVALID_FRAME'), { code: 'INVALID_FRAME' });

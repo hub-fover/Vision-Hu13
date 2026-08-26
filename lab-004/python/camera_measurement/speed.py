@@ -70,7 +70,3 @@ def measure_static_scene_speed(frames: list[np.ndarray], region: StaticSceneRegi
     for sample, time_s in zip(tracked, times):
         sample.time_s = float(time_s)
     return velocity_from_samples(tracked, _scale_m_per_px(scale), times), diagnostics
-
-
-# Readable public alias used by CLI and browser parity tests.
-measure_camera_speed = measure_static_scene_speed
