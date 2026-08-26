@@ -10,7 +10,7 @@ const excluded = new Set(['node_modules', 'vendor', 'package.json', 'package-loc
 const required = [
   'index.html', 'styles.css', 'assets/samples/manifest.json',
   'js/app.js', 'js/state.js', 'js/capture.js', 'js/measurement.js', 'js/flow.js',
-  'js/worker-client.js', 'js/measurement.worker.js', 'js/errors.js', 'js/contracts.js'
+  'js/errors.js', 'js/contracts.js'
 ];
 
 async function listFiles(root, current = root) {
@@ -38,7 +38,6 @@ async function validatePagesStage(destination = defaultDestination) {
     if (/(?:src|href)=["']\/(?!\/)/i.test(content)) throw new Error(`root-absolute resource in ${path}`);
   }
   const html = await readFile(resolve(root, 'index.html'), 'utf8');
-  if (/<script[^>]+opencv\.js/i.test(html)) throw new Error('OpenCV.js must remain Worker-lazy-loaded');
   const manifest = JSON.parse(await readFile(resolve(root, 'assets/samples/manifest.json'), 'utf8'));
   if (manifest.schema !== 'lab004.static-scene-speed-samples.v2') throw new Error('unexpected sample manifest schema');
   if (!(manifest.sampleId && Array.isArray(manifest.samples) && manifest.samples.length)) throw new Error('sample manifest is empty');

@@ -1,4 +1,0 @@
-export class WorkerClient{constructor(){this.worker=new Worker('./js/measurement.worker.js',{type:'module'});this.pending=new Map();this.seq=0;this.worker.onmessage=event=>{const item=this.pending.get(event.data.id);if(!item)return;this.pending.delete(event.data.id);event.data.error?item.reject(Object.assign(new Error(event.data.error.message),{code:event.data.error.code})):item.resolve(event.data.result);};}
-request(type,payload){const id=++this.seq;return new Promise((resolve,reject)=>{this.pending.set(id,{resolve,reject});this.worker.postMessage({id,type,payload});});}
-cancel(id){this.worker.postMessage({id,type:'cancel'});this.pending.delete(id);}
-terminate(){this.pending.forEach(({reject})=>reject(Object.assign(new Error('CANCELLED'),{code:'CANCELLED'})));this.pending.clear();this.worker.terminate();}}

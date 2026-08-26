@@ -6,19 +6,19 @@ function canvasFactory() {
   if (typeof document !== 'undefined' && document.createElement) return document.createElement('canvas');
   const canvas = { width: W, height: H, _index: 0 }; const context = { fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, fillText() {}, clearRect() {}, arc() {}, fill() {}, getImageData: () => { const data = new Uint8ClampedArray(W * H * 4); data.fill(canvas._index % 255); return { data }; } }; canvas.getContext = () => context; return canvas;
 }
-function makeFrame(index, fps) {
+function makeFrame(index, fps, speed = 1) {
   const canvas = canvasFactory(); canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d'); ctx.fillStyle = '#17242b'; ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = '#42616a'; ctx.lineWidth = 1;
   for (let x = 0; x < W; x += 32) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
   for (let y = 0; y < H; y += 32) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-  const t = index / fps; const dx = -24 * t; const dy = -4 * Math.sin(t * Math.PI * 2);
+  const t = index / fps; const dx = -24 * t * speed; const dy = -4 * Math.sin(t * Math.PI * 2 * speed);
   ctx.fillStyle = '#c5a05b'; ctx.fillRect(180 + dx, 90 + dy, 300, 190);
   ctx.fillStyle = '#233f47'; for (let x = 195; x < 465; x += 28) for (let y = 105; y < 265; y += 28) ctx.fillRect(x + dx, y + dy, 10, 10);
   ctx.fillStyle = '#ecf7ef'; ctx.font = '14px sans-serif'; ctx.fillText('STATIC SCENE', 210 + dx, 180 + dy);
   canvas._index = index; return { canvas, source: 'sample', timeS: t, offsetX: dx, offsetY: dy };
 }
-export function buildSampleFrames(count = 180, fps = 30) { return Array.from({ length: Math.max(2, count) }, (_, i) => makeFrame(i, fps)); }
+export function buildSampleFrames(count = 180, fps = 30, speed = 1) { return Array.from({ length: Math.max(2, count) }, (_, i) => makeFrame(i, fps, speed)); }
 export function buildSampleFlowSeries(count = 180, fps = 30) { return Array.from({ length: Math.max(2, count) }, (_, i) => ({ frameIndex: i, timeS: i / fps, dxPx: -24 * i / fps, dyPx: -4 * Math.sin(i / fps * Math.PI * 2), score: .94, valid: true, inlierCount: 80, inlierRatio: .9, medianReprojectionErrorPx: .4 })); }
 
 export function measureMotions(motions, { roi = { x: 160, y: 90, width: 320, height: 180 }, scale, fps = 30 } = {}) {

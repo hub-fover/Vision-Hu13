@@ -1,13 +1,14 @@
 {
-  "schema": "lab004.measurement-samples.v1",
-  "title": "固定相机的小幅正弦位移样例",
-  "sampleId": "synthetic-sine-2hz",
+  "schema": "lab004.static-scene-speed-samples.v2",
+  "sampleId": "static-scene-speed",
+  "title": "确定性静止纹理测速样例",
   "license": "MIT",
-  "sourceRepository": "Vision-Hu13",
-  "generator": "lab-004/scripts/generate_sample.py",
-  "frames": {"count": 240, "fps": 30, "format": "deterministic-motion-json"},
-  "groundTruth": {"frequencyHz": 2, "amplitudePx": 3, "scaleReferenceMm": 100, "scaleReferencePx": 160},
-  "processing": "Generated locally for automated checks; it is not a phone capture and does not claim measurement-grade accuracy.",
-  "sha256": "b56c51d063278f05d1f9de648df4b592f24793629dbfc6f9ac21bd052ddb768e",
+  "frameCount": 180,
+  "fps": 30,
+  "groundTruthVelocityMps": 0.12,
+  "groundTruthDirectionDeg": 0,
+  "scaleReference": {"p1Px": [80, 300], "p2Px": [280, 300], "realDistanceM": 1},
+  "generator": "lab-004/web/js/measurement.js::buildSampleFrames",
+  "processing": "Deterministic static-scene texture translated at 24 px/s; generated for runtime verification, not phone-capture accuracy.",
   "samples": [{"path": "motion.json", "sha256": "b56c51d063278f05d1f9de648df4b592f24793629dbfc6f9ac21bd052ddb768e"}]
 }
