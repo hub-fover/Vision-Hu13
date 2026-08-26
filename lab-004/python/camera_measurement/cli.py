@@ -1,4 +1,4 @@
-"""Command line entry points for local visual displacement measurement."""
+"""Command line entry points for LAB004 static-scene speed."""
 
 from __future__ import annotations
 
@@ -27,9 +27,8 @@ def _json_file(path: str | Path) -> dict:
 
 
 def _common(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--target-roi", required=True, help="JSON file containing xPx/yPx/widthPx/heightPx")
-    parser.add_argument("--scale-points", required=True, help="JSON file containing p1Px/p2Px/realDistance/unit")
-    parser.add_argument("--method", choices=("template", "flow", "dic", "camera-speed"), default="template")
+    parser.add_argument("--target-roi", required=True, help="JSON with xPx/yPx/widthPx/heightPx")
+    parser.add_argument("--scale-points", required=True, help="JSON with p1Px/p2Px/realDistance/unit")
     parser.add_argument("--output", required=True)
     parser.add_argument("--debug-dir")
 
@@ -37,14 +36,14 @@ def _common(parser: argparse.ArgumentParser) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="camera_measurement")
     commands = parser.add_subparsers(dest="command", required=True)
-    video = commands.add_parser("measure-video", help="Measure a video file")
+    video = commands.add_parser("measure-video", help="Measure an MP4/WebM file")
     video.add_argument("source")
     _common(video)
     frames = commands.add_parser("analyze-frames", help="Measure an image-frame directory")
     frames.add_argument("source")
     frames.add_argument("--fps", type=float, default=30.0)
     _common(frames)
-    track = commands.add_parser("track", help="Measure frames from a camera")
+    track = commands.add_parser("track", help="Measure frames from a local camera")
     track.add_argument("--camera", type=int, default=0)
     _common(track)
     return parser
@@ -69,32 +68,23 @@ def _camera_frames(index: int, count: int = 300):
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+    args = build_parser().parse_args(argv)
     try:
         if args.command == "track":
-            frames = _camera_frames(args.camera)
-            fps = 30.0
+            frames, fps, timestamps = _camera_frames(args.camera), 30.0, None
         else:
             sequence = load_source(args.source, fps=getattr(args, "fps", 30.0))
-            frames, fps = sequence.frames, sequence.fps
-            timestamps = sequence.timestamps_s
+            frames, fps, timestamps = sequence.frames, sequence.fps, sequence.timestamps_s
         first_shape = frames[0].shape[:2]
         region = region_from_dict(_json_file(args.target_roi))
         scale = scale_from_dict(_json_file(args.scale_points), (first_shape[1], first_shape[0]))
-        report = measure_frames(
-            frames, region, scale, fps=fps, method=args.method,
-            timestamps_s=None if args.command == "track" else timestamps,
-            debug_dir=args.debug_dir,
-        )
+        report = measure_frames(frames, region, scale, fps=fps, timestamps_s=timestamps, debug_dir=args.debug_dir)
         write_report(report, args.output)
         return 0
     except MeasurementError as error:
-        output = {"errorCode": error.code, "message": str(error)}
-        print(json.dumps(output, ensure_ascii=False), file=sys.stderr)
+        print(json.dumps({"errorCode": error.code, "message": str(error)}, ensure_ascii=False), file=sys.stderr)
         return 2
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

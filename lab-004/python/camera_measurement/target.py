@@ -8,7 +8,7 @@ from typing import Any
 import cv2
 import numpy as np
 
-from .contracts import MIN_TEMPLATE_SIZE_PX, TargetRegion
+from .contracts import StaticSceneRegion
 from .errors import MeasurementError
 
 
@@ -21,6 +21,8 @@ def _as_float(value: Any) -> float:
         raise MeasurementError("INVALID_FRAME", "ROI values must be finite numbers.")
     return result
 
+
+TargetRegion = StaticSceneRegion
 
 def region_from_dict(data: dict[str, Any]) -> TargetRegion:
     if not isinstance(data, dict):
@@ -37,7 +39,7 @@ def region_from_dict(data: dict[str, Any]) -> TargetRegion:
     return TargetRegion(_as_float(x), _as_float(y), _as_float(width), _as_float(height))
 
 
-def validate_target_region(region: TargetRegion, image_size_px: tuple[int, int], *, min_size: int = MIN_TEMPLATE_SIZE_PX) -> TargetRegion:
+def validate_target_region(region: TargetRegion, image_size_px: tuple[int, int], *, min_size: int = 64) -> TargetRegion:
     try:
         width, height = int(image_size_px[0]), int(image_size_px[1])
     except (TypeError, ValueError, IndexError) as exc:

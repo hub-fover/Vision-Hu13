@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "camera-measurement-lab-004"
 version = "0.1.0"
-description = "Local visual displacement and vibration measurement core"
+description = "Local static-scene phone speed estimation core"
 requires-python = ">=3.11,<3.13"
 dependencies = [
   "numpy==2.2.6",

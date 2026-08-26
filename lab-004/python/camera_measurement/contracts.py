@@ -1,20 +1,22 @@
-"""Serializable public data types shared by measurement modules."""
+"""Public serialisable contract for LAB004 static-scene speed."""
 
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-SCHEMA_VERSION = "lab004.measurement.v1"
+SCHEMA_VERSION = "lab004.static-scene-speed.v2"
 ANALYSIS_MAX_SIDE = 1280
 TARGET_ANALYSIS_FPS = 30.0
 MAX_WORKING_SET_MIB = 320
 MIN_SCALE_LENGTH_PX = 40.0
+MAX_CAMERA_DRIFT_PX = 1.5
 MIN_TEMPLATE_SIZE_PX = 64
 MIN_TEMPLATE_SCORE = 0.55
-MAX_CAMERA_DRIFT_PX = 1.5
 MIN_SAMPLES_FOR_SPECTRUM = 128
 FREQUENCY_BAND_HZ = (0.2, 12.0)
+QUALITY_STABLE_CONFIDENCE = 0.8
+QUALITY_REFERENCE_CONFIDENCE = 0.5
 
 
 @dataclass(frozen=True)
@@ -25,14 +27,11 @@ class ScaleReference:
     unit: str = "m"
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "p1Px": list(self.p1_px), "p2Px": list(self.p2_px),
-            "realDistanceM": self.real_distance_m, "unit": self.unit,
-        }
+        return {"p1Px": list(self.p1_px), "p2Px": list(self.p2_px), "realDistanceM": self.real_distance_m, "unit": self.unit}
 
 
 @dataclass(frozen=True)
-class TargetRegion:
+class StaticSceneRegion:
     x_px: float
     y_px: float
     width_px: float
@@ -44,83 +43,59 @@ class TargetRegion:
 
     @property
     def center_px(self) -> tuple[float, float]:
-        return (self.x_px + self.width_px / 2, self.y_px + self.height_px / 2)
+        return (self.x_px + self.width_px / 2.0, self.y_px + self.height_px / 2.0)
 
     def to_dict(self) -> dict[str, float]:
         return {"xPx": self.x_px, "yPx": self.y_px, "widthPx": self.width_px, "heightPx": self.height_px}
 
 
+# Source compatibility for old notebooks; the v2 public contract calls this
+# StaticSceneRegion.
+TargetRegion = StaticSceneRegion
+
+
 @dataclass(frozen=True)
-class MeasurementOptions:
-    method: str = "template"
+class SpeedOptions:
     fps: float = TARGET_ANALYSIS_FPS
     max_camera_drift_px: float = MAX_CAMERA_DRIFT_PX
-    min_template_score: float = MIN_TEMPLATE_SCORE
+    max_forward_backward_error_px: float = 1.5
+    min_inlier_ratio: float = 0.60
+    min_tracked_points: int = 12
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "method": self.method,
-            "fps": self.fps,
-            "maxCameraDriftPx": self.max_camera_drift_px,
-            "minTemplateScore": self.min_template_score,
-        }
+        return {"fps": self.fps, "maxCameraDriftPx": self.max_camera_drift_px, "maxForwardBackwardErrorPx": self.max_forward_backward_error_px, "minInlierRatio": self.min_inlier_ratio, "minTrackedPoints": self.min_tracked_points}
+
+
+MeasurementOptions = SpeedOptions
 
 
 @dataclass
-class VelocitySample:
+class SpeedSample:
     frame_index: int
     time_s: float
+    velocity_mps: float = 0.0
+    velocity_kmh: float = 0.0
     vx_mps: float = 0.0
     vy_mps: float = 0.0
-    speed_mps: float = 0.0
+    direction_deg: float = 0.0
+    confidence: float = 0.0
     valid: bool = True
     error_code: str | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "frameIndex": self.frame_index, "timeS": self.time_s,
-            "vxMps": self.vx_mps, "vyMps": self.vy_mps,
-            "speedMps": self.speed_mps, "valid": self.valid,
-            "errorCode": self.error_code,
-        }
-
-
-@dataclass
-class VelocitySummary:
-    samples: list[VelocitySample] = field(default_factory=list)
-    mean_speed_mps: float = 0.0
-    peak_speed_mps: float = 0.0
-    quality: str = "reference-only"
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "samples": [sample.to_dict() for sample in self.samples],
-            "meanSpeedMps": self.mean_speed_mps,
-            "peakSpeedMps": self.peak_speed_mps,
-            "quality": self.quality,
-        }
-
-
-@dataclass
-class TrackingSample:
-    frame_index: int
-    time_s: float
+    # Pixel displacement is retained as a diagnostic source for the speed
+    # conversion; the headline report is expressed in metres per second.
     dx_px: float = 0.0
     dy_px: float = 0.0
-    dx_m: float = 0.0
-    dy_m: float = 0.0
-    score: float = 0.0
-    valid: bool = True
-    error_code: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "frameIndex": self.frame_index, "timeS": self.time_s,
-            "dxPx": self.dx_px, "dyPx": self.dy_px,
-            "dxM": self.dx_m, "dyM": self.dy_m,
-            "score": self.score, "valid": self.valid,
-            "errorCode": self.error_code,
-        }
+        return {"frameIndex": self.frame_index, "timeS": self.time_s, "velocityMps": self.velocity_mps, "velocityKmh": self.velocity_kmh, "vxMps": self.vx_mps, "vyMps": self.vy_mps, "directionDeg": self.direction_deg, "confidence": self.confidence, "valid": self.valid, "errorCode": self.error_code, "dxPx": self.dx_px, "dyPx": self.dy_px}
+
+
+@dataclass
+class SpeedSeries:
+    samples: list[SpeedSample] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"samples": [sample.to_dict() for sample in self.samples]}
 
 
 @dataclass(frozen=True)
@@ -133,73 +108,68 @@ class SpectrumPeak:
         return {"frequencyHz": self.frequency_hz, "amplitude": self.amplitude, "prominence": self.prominence}
 
 
-@dataclass
-class DisplacementSeries:
-    samples: list[TrackingSample] = field(default_factory=list)
-    peak_to_peak_m: float = 0.0
-    rms_m: float = 0.0
-    peak_to_peak_px: float = 0.0
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "samples": [sample.to_dict() for sample in self.samples],
-            "peakToPeakM": self.peak_to_peak_m, "rmsM": self.rms_m,
-            "peakToPeakPx": self.peak_to_peak_px,
-        }
-
-
 @dataclass(frozen=True)
-class TrackingDiagnostics:
-    camera_stable: bool = True
-    background_trackable: bool = True
-    valid_ratio: float = 1.0
-    mean_score: float = 0.0
-    fps: float = TARGET_ANALYSIS_FPS
-    error_code: str | None = None
-    motion_model: str | None = None
+class SpeedDiagnostics:
     inlier_count: int = 0
     inlier_ratio: float = 0.0
     median_reprojection_error_px: float = 0.0
+    forward_backward_error_px: float = 0.0
+    tracked_point_count: int = 0
+    camera_stable: bool = True
+    scene_texture_score: float = 0.0
+    valid_ratio: float = 0.0
+    fps: float = TARGET_ANALYSIS_FPS
+    failure_intervals: tuple[dict[str, Any], ...] = ()
+    error_code: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "cameraStable": self.camera_stable,
-            "backgroundTrackable": self.background_trackable,
-            "validRatio": self.valid_ratio,
-            "meanScore": self.mean_score,
-            "fps": self.fps,
-            "errorCode": self.error_code,
-            "motionModel": self.motion_model,
             "inlierCount": self.inlier_count,
             "inlierRatio": self.inlier_ratio,
             "medianReprojectionErrorPx": self.median_reprojection_error_px,
+            "forwardBackwardErrorPx": self.forward_backward_error_px,
+            "trackedPointCount": self.tracked_point_count,
+            "cameraStable": self.camera_stable,
+            "sceneTextureScore": self.scene_texture_score,
+            "validRatio": self.valid_ratio,
+            "fps": self.fps,
+            "failureIntervals": list(self.failure_intervals),
+            "errorCode": self.error_code,
         }
 
 
+TrackingDiagnostics = SpeedDiagnostics
+TrackingSample = SpeedSample
+
+
 @dataclass
-class MeasurementReport:
-    schema_version: str = SCHEMA_VERSION
-    displacement: DisplacementSeries = field(default_factory=DisplacementSeries)
-    spectrum: SpectrumPeak | None = None
-    velocity: VelocitySummary | None = None
-    diagnostics: TrackingDiagnostics = field(default_factory=TrackingDiagnostics)
-    method: str = "template"
+class SpeedReport:
+    velocity_mps: float = 0.0
+    velocity_kmh: float = 0.0
+    direction_deg: float = 0.0
+    mean_speed_mps: float = 0.0
+    peak_speed_mps: float = 0.0
+    valid_ratio: float = 0.0
+    samples: list[SpeedSample] = field(default_factory=list)
+    diagnostics: SpeedDiagnostics = field(default_factory=SpeedDiagnostics)
     scale: ScaleReference | None = None
     errors: list[str] = field(default_factory=list)
-
-    @property
-    def samples(self) -> list[TrackingSample]:
-        """Convenience view retained for small teaching scripts."""
-        return self.displacement.samples
+    schema_version: str = SCHEMA_VERSION
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "schemaVersion": self.schema_version,
-            "method": self.method,
-            "scale": self.scale.to_dict() if self.scale else None,
-            "displacement": self.displacement.to_dict(),
-            "spectrum": self.spectrum.to_dict() if self.spectrum else None,
-            "velocity": self.velocity.to_dict() if self.velocity else None,
+            "velocityMps": self.velocity_mps,
+            "velocityKmh": self.velocity_kmh,
+            "directionDeg": self.direction_deg,
+            "meanSpeedMps": self.mean_speed_mps,
+            "peakSpeedMps": self.peak_speed_mps,
+            "validRatio": self.valid_ratio,
+            "samples": [sample.to_dict() for sample in self.samples],
             "diagnostics": self.diagnostics.to_dict(),
+            "scale": self.scale.to_dict() if self.scale else None,
             "errors": self.errors,
         }
+
+
+MeasurementReport = SpeedReport
