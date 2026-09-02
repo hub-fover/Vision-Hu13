@@ -45,6 +45,7 @@
     "validate:lab005:pages": "node lab-005/scripts/stage-pages.mjs --validate-only ../../web/lab-005",
     "validate:lab005:release": "npm run test:lab005 && npm run test:lab005:e2e && npm run test:lab005:cross-runtime && npm run test:lab005:acceptance && npm run validate:lab005:assets && npm run validate:lab005:pages",
     "build:lab006": "python lab-006/scripts/build.py && node lab-006/scripts/stage-pages.mjs",
+    "validate:lab006:pages": "node lab-006/scripts/validate-pages.mjs",
     "test:e2e": "playwright test",
     "test:all": "npm run test:web && npm run test:e2e",
     "record:demo": "node scripts/record_demo.mjs",
