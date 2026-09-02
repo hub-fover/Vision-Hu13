@@ -15,52 +15,122 @@
     </header>
 
     <main class="container">
+        <!-- Calibration Status -->
         <section>
-            <h2>标定状态</h2>
-            <div id="calibrationStatus" class="status-message status-info">
-                正在检查标定数据...
+            <div class="card">
+                <h2>标定状态</h2>
+                <div id="calibrationStatus" class="status-message status-info">
+                    正在检查标定数据...
+                </div>
             </div>
         </section>
 
+        <!-- Measurement Mode Selection -->
         <section>
-            <h2>测量模式</h2>
-            <div class="controls">
-                <button id="distanceMode" class="btn btn-primary">两点距离</button>
-                <button id="rectangleMode" class="btn btn-secondary">矩形测量</button>
+            <div class="card">
+                <h2>选择测量模式</h2>
+                <p class="text-secondary mb-3">选择适合您需求的测量方式</p>
+                <div class="mode-selector">
+                    <div class="mode-card active" id="distanceModeCard" onclick="selectMode('distance')">
+                        <div class="mode-icon">📏</div>
+                        <div class="mode-title">两点距离测量</div>
+                        <div class="mode-description">
+                            <p><strong>适用场景：</strong>测量物体的长度、宽度</p>
+                            <p><strong>操作方式：</strong>点击画面标记两个点</p>
+                        </div>
+                    </div>
+
+                    <div class="mode-card" id="rectangleModeCard" onclick="selectMode('rectangle')">
+                        <div class="mode-icon">📐</div>
+                        <div class="mode-title">矩形测量</div>
+                        <div class="mode-description">
+                            <p><strong>适用场景：</strong>测量矩形物体的尺寸</p>
+                            <p><strong>操作方式：</strong>依次点击四个角点</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
+        <!-- Camera Preview -->
         <section>
-            <h2>相机预览</h2>
-            <div class="video-container">
-                <video id="videoElement" autoplay playsinline></video>
-                <canvas id="measureCanvas" class="canvas-overlay"></canvas>
-            </div>
-            <div class="controls">
-                <button id="startCamera" class="btn btn-primary">启动相机</button>
-                <button id="clearPoints" class="btn btn-secondary" disabled>清除标记</button>
-                <button id="stopCamera" class="btn btn-danger" disabled>关闭相机</button>
+            <div class="card">
+                <h2>实时预览</h2>
+                <div class="video-container">
+                    <video id="videoElement" autoplay playsinline></video>
+                    <canvas id="measureCanvas" class="canvas-overlay clickable"></canvas>
+                </div>
+
+                <!-- Camera Controls -->
+                <div class="controls mt-3">
+                    <button id="startCamera" class="btn btn-primary">启动相机</button>
+                    <button id="clearPoints" class="btn btn-secondary" disabled>清除标记</button>
+                    <button id="stopCamera" class="btn btn-danger" disabled>关闭相机</button>
+                </div>
+
+                <!-- Operation Guide -->
+                <div id="operationGuide" class="guide-card mt-3" style="display: none;">
+                    <h4 id="guideTitle">🎯 操作提示</h4>
+                    <p id="guideText">启动相机后开始标记测量点</p>
+                </div>
             </div>
         </section>
 
+        <!-- Measurement Result -->
         <section>
-            <h2>测量结果</h2>
-            <div id="measurementResult">
-                <p>点击画面标记测量点</p>
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+                    <h2>测量结果</h2>
+                    <div>
+                        <button id="unitToggle" class="btn btn-secondary" onclick="toggleUnit()">单位: mm</button>
+                    </div>
+                </div>
+                <div id="measurementResult" class="text-center" style="padding: var(--spacing-lg); font-size: 1.5rem; font-weight: 600; color: var(--color-primary);">
+                    点击画面标记测量点
+                </div>
             </div>
         </section>
 
+        <!-- Measurement History -->
+        <section>
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>测量历史</h2>
+                    <button id="clearHistory" class="btn btn-danger" onclick="clearMeasurementHistory()">清空历史</button>
+                </div>
+                <ul id="historyList" class="history-list">
+                    <li class="status-message status-info">暂无测量记录</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Tips -->
+        <section>
+            <div class="tips-card">
+                <h4>⚠️ 使用提示</h4>
+                <ul>
+                    <li>仅适用于<strong>平面物体</strong>的测量</li>
+                    <li>物体应与标定板在<strong>同一平面</strong>上</li>
+                    <li>保持相机<strong>稳定</strong>以获得准确结果</li>
+                    <li>避免手抖影响精度，可使用支架固定</li>
+                    <li>光线充足时测量效果更佳</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Navigation -->
         <section>
             <div class="controls">
                 <a href="index.html" class="btn btn-secondary">返回首页</a>
                 <a href="calibration.html" class="btn btn-primary">重新标定</a>
+                <a href="tutorial.html" class="btn btn-secondary">查看教程</a>
             </div>
         </section>
     </main>
 
     <footer>
         <div class="container">
-            <p>&copy; 2026 相机标定工具 | 基于 OpenCV.js 和张正友标定法</p>
+            <p>&copy; 2026 相机标定工具 | 基于张正友标定法</p>
         </div>
     </footer>
 

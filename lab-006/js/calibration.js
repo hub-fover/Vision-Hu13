@@ -1,9 +1,10 @@
-// calibration.js - 相机标定功能
+// calibration.js - 相机标定功能（增强版）
 let video, canvas, ctx;
 let stream = null;
 let capturedImages = [];
 let calibrationData = null;
 let boardWidth = 8, boardHeight = 5, squareSize = 25;
+let isDetecting = false;
 
 document.addEventListener('DOMContentLoaded', function() {
     video = document.getElementById('videoElement');
@@ -20,10 +21,58 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('squareSize').onchange = e => squareSize = parseInt(e.target.value);
 
     updateImageCount();
+    showGuideCard('initial');
 });
 
 function onOpenCVLoad() {
     console.log('OpenCV 准备就绪');
+}
+
+// 更新引导卡片
+function showGuideCard(state) {
+    const guideCard = document.getElementById('guideCard');
+    const guideTitle = document.getElementById('guideTitle');
+    const guideContent = document.getElementById('guideContent');
+
+    guideCard.style.display = 'block';
+
+    switch(state) {
+        case 'initial':
+            guideTitle.innerHTML = '📷 准备开始';
+            guideContent.innerHTML = `
+                <p>• 请确保棋盘格平整且光线充足</p>
+                <p>• 点击"启动相机"按钮开始</p>
+            `;
+            break;
+        case 'searching':
+            guideTitle.innerHTML = '🔍 正在寻找棋盘格...';
+            guideContent.innerHTML = `
+                <p>• 将棋盘格完整放入画面</p>
+                <p>• 调整角度和距离</p>
+                <p>• 出现绿色标记即表示检测成功</p>
+            `;
+            break;
+        case 'found':
+            guideTitle.innerHTML = '✅ 检测成功！';
+            guideContent.innerHTML = `
+                <p>• 保持稳定，点击"拍摄"按钮</p>
+                <p>• 已拍摄 ${capturedImages.length}/10 张</p>
+                <p>• 建议：从不同角度拍摄以提高精度</p>
+            `;
+            break;
+    }
+}
+
+// 更新进度指示器
+function updateStepIndicator(step) {
+    const step2 = document.getElementById('step2');
+    const step3 = document.getElementById('step3');
+
+    if (step === 3) {
+        step2.classList.remove('active');
+        step2.classList.add('completed');
+        step3.classList.add('active');
+    }
 }
 
 async function startCamera() {
@@ -42,10 +91,14 @@ async function startCamera() {
         document.getElementById('startCamera').disabled = true;
         document.getElementById('captureImage').disabled = false;
         document.getElementById('stopCamera').disabled = false;
-        showStatus('statusMessage', '相机已启动', 'success');
+
+        showStatus('statusMessage', '✓ 相机已启动，正在检测棋盘格...', 'success');
+        showGuideCard('searching');
+        isDetecting = false;
+
         requestAnimationFrame(detectInRealTime);
     } catch (error) {
-        showStatus('statusMessage', '无法访问相机', 'error');
+        showStatus('statusMessage', '❌ 无法访问相机，请检查权限设置', 'error');
     }
 }
 
@@ -54,10 +107,13 @@ function stopCamera() {
     stream = null;
     video.srcObject = null;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     document.getElementById('startCamera').disabled = false;
     document.getElementById('captureImage').disabled = true;
     document.getElementById('stopCamera').disabled = true;
+
     showStatus('statusMessage', '相机已关闭', 'info');
+    showGuideCard('initial');
 }
 
 function detectInRealTime() {
@@ -73,11 +129,22 @@ function detectInRealTime() {
         const result = detectChessboardCorners(src, patternSize);
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
         if (result.found) {
             const displayMat = src.clone();
             drawChessboardCorners(displayMat, patternSize, result.corners, true);
             cv.imshow('overlayCanvas', displayMat);
             displayMat.delete();
+
+            if (!isDetecting) {
+                isDetecting = true;
+                showGuideCard('found');
+            }
+        } else {
+            if (isDetecting) {
+                isDetecting = false;
+                showGuideCard('searching');
+            }
         }
 
         result.corners.delete();
@@ -91,67 +158,159 @@ function detectInRealTime() {
 
 function captureImage() {
     if (!opencvReady) {
-        showStatus('statusMessage', 'OpenCV 加载中...', 'error');
+        showStatus('statusMessage', 'OpenCV 加载中，请稍候...', 'warning');
         return;
     }
 
-    try {function captureImage() {
-    if (!opencvReady) {
-        showStatus('statusMessage', 'OpenCV 加载中...', 'error');
-        return;
-    }
-    const src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
-    new cv.VideoCapture(video).read(src);
-    const patternSize = new cv.Size(boardWidth, boardHeight);
-    const result = detectChessboardCorners(src, patternSize);
-    if (result.found) {
-        const imageData = { width: src.cols, height: src.rows, data: Array.from(src.data), corners: [] };
-        for (let i = 0; i < result.corners.rows; i++) {
-            imageData.corners.push({
-                x: result.corners.data32F[i * 2], y: result.corners.data32F[i * 2 + 1]
-            });
+    try {
+        const src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
+        new cv.VideoCapture(video).read(src);
+        const patternSize = new cv.Size(boardWidth, boardHeight);
+        const result = detectChessboardCorners(src, patternSize);
+
+        if (result.found) {
+            const imageData = {
+                width: src.cols,
+                height: src.rows,
+                data: Array.from(src.data),
+                corners: []
+            };
+
+            for (let i = 0; i < result.corners.rows; i++) {
+                imageData.corners.push({
+                    x: result.corners.data32F[i * 2],
+                    y: result.corners.data32F[i * 2 + 1]
+                });
+            }
+
+            capturedImages.push(imageData);
+            updateImageCount();
+            updateImageGrid();
+            updateProgressBar();
+            showGuideCard('found');
+
+            showStatus('statusMessage', `✓ 成功采集第 ${capturedImages.length} 张图像`, 'success');
+
+            if (capturedImages.length >= 10) {
+                document.getElementById('calibrateButton').disabled = false;
+                document.getElementById('imageHint').innerHTML = '<p>✓ 已采集足够图像，可以开始标定了！</p>';
+                document.getElementById('imageHint').className = 'status-message status-success mt-3';
+                showToast('已达到最少图像数量，可以开始标定！', 'success');
+            }
+        } else {
+            showStatus('statusMessage', '❌ 未检测到棋盘格，请调整角度和距离', 'error');
         }
-        capturedImages.push(imageData);
-        updateImageCount(); updateImageGrid();
-        showStatus('statusMessage', `采集第 ${capturedImages.length} 张`, 'success');
-        if (capturedImages.length >= 10) document.getElementById('calibrateButton').disabled = false;
-    } else {
-        showStatus('statusMessage', '未检测到棋盘格', 'error');
+
+        result.corners.delete();
+        src.delete();
+    } catch (error) {
+        showStatus('statusMessage', '拍摄失败: ' + error.message, 'error');
     }
-    result.corners.delete(); src.delete();
 }
 
 function clearImages() {
-    capturedImages = []; updateImageCount(); updateImageGrid();
-    document.getElementById('calibrateButton').disabled = true;
-    showStatus('statusMessage', '已清空所有图像', 'info');
+    if (capturedImages.length === 0) return;
+
+    if (confirm('确定要清空所有已采集的图像吗？')) {
+        capturedImages = [];
+        updateImageCount();
+        updateImageGrid();
+        updateProgressBar();
+
+        document.getElementById('calibrateButton').disabled = true;
+        document.getElementById('imageHint').innerHTML = '<p>📍 请从不同角度拍摄至少 10 张照片以开始标定</p>';
+        document.getElementById('imageHint').className = 'status-message status-info mt-3';
+
+        showStatus('statusMessage', '已清空所有图像', 'info');
+    }
 }
 
-function updateImageCount() { document.getElementById('imageCount').textContent = capturedImages.length; }
+function updateImageCount() {
+    document.getElementById('imageCount').textContent = capturedImages.length;
+}
+
+function updateProgressBar() {
+    const progress = Math.min((capturedImages.length / 20) * 100, 100);
+    document.getElementById('imageProgress').style.width = progress + '%';
+}
 
 function updateImageGrid() {
     const grid = document.getElementById('imageGrid');
     grid.innerHTML = '';
-    // 显示缩略图（简化版）
+
+    capturedImages.forEach((img, index) => {
+        const item = document.createElement('div');
+        item.className = 'image-item';
+        item.innerHTML = `
+            <canvas id="thumb-${index}" width="${img.width}" height="${img.height}"></canvas>
+            <button class="delete-btn" onclick="deleteImage(${index})">×</button>
+        `;
+        grid.appendChild(item);
+
+        // 绘制缩略图
+        setTimeout(() => {
+            const thumbCanvas = document.getElementById(`thumb-${index}`);
+            if (thumbCanvas) {
+                const thumbCtx = thumbCanvas.getContext('2d');
+                const imgData = thumbCtx.createImageData(img.width, img.height);
+                imgData.data.set(new Uint8ClampedArray(img.data));
+                thumbCtx.putImageData(imgData, 0, 0);
+            }
+        }, 10);
+    });
 }
 
 function deleteImage(index) {
     capturedImages.splice(index, 1);
-    updateImageCount(); updateImageGrid();
+    updateImageCount();
+    updateImageGrid();
+    updateProgressBar();
+
+    if (capturedImages.length < 10) {
+        document.getElementById('calibrateButton').disabled = true;
+        document.getElementById('imageHint').innerHTML = '<p>📍 请从不同角度拍摄至少 10 张照片以开始标定</p>';
+        document.getElementById('imageHint').className = 'status-message status-info mt-3';
+    }
+
+    showToast('已删除图像', 'info');
 }
 
 function performCalibration() {
-    showStatus('calibrationResult', '正在标定，请稍候...', 'info');
+    updateStepIndicator(3);
+
+    const resultDiv = document.getElementById('calibrationResult');
+    resultDiv.innerHTML = '<p>⏳ 正在计算标定参数，请稍候...</p>';
+    resultDiv.className = 'status-message status-info mt-3';
+
     setTimeout(() => {
         const result = calibrateCamera();
         if (result) {
-            const msg = `标定完成！<br>重投影误差: ${result.error.toFixed(3)} 像素<br>
-                        焦距: fx=${result.fx.toFixed(1)}, fy=${result.fy.toFixed(1)}`;
-            document.getElementById('calibrationResult').innerHTML = msg;
-            document.getElementById('calibrationResult').className = 'status-message status-success';
+            const quality = result.error < 0.5 ? '优秀' : result.error < 1.0 ? '良好' : '一般';
+            const qualityColor = result.error < 0.5 ? 'success' : result.error < 1.0 ? 'info' : 'warning';
+
+            resultDiv.innerHTML = `
+                <h3 style="color: var(--color-success); margin-bottom: var(--spacing-sm);">✅ 标定完成！</h3>
+                <div style="display: grid; gap: var(--spacing-sm); text-align: left;">
+                    <p><strong>重投影误差：</strong>${result.error.toFixed(3)} 像素 <span class="status-message status-${qualityColor}" style="display: inline; padding: 4px 12px;">${quality}</span></p>
+                    <p><strong>焦距：</strong>fx = ${result.fx.toFixed(2)}, fy = ${result.fy.toFixed(2)}</p>
+                    <p><strong>图像数量：</strong>${capturedImages.length} 张</p>
+                    <p style="color: var(--color-text-secondary); font-size: var(--font-size-small); margin-top: var(--spacing-sm);">
+                        标定数据已保存到本地，现在可以进入测量页面使用。
+                    </p>
+                </div>
+                <div class="controls mt-3">
+                    <button onclick="location.href='measurement.html'" class="btn btn-primary">立即测量</button>
+                    <button onclick="location.reload()" class="btn btn-secondary">重新标定</button>
+                </div>
+            `;
+            resultDiv.className = 'card mt-3';
+            resultDiv.style.background = 'linear-gradient(135deg, #d1f4e0 0%, #e3f2fd 100%)';
+
+            showToast('标定成功！', 'success');
         }
     }, 100);
 }
+
 function calibrateCamera() {
     try {
         const objectPoints = [];
@@ -186,13 +345,26 @@ function calibrateCamera() {
             cameraMatrix: Array.from(cameraMatrix.data64F),
             distCoeffs: Array.from(distCoeffs.data64F),
             imageSize: { width: imageSize.width, height: imageSize.height },
-            error: error
+            error: error,
+            date: new Date().toISOString(),
+            squareSize: squareSize
         };
 
         saveCalibration(calibData);
+
+        // 清理内存
+        objectPoints.forEach(mat => mat.delete());
+        imagePoints.forEach(mat => mat.delete());
+        cameraMatrix.delete();
+        distCoeffs.delete();
+        rvecs.delete();
+        tvecs.delete();
+
         return { error, fx: cameraMatrix.data64F[0], fy: cameraMatrix.data64F[4] };
     } catch (error) {
-        showStatus('calibrationResult', '标定失败: ' + error.message, 'error');
+        const resultDiv = document.getElementById('calibrationResult');
+        resultDiv.innerHTML = `<p>❌ 标定失败: ${error.message}</p><p style="font-size: var(--font-size-small); color: var(--color-text-secondary);">请尝试重新采集图像或调整参数。</p>`;
+        resultDiv.className = 'status-message status-error mt-3';
         return null;
     }
 }

@@ -5,26 +5,259 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>棋盘格标定板模板</title>
     <style>
-        @media print { body { margin: 0; } .no-print { display: none; } }
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-        .checkerboard { margin: 20px auto; border: 2px solid #000; }
-        .row { display: flex; height: 25mm; }
-        .square { width: 25mm; height: 25mm; }
+        @media print {
+            body { margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+            .checkerboard-container { page-break-after: avoid; }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+            background: #fbfbfd;
+            padding: 20px;
+        }
+
+        .no-print {
+            max-width: 900px;
+            margin: 0 auto 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            color: #1d1d1f;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #86868b;
+            font-size: 1.1rem;
+        }
+
+        .instructions {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .instructions h2 {
+            color: #1d1d1f;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .step-list {
+            list-style: none;
+            display: grid;
+            gap: 15px;
+        }
+
+        .step-list li {
+            display: flex;
+            align-items: start;
+            gap: 15px;
+        }
+
+        .step-icon {
+            background: #0071e3;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .step-icon.check {
+            background: #34c759;
+        }
+
+        .step-icon.warning {
+            background: #ff9500;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-content strong {
+            display: block;
+            color: #1d1d1f;
+            margin-bottom: 5px;
+        }
+
+        .step-content p {
+            color: #86868b;
+            line-height: 1.5;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 12px;
+            border: none;
+            font-size: 17px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #0071e3;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0077ed;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,113,227,0.3);
+        }
+
+        .btn-secondary {
+            background: #86868b;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #1d1d1f;
+        }
+
+        .checkerboard-container {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: center;
+        }
+
+        .checkerboard {
+            border: 2px solid #000;
+            display: inline-block;
+        }
+
+        .row {
+            display: flex;
+            height: 25mm;
+        }
+
+        .square {
+            width: 25mm;
+            height: 25mm;
+        }
+
         .black { background: #000; }
         .white { background: #fff; }
-        button { padding: 10px 20px; font-size: 16px; margin: 10px; cursor: pointer; }
+
+        .specs {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .specs h3 {
+            color: #1d1d1f;
+            margin-bottom: 10px;
+        }
+
+        .specs p {
+            color: #86868b;
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body>
     <div class="no-print">
-        <h1>📐 棋盘格标定板模板</h1>
-        <p>请使用A4纸打印，确保不缩放（100%比例）</p>
-        <p>规格：10×7 方格，每个方格 25mm × 25mm</p>
-        <button onclick="window.print()">打印此页面</button>
-        <button onclick="window.location.href='index.html'">返回首页</button>
+        <div class="header">
+            <h1>📐 棋盘格标定板模板</h1>
+            <p>请仔细阅读打印说明，确保正确打印</p>
+        </div>
+
+        <div class="instructions">
+            <h2>打印要求</h2>
+            <ul class="step-list">
+                <li>
+                    <div class="step-icon">📄</div>
+                    <div class="step-content">
+                        <strong>纸张选择</strong>
+                        <p>使用标准 A4 白纸（210mm × 297mm），建议使用较厚的纸张（80g以上）</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-icon check">✓</div>
+                    <div class="step-content">
+                        <strong>打印比例</strong>
+                        <p>必须选择 100% 比例打印，切勿缩放或"适应纸张大小"</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-icon">🎨</div>
+                    <div class="step-content">
+                        <strong>打印质量</strong>
+                        <p>选择黑白打印，最佳质量，确保黑白对比度高且边缘清晰</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-icon warning">⚠️</div>
+                    <div class="step-content">
+                        <strong>平整度要求</strong>
+                        <p>打印后将纸张贴在硬纸板或泡沫板上，保持完全平整，避免弯曲</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-icon">💡</div>
+                    <div class="step-content">
+                        <strong>使用建议</strong>
+                        <p>标定板四周留出足够空白边缘，便于手持。避免标定板表面反光或有污渍。</p>
+                    </div>
+                </li>
+            </ul>
+
+            <div class="buttons">
+                <button onclick="window.print()" class="btn btn-primary">🖨️ 打印此页面</button>
+                <a href="../index.html" class="btn btn-secondary">返回首页</a>
+            </div>
+        </div>
+
+        <div class="specs">
+            <h3>标定板规格</h3>
+            <p>
+                <strong>尺寸：</strong>10 × 7 方格（内角点 9 × 6）<br>
+                <strong>方格大小：</strong>25mm × 25mm<br>
+                <strong>总尺寸：</strong>250mm × 175mm
+            </p>
+        </div>
     </div>
 
-    <div class="checkerboard" id="checkerboard"></div>
+    <div class="checkerboard-container">
+        <div class="checkerboard" id="checkerboard"></div>
+    </div>
 
     <script>
         const rows = 7, cols = 10;
