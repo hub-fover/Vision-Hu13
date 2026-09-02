@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="手机相机标定与测量工具 - 基于张正友标定法">
+    <title>相机标定工具</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📷 手机相机标定工具</h1>
+            <p class="subtitle">基于张正友标定法的相机标定与测量</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="intro">
+            <h2>欢迎使用</h2>
+            <p>这是一个运行在浏览器中的相机标定工具，可以帮助你：</p>
+            <ul>
+                <li>📐 标定手机相机的内参和畸变参数</li>
+                <li>📏 基于标定结果进行精确测量</li>
+                <li>💾 保存和管理标定数据</li>
+            </ul>
+        </section>
+
+        <section class="actions">
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-icon">🎯</div>
+                    <h3>开始标定</h3>
+                    <p>使用棋盘格标定板标定你的手机相机</p>
+                    <a href="calibration.html" class="btn btn-primary">进入标定</a>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon">📏</div>
+                    <h3>测量工具</h3>
+                    <p>使用已标定的相机进行精确测量</p>
+                    <a href="measurement.html" class="btn btn-secondary">开始测量</a>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon">📄</div>
+                    <h3>标定板模板</h3>
+                    <p>下载并打印9×6棋盘格标定板</p>
+                    <a href="assets/checkerboard-template.html" class="btn btn-secondary">下载模板</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="guide">
+            <h2>使用指南</h2>
+            <div class="steps">
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <h4>打印标定板</h4>
+                        <p>下载并打印9×6棋盘格，建议使用A4纸，每个方格边长25mm</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <h4>采集图像</h4>
+                        <p>用手机从不同角度、距离拍摄10-20张棋盘格图像</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <div class="step-content">
+                        <h4>计算标定</h4>
+                        <p>系统自动检测角点并计算相机内参和畸变系数</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <span class="step-number">4</span>
+                    <div class="step-content">
+                        <h4>开始测量</h4>
+                        <p>使用标定结果对平面物体进行精确测量</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 相机标定工具 | 基于 OpenCV.js 和张正友标定法</p>
+            <p><a href="https://github.com/hub-fover/Vision-Hu13" target="_blank">GitHub</a></p>
+        </div>
+    </footer>
+</body>
+</html>

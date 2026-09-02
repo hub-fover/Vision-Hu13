@@ -1,171 +1,165 @@
-# LAB 006 - 相机标定与测量工具
+# LAB 006 相机标定工具
 
-基于张正友标定法的移动端相机标定与精确测量Web应用。
+基于张正友标定法的手机相机标定与测量Web应用。
 
-[在线体验](https://hub-fover.github.io/Vision-Hu13/lab-006/)
+## ✨ 功能特点
 
-## 功能特点
+- 📐 **相机标定**：使用棋盘格标定板精确标定手机相机内参和畸变参数
+- 📏 **精确测量**：基于标定结果对平面物体进行毫米级精度测量
+- 🎯 **一键示例**：无需实际拍摄，使用OpenCV标准数据集体验完整流程
+- 💾 **数据持久化**：标定结果自动保存到浏览器本地存储
 
-### 📐 相机标定
-- **WebRTC 实时相机访问** - 使用手机后置摄像头
-- **自动棋盘格检测** - OpenCV.js 实时角点检测
-- **智能引导系统** - 动态提示最佳拍摄角度和距离
-- **进度可视化** - 三步进度指示器和采集计数
-- **标定结果分析** - 显示重投影误差、焦距等内参
-- **本地存储** - 标定结果保存在浏览器 localStorage
+## 🚀 快速开始
 
-### 📏 精确测量
-- **距离测量** - 两点间的毫米级距离测量
-- **矩形测量** - 测量物体的长宽尺寸
-- **实时预览** - 画布标注测量点和连线
-- **测量历史** - 自动保存所有测量记录
-- **单位切换** - 支持毫米/厘米显示
-- **一键复制** - 快速复制测量结果
+### 方式一：使用示例数据（推荐新手）
 
-### 🎓 零基础友好
-- **完整教程页面** - 从打印标定板到完成测量的全流程指导
-- **FAQ 折叠面板** - 常见问题解答
-- **操作提示** - 每个步骤都有清晰的文字和图标引导
-- **打印模板** - 内置标准 8×6 棋盘格模板
+1. 打开[标定页面](https://hub-fover.github.io/Vision-Hu13/lab-006/calibration.html)
+2. 点击"加载示例数据"按钮
+3. 自动加载13张OpenCV标准标定图像
+4. 点击"开始标定"查看标定结果
+5. 前往[测量页面](https://hub-fover.github.io/Vision-Hu13/lab-006/measurement.html)体验测量功能
 
-## 技术架构
+### 方式二：实际标定自己的相机
 
-- **OpenCV.js 4.x** - WebAssembly 版本的 OpenCV，在浏览器中运行计算机视觉算法
-- **张正友标定法** - 经典的相机标定算法（1998）
-- **纯前端实现** - HTML5 + CSS3 + Vanilla JavaScript
-- **响应式设计** - 支持 375px - 1920px 屏幕
-- **零依赖构建** - 无需 npm 依赖，直接从 CDN 加载 OpenCV.js
+1. **准备标定板**
+   - 下载[9×6棋盘格模板](assets/checkerboard-9x6.pdf)
+   - 打印到A4纸上（确保方格尺寸准确）
+   - 将纸张平整粘贴到硬质板上
 
-## 目录结构
+2. **采集标定图像**
+   - 打开标定页面并允许相机访问
+   - 从不同角度拍摄标定板10-20张
+   - 确保：
+     - 整个标定板在画面内
+     - 覆盖画面中心和四角
+     - 包含不同旋转角度
+     - 避免模糊和过曝
+
+3. **执行标定**
+   - 采集足够图像后点击"开始标定"
+   - 查看重投影误差（通常<1像素为良好）
+   - 标定参数自动保存
+
+4. **开始测量**
+   - 前往测量页面
+   - 选择测量模式（距离/矩形）
+   - 在相机画面中点击测量点
+
+## 📊 示例数据说明
+
+本工具包含OpenCV官方标定数据集：
+
+- **图像数量**：13张
+- **标定板规格**：9×6内角点
+- **方格尺寸**：25mm
+- **图像分辨率**：640×480
+- **数据来源**：[OpenCV GitHub](https://github.com/opencv/opencv/tree/4.x/samples/data)
+- **许可证**：Apache 2.0 License
+
+示例标定结果：
+- **重投影误差**：0.41像素
+- **焦距**：fx=536.07, fy=536.02
+- **主点**：cx=342.37, cy=235.54
+
+## 🛠️ 技术栈
+
+- **前端**：HTML5 + CSS3 + Vanilla JavaScript
+- **计算机视觉**：OpenCV.js 4.5+
+- **相机访问**：WebRTC getUserMedia API
+- **数据存储**：localStorage
+
+## 📁 项目结构
 
 ```
 lab-006/
-├── README.md                          # 本文档
-├── web/                               # 源代码目录
-│   ├── index.html                     # 主页
-│   ├── calibration.html               # 标定页面
-│   ├── measurement.html               # 测量页面
-│   ├── tutorial.html                  # 教程页面
+├── web/                    # Web应用（发布目录）
+│   ├── index.html         # 首页
+│   ├── calibration.html   # 标定页面
+│   ├── measurement.html   # 测量页面
 │   ├── css/
-│   │   └── style.css                  # 苹果风格样式
+│   │   └── style.css     # 样式文件
 │   ├── js/
-│   │   ├── calibration.js             # 标定逻辑（角点检测、标定计算）
-│   │   ├── measurement.js             # 测量逻辑（畸变校正、距离计算）
-│   │   └── utils.js                   # 工具函数（状态管理、存储）
+│   │   ├── calibration.js   # 标定逻辑
+│   │   ├── measurement.js   # 测量逻辑
+│   │   └── utils.js        # 工具函数
 │   └── assets/
-│       └── checkerboard-template.html # 8×6 棋盘格打印模板
-└── scripts/
-    └── stage-pages.mjs                # GitHub Pages 构建脚本
+│       ├── samples/        # 示例图像和标定数据
+│       ├── checkerboard-9x6.pdf
+│       └── sample-manifest.json
+├── scripts/               # 构建和生成脚本
+│   ├── build.py
+│   ├── download_opencv_samples.py
+│   └── generate_sample_calibration.py
+└── README.md
 ```
 
-## 构建与部署
+## 🎯 标定质量标准
 
-### 本地开发
+**优秀**（可用于精密测量）：
+- 重投影误差 < 0.5像素
+- 采集图像数 ≥ 15张
+- 覆盖角度多样
+
+**良好**（可用于一般测量）：
+- 重投影误差 < 1.0像素
+- 采集图像数 ≥ 10张
+
+**需要重新标定**：
+- 重投影误差 > 1.5像素
+- 采集图像数 < 10张
+- 图像质量差（模糊、反光）
+
+## 🔧 本地开发
+
+```bash
+# 下载示例数据
+cd lab-006
+python scripts/download_opencv_samples.py
+python scripts/generate_sample_calibration.py
+
+# 构建
+python scripts/build.py
+
+# 启动本地服务器
+cd web
+python -m http.server 8006
+
+# 浏览器访问
+open http://localhost:8006/calibration.html
+```
+
+## 📖 相关资源
+
+- [张正友标定法论文](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/tr98-71.pdf)
+- [OpenCV.js 文档](https://docs.opencv.org/4.x/d5/d10/tutorial_js_root.html)
+- [相机标定原理](https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html)
+
+## 📝 已知限制
+
+- 仅支持单相机标定（不支持双目）
+- 测量功能仅适用于平面物体
+- 需要HTTPS环境才能访问相机（本地localhost除外）
+- OpenCV.js首次加载较慢（约8MB）
 
 在仓库根目录启动 HTTP 服务器：
 
-```powershell
-python -m http.server 8080
-```
-
-访问 `http://localhost:8080/web/lab-006/`
-
-### 构建 GitHub Pages 版本
-
-```powershell
-npm run build:lab006
-```
-
-此命令会将 `lab-006/web/` 的内容复制到 `web/lab-006/` 供 GitHub Pages 发布。
-
-### 验证构建
-
-```powershell
-npm run validate:lab006:pages
-```
-
-检查所有必需文件是否已正确复制到发布目录。
-
-## 使用流程
-
-### 1. 打印标定板
-
-- 访问主页，点击"打印标定板"按钮
-- 下载并打印 8×6 棋盘格（每个方格 25mm）
-- 将标定板贴在硬质平板上保持平整
-
-### 2. 相机标定
-
-- 用手机访问标定页面
-- 允许相机访问权限
-- 按照智能引导提示拍摄 10+ 张不同角度的标定板照片：
-  - 正面、左倾、右倾、上倾、下倾
-  - 近距离、远距离
-  - 不同位置（中心、边缘）
-- 等待标定计算完成
-- 查看标定结果（重投影误差应 < 1.0 像素）
-
-### 3. 精确测量
-
-- 进入测量页面（自动加载标定参数）
-- 选择测量模式（距离/矩形）
-- 在画面中点击标记测量点
-- 查看实时测量结果
-- 所有记录自动保存到历史列表
-
-## 技术细节
-
-### 张正友标定法
-
-使用多张不同角度的棋盘格图像标定相机：
-
-1. **角点检测** - `cv.findChessboardCorners()` 检测棋盘格角点
-2. **亚像素精化** - `cv.cornerSubPix()` 提高角点精度
-3. **标定计算** - `cv.calibrateCamera()` 求解相机矩阵和畸变系数
-4. **畸变校正** - `cv.undistort()` 消除镜头畸变
-
-### 测量原理
-
-基于针孔相机模型和已知的标定板方格尺寸：
-
-```
-realDistance = pixelDistance × squareSize / focalLength
-```
-
-其中：
-- `pixelDistance` - 图像平面上的像素距离
-- `squareSize` - 标定板方格的实际尺寸（25mm）
-- `focalLength` - 相机内参矩阵中的焦距 `fx`
-
-### 数据存储
-
-所有数据存储在浏览器 localStorage：
-
-- `calibrationData` - 相机内参矩阵、畸变系数、图像尺寸、重投影误差
-- `measurementHistory` - 测量记录数组（时间、类型、结果、单位）
-
-## 能力边界
-
-- ✅ 适用于平面物体测量
-- ✅ 精度取决于标定质量（通常 ±2-5mm）
-- ❌ 不适用于曲面、三维物体
-- ❌ 不支持多相机或立体视觉
-- ❌ 不支持实时追踪或 AR 叠加
-
-## 浏览器兼容性
-
-- Chrome 90+ / Edge 90+ / Safari 14+ / Firefox 88+
-- 需要支持 WebRTC、WebAssembly、ES6
-- 移动端推荐使用后置摄像头
-
-## 许可证
-
-与主仓库保持一致：
 - 代码：MIT License
-- 文档：CC BY 4.0
+- 示例数据：Apache 2.0 License（来自OpenCV项目）
 
-## 参考资料
+## 🙋 常见问题
 
-- [Zhang's Calibration Method (1998)](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/tr98-71.pdf)
-- [OpenCV.js Documentation](https://docs.opencv.org/4.x/d5/d10/tutorial_js_root.html)
-- [Camera Calibration Tutorial](https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html)
+**Q: 为什么相机访问被拒绝？**  
+A: 检查浏览器权限设置，确保允许网站访问相机。HTTPS环境是必需的（GitHub Pages自动提供）。
+
+**Q: 检测不到棋盘格角点？**  
+A: 确保光线充足、标定板完整在画面内、避免反光和模糊。
+
+**Q: 测量结果不准确？**  
+A: 确保标定质量良好（误差<1像素）、测量物体与标定板在同一平面、相机垂直于测量平面。
+
+**Q: 可以用于非平面物体吗？**  
+A: 不可以。本工具基于平面单应性变换，仅适用于平面物体测量。
+
+---
+
+🔗 **在线体验**: https://hub-fover.github.io/Vision-Hu13/lab-006/

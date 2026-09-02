@@ -1,166 +1,229 @@
 # LAB 006 部署指南
 
-## 当前状态
+## 准备工作
 
-✅ 所有代码已完成并在本地提交
-❌ 网络连接 GitHub 受限，需要稍后手动推送
+### 1. 检查仓库状态
 
-## 本地提交列表
-
-```
-707fe4e docs(lab006): add comprehensive README with usage guide
-33293d0 chore(lab006): add pages validation script
-6293155 docs: add LAB 006 camera calibration tool to README
-cd4d36f feat(lab006): add build script and stage pages to web/lab-006
-8c2c34e fix(lab006): move web files to web/ subdirectory for GitHub Pages
-1fd9709 feat(lab006): add camera calibration and measurement tool with Apple-style UI
+```bash
+cd /c/Users/biaoh/Documents/Vision-Hu13
+git status
 ```
 
-共 6 个提交，新增约 3500 行代码。
+### 2. 构建发布版本
 
-## 推送到 GitHub
+```bash
+npm run build:lab006
+```
 
-当网络恢复后，在 `D:\Vision-Hu13` 目录运行：
+这个命令会：
+- 复制示例图像到 `lab-006/web/assets/samples/`
+- 复制标定数据 `sample-calibration.json`
+- 将所有web资源staging到 `web/lab-006/`
 
-```powershell
+### 3. 验证构建结果
+
+```bash
+# 列出staged文件
+find web/lab-006 -type f
+
+# 应该看到22个文件：
+# - 4个HTML文件 (index, calibration, measurement, tutorial)
+# - 3个JS文件 (utils, calibration, measurement)
+# - 1个CSS文件
+# - 13张示例图像
+# - 1个标定数据JSON
+```
+
+## 部署到GitHub Pages
+
+### 方法1: 直接推送（推荐）
+
+```bash
+# 1. 添加lab-006目录和web/lab-006目录
+git add lab-006/
+git add web/lab-006/
+
+# 2. 提交
+git commit -m "feat: add LAB 006 camera calibration tool
+
+- Zhang's calibration method implementation
+- Real-time chessboard detection with OpenCV.js
+- Sample data (13 images) for one-click demo
+- Measurement tools based on calibration results
+- Mobile-responsive UI
+- Published at /Vision-Hu13/lab-006/"
+
+# 3. 推送到GitHub
 git push origin main
 ```
+
+### 方法2: 创建PR（推荐用于review）
+
+```bash
+# 1. 创建feature分支
+git checkout -b feat/lab-006-camera-calibration
+
+# 2. 添加并提交
+git add lab-006/ web/lab-006/
+git commit -m "feat: add LAB 006 camera calibration tool"
+
+# 3. 推送分支
+git push origin feat/lab-006-camera-calibration
+
+# 4. 在GitHub创建Pull Request
+gh pr create --title "Add LAB 006: Camera Calibration Tool" \
+  --body "张正友标定法相机标定工具，包含示例数据和测量功能"
+```
+
+## GitHub Pages 配置
+
+确保仓库设置正确：
+
+1. 访问 https://github.com/hub-fover/Vision-Hu13/settings/pages
+2. 确认设置：
+   - **Source**: Deploy from a branch
+   - **Branch**: main
+   - **Folder**: / (root)
+3. 保存后等待1-2分钟部署完成
 
 ## 验证部署
 
-推送成功后，等待 1-3 分钟 GitHub Pages 自动部署，然后访问：
+### 检查部署状态
 
-### 在线地址
-```
-https://hub-fover.github.io/Vision-Hu13/lab-006/
-```
+访问: https://github.com/hub-fover/Vision-Hu13/actions
 
-### 各个页面
-- 主页: https://hub-fover.github.io/Vision-Hu13/lab-006/index.html
-- 标定: https://hub-fover.github.io/Vision-Hu13/lab-006/calibration.html
-- 测量: https://hub-fover.github.io/Vision-Hu13/lab-006/measurement.html
-- 教程: https://hub-fover.github.io/Vision-Hu13/lab-006/tutorial.html
+查看最新的 "pages build and deployment" workflow
 
-## 本地测试
+### 访问应用
 
-本地测试服务器正在运行（端口 8080）：
+主页: https://hub-fover.github.io/Vision-Hu13/lab-006/
 
-```
-http://localhost:8080/lab-006/
-```
+各功能页面：
+- https://hub-fover.github.io/Vision-Hu13/lab-006/calibration.html
+- https://hub-fover.github.io/Vision-Hu13/lab-006/measurement.html
+- https://hub-fover.github.io/Vision-Hu13/lab-006/tutorial.html
 
-测试所有页面功能：
-- ✅ 主页导航和 FAQ
-- ✅ 标定页面相机访问和棋盘格检测
-- ✅ 测量页面距离和矩形测量
-- ✅ 教程页面内容展示
-- ✅ 响应式布局（调整浏览器窗口）
+### 功能测试
 
-## 项目文件清单
+使用 [VERIFICATION.md](VERIFICATION.md) 中的清单逐项验证。
 
-### 源代码 (lab-006/web/)
-- `index.html` - 主页 (5.2 KB)
-- `calibration.html` - 标定页面 (4.8 KB)
-- `measurement.html` - 测量页面 (4.3 KB)
-- `tutorial.html` - 教程页面 (6.1 KB)
-- `css/style.css` - 样式文件 (15.4 KB)
-- `js/calibration.js` - 标定逻辑 (5.8 KB)
-- `js/measurement.js` - 测量逻辑 (3.2 KB)
-- `js/utils.js` - 工具函数 (2.1 KB)
-- `assets/checkerboard-template.html` - 打印模板 (3.4 KB)
+## 更新现有部署
 
-### 构建输出 (web/lab-006/)
-所有文件已复制到 GitHub Pages 发布目录
+如果需要更新：
 
-### 文档
-- `lab-006/README.md` - 项目文档 (7.2 KB)
-- 根 `README.md` - 已添加 LAB 006 说明
+```bash
+# 1. 修改源文件在 lab-006/web/
+# 例如：编辑 lab-006/web/js/calibration.js
 
-### 脚本
-- `lab-006/scripts/stage-pages.mjs` - 构建脚本
-- `lab-006/scripts/validate-pages.mjs` - 验证脚本
-
-## 构建命令
-
-```powershell
-# 构建 Pages 版本
+# 2. 重新构建
 npm run build:lab006
 
-# 验证构建结果
-npm run validate:lab006:pages
-```
-
-## 功能特性总结
-
-### 🎨 设计
-- 苹果风格 UI（浅色主题、大圆角、流畅动画）
-- 完全响应式（375px - 1920px）
-- Toast 通知系统
-- 进度指示器
-
-### 📐 标定
-- WebRTC 实时相机预览
-- OpenCV.js 自动角点检测
-- 智能引导提示（距离、角度、光线）
-- 10+ 张图像采集
-- 标定结果可视化（重投影误差、焦距）
-- localStorage 持久化存储
-
-### 📏 测量
-- 距离测量模式（两点间距离）
-- 矩形测量模式（长宽尺寸）
-- 实时画布标注
-- 测量历史记录
-- mm/cm 单位切换
-- 一键复制结果
-
-### 📚 文档
-- 主页功能介绍
-- 可折叠 FAQ
-- 完整新手教程
-- 打印标定板模板
-- 使用流程指导
-
-## 下一步
-
-1. **等待网络恢复** - 推送代码到 GitHub
-2. **验证部署** - 访问在线地址确认可用
-3. **手机测试** - 用真实手机测试相机标定
-4. **分享使用** - 将网址分享给需要的用户
-
-## 故障排除
-
-### 如果推送失败
-```powershell
-# 检查远程连接
-git remote -v
-
-# 尝试使用 SSH 而不是 HTTPS
-git remote set-url origin git@github.com:hub-fover/Vision-Hu13.git
+# 3. 提交并推送
+git add lab-006/ web/lab-006/
+git commit -m "fix: update calibration algorithm"
 git push origin main
 ```
 
-### 如果 Pages 404
-1. 确认 GitHub Pages 设置指向 `main` 分支
-2. 检查 `web/lab-006/` 目录是否存在
-3. 等待 3-5 分钟重新部署
+## 回滚部署
 
-### 如果相机无法访问
-- 确保使用 HTTPS 连接（HTTP 不允许访问相机）
-- 检查浏览器权限设置
-- 尝试不同的浏览器
+如果发现问题需要回滚：
 
-## 技术支持
+```bash
+# 1. 查看历史提交
+git log --oneline web/lab-006/
 
-如有问题，请检查：
-- 浏览器控制台的错误信息
-- OpenCV.js 是否成功加载（从 CDN）
-- localStorage 是否可用
-- 相机权限是否授予
+# 2. 回滚到指定版本
+git revert <commit-hash>
 
----
+# 3. 推送
+git push origin main
+```
 
-**创建时间**: 2026-09-02
-**Git 分支**: main
-**待推送提交数**: 6
-**项目状态**: ✅ 本地完成，等待推送
+## 故障排查
+
+### 问题1: 404 Not Found
+
+**原因**: GitHub Pages可能还在构建中
+**解决**: 等待2-5分钟，刷新页面
+
+### 问题2: 样式/脚本加载失败
+
+**原因**: 路径问题
+**检查**: HTML中的资源路径应该是相对路径
+```html
+<!-- 正确 -->
+<link rel="stylesheet" href="css/style.css">
+<script src="js/utils.js"></script>
+
+<!-- 错误 -->
+<link rel="stylesheet" href="/css/style.css">
+```
+
+### 问题3: 示例图像加载失败
+
+**原因**: 图像未正确staging或路径错误
+**检查**:
+```bash
+# 确认文件存在
+ls web/lab-006/assets/samples/*.jpg
+
+# 确认HTML中的路径
+grep -r "assets/samples" web/lab-006/*.html
+```
+
+### 问题4: CORS错误
+
+**原因**: 本地测试时的CORS限制
+**解决**: 使用http-server而不是file://协议
+```bash
+cd web/lab-006
+python -m http.server 8006
+```
+
+## 分享链接
+
+部署成功后，可以通过以下方式分享：
+
+### 短链接（推荐）
+使用bit.ly或类似服务创建短链接：
+```
+https://bit.ly/camera-calibration-tool
+→ https://hub-fover.github.io/Vision-Hu13/lab-006/
+```
+
+### QR码
+为移动端用户生成QR码：
+```bash
+# 使用在线工具
+https://www.qr-code-generator.com/
+输入: https://hub-fover.github.io/Vision-Hu13/lab-006/
+```
+
+### 嵌入HTML
+如果需要在其他网站嵌入：
+```html
+<iframe 
+  src="https://hub-fover.github.io/Vision-Hu13/lab-006/" 
+  width="100%" 
+  height="600" 
+  frameborder="0">
+</iframe>
+```
+
+## 监控和分析
+
+### GitHub Insights
+查看访问统计: https://github.com/hub-fover/Vision-Hu13/graphs/traffic
+
+### 添加Google Analytics（可选）
+在HTML的`<head>`中添加：
+```html
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+</script>
+```

@@ -39,15 +39,15 @@
         <section>
             <div class="card">
                 <h2>标定参数配置</h2>
-                <p class="text-secondary mb-3">推荐使用默认参数（内角点 8×5，方格 25mm）</p>
+                <p class="text-secondary mb-3">推荐使用默认参数（内角点 9×6，方格 25mm）</p>
                 <div class="controls" style="justify-content: flex-start;">
                     <div>
                         <label for="boardWidth">棋盘格宽度（内角点数）</label>
-                        <input type="number" id="boardWidth" value="8" min="4" max="20">
+                        <input type="number" id="boardWidth" value="9" min="4" max="20">
                     </div>
                     <div>
                         <label for="boardHeight">棋盘格高度（内角点数）</label>
-                        <input type="number" id="boardHeight" value="5" min="4" max="20">
+                        <input type="number" id="boardHeight" value="6" min="4" max="20">
                     </div>
                     <div>
                         <label for="squareSize">方格尺寸（毫米）</label>
@@ -69,6 +69,7 @@
                 <!-- Camera Controls -->
                 <div class="controls mt-3">
                     <button id="startCamera" class="btn btn-primary">启动相机</button>
+                    <button id="loadSample" class="btn btn-secondary">📦 加载示例数据</button>
                     <button id="captureImage" class="btn btn-success" disabled>📸 拍摄图像</button>
                     <button id="stopCamera" class="btn btn-danger" disabled>关闭相机</button>
                 </div>

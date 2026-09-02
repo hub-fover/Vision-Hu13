@@ -90,6 +90,7 @@ function checkCalibration() {
             <p>请先完成相机标定才能进行测量</p>
             <div class="controls mt-2">
                 <a href="calibration.html" class="btn btn-primary">前往标定</a>
+                <button onclick="loadSampleCalibration()" class="btn btn-secondary">📦 加载示例标定</button>
             </div>
         `;
         statusEl.className = 'status-message status-warning';
@@ -388,5 +389,27 @@ function clearMeasurementHistory() {
         saveMeasurementHistory();
         updateHistoryDisplay();
         showToast('已清空历史记录', 'info');
+    }
+}
+
+// 加载示例标定数据
+async function loadSampleCalibration() {
+    try {
+        const response = await fetch('assets/samples/sample-calibration.json');
+        if (!response.ok) {
+            throw new Error('无法加载示例标定数据');
+        }
+        const sampleCalib = await response.json();
+
+        // 保存到localStorage
+        saveCalibration(sampleCalib);
+
+        // 重新加载标定数据
+        calibData = sampleCalib;
+        checkCalibration();
+
+        showToast('✅ 已加载示例标定数据', 'success');
+    } catch (error) {
+        showToast('❌ 加载示例数据失败: ' + error.message, 'error');
     }
 }
