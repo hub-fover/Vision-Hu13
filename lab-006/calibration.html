@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>相机标定 - 相机标定工具</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📷 相机标定</h1>
+            <p class="subtitle">使用棋盘格标定板标定你的相机</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Progress Indicator -->
+        <section>
+            <div class="progress-indicator">
+                <div class="progress-step completed">
+                    <span class="progress-dot"></span>
+                    <span>准备棋盘格</span>
+                </div>
+                <span class="progress-arrow">→</span>
+                <div class="progress-step active" id="step2">
+                    <span class="progress-dot"></span>
+                    <span>拍摄照片</span>
+                </div>
+                <span class="progress-arrow">→</span>
+                <div class="progress-step" id="step3">
+                    <span class="progress-dot"></span>
+                    <span>计算标定</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Configuration Section -->
+        <section>
+            <div class="card">
+                <h2>标定参数配置</h2>
+                <p class="text-secondary mb-3">推荐使用默认参数（内角点 8×5，方格 25mm）</p>
+                <div class="controls" style="justify-content: flex-start;">
+                    <div>
+                        <label for="boardWidth">棋盘格宽度（内角点数）</label>
+                        <input type="number" id="boardWidth" value="8" min="4" max="20">
+                    </div>
+                    <div>
+                        <label for="boardHeight">棋盘格高度（内角点数）</label>
+                        <input type="number" id="boardHeight" value="5" min="4" max="20">
+                    </div>
+                    <div>
+                        <label for="squareSize">方格尺寸（毫米）</label>
+                        <input type="number" id="squareSize" value="25" min="1" max="100">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Camera Preview Section -->
+        <section>
+            <div class="card">
+                <h2>实时预览</h2>
+                <div class="video-container">
+                    <video id="videoElement" autoplay playsinline></video>
+                    <canvas id="overlayCanvas" class="canvas-overlay"></canvas>
+                </div>
+
+                <!-- Camera Controls -->
+                <div class="controls mt-3">
+                    <button id="startCamera" class="btn btn-primary">启动相机</button>
+                    <button id="captureImage" class="btn btn-success" disabled>📸 拍摄图像</button>
+                    <button id="stopCamera" class="btn btn-danger" disabled>关闭相机</button>
+                </div>
+
+                <!-- Status Message -->
+                <div id="statusMessage"></div>
+
+                <!-- Dynamic Guide Card -->
+                <div id="guideCard" class="guide-card mt-3" style="display: none;">
+                    <h4 id="guideTitle">📷 准备开始</h4>
+                    <div id="guideContent">
+                        <p>• 请确保棋盘格平整且光线充足</p>
+                        <p>• 点击"启动相机"按钮开始</p>
+                    </div>
+                </div>
+
+                <!-- Tips Card -->
+                <div class="tips-card mt-3">
+                    <h4>💡 拍摄技巧</h4>
+                    <ul>
+                        <li>距离：保持 30-80cm 距离拍摄</li>
+                        <li>角度：建议从正面、左右各15°、上下各30°等多角度拍摄</li>
+                        <li>光线：避免强光直射和反光，均匀光线最佳</li>
+                        <li>覆盖：让棋盘格出现在画面的不同位置</li>
+                        <li>数量：至少10张，推荐15-20张以获得更好精度</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Captured Images Section -->
+        <section>
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>已采集图像 (<span id="imageCount">0</span>/20)</h2>
+                    <button id="clearImages" class="btn btn-danger">清空所有</button>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="progress-bar mt-2">
+                    <div id="imageProgress" class="progress-fill" style="width: 0%"></div>
+                </div>
+
+                <div id="imageGrid" class="image-grid"></div>
+
+                <div id="imageHint" class="status-message status-info mt-3">
+                    <p>📍 请从不同角度拍摄至少 10 张照片以开始标定</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Calibration Section -->
+        <section>
+            <div class="card">
+                <h2>计算标定</h2>
+                <p class="text-secondary mb-3">采集足够的图像后，点击下方按钮开始标定计算</p>
+                <div class="controls">
+                    <button id="calibrateButton" class="btn btn-primary" disabled>开始标定</button>
+                </div>
+                <div id="calibrationResult"></div>
+            </div>
+        </section>
+
+        <!-- Navigation -->
+        <section>
+            <div class="controls">
+                <a href="index.html" class="btn btn-secondary">返回首页</a>
+                <a href="measurement.html" class="btn btn-primary">进入测量</a>
+                <a href="assets/checkerboard-template.html" class="btn btn-secondary" target="_blank">打印标定板</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 相机标定工具 | 基于张正友标定法</p>
+        </div>
+    </footer>
+
+    <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady()"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/calibration.js"></script>
+</body>
+</html>
