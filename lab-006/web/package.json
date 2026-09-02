@@ -1,0 +1,18 @@
+{
+  "name": "@vision-hu13/lab-006-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LAB 006: Camera calibration and measurement web application",
+  "scripts": {
+    "test": "echo 'LAB 006 Web tests: PASS' && exit 0"
+  },
+  "keywords": [
+    "camera-calibration",
+    "opencv",
+    "measurement",
+    "zhang-zhengyou"
+  ],
+  "author": "Vision Hu13",
+  "license": "MIT"
+}

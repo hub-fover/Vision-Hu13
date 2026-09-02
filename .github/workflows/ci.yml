@@ -48,6 +48,7 @@ jobs:
             lab-003/web/package-lock.json
             lab-004/web/package-lock.json
             lab-005/web/package-lock.json
+            lab-006/web/package-lock.json
 
       - name: Install CJK fonts on Linux
         if: runner.os == 'Linux'
@@ -69,6 +70,9 @@ jobs:
 
       - name: Install LAB 005 Web dependencies
         run: npm ci --prefix lab-005/web
+
+      - name: Install LAB 006 Web dependencies
+        run: npm ci --prefix lab-006/web
 
       - name: Vendor same-origin OpenCV for acceptance
         run: npm --prefix lab-002/web run vendor:opencv
@@ -108,6 +112,12 @@ jobs:
 
       - name: Validate LAB 005 public assets
         run: npm run validate:lab005:assets
+
+      - name: Run LAB 006 Web tests
+        run: npm run test:lab006:web
+
+      - name: Validate LAB 006 public assets
+        run: npm run validate:lab006:assets
 
   web:
     name: Web, browser, and release validation
@@ -159,6 +169,9 @@ jobs:
 
       - name: Install LAB 005 Web dependencies
         run: npm ci --prefix lab-005/web
+
+      - name: Install LAB 006 Web dependencies
+        run: npm ci --prefix lab-006/web
 
       - name: Vendor LAB 005 same-origin OpenCV runtime
         run: npm --prefix lab-005/web run vendor:opencv
@@ -228,6 +241,12 @@ jobs:
 
       - name: Validate LAB 005 runtime release
         run: npm run validate:lab005:release
+
+      - name: Stage LAB 006 Pages artifact
+        run: npm run build:lab006
+
+      - name: Validate LAB 006 Pages staging
+        run: npm run validate:lab006:pages
 
       - name: Upload validated LAB 005 OpenCV runtime
         uses: actions/upload-artifact@v4

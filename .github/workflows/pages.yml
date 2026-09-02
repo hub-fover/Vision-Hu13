@@ -43,6 +43,7 @@ jobs:
             lab-003/web/package-lock.json
             lab-004/web/package-lock.json
             lab-005/web/package-lock.json
+            lab-006/web/package-lock.json
 
       - name: Install LAB 002 Web dependencies
         run: npm ci --prefix lab-002/web
@@ -55,6 +56,9 @@ jobs:
 
       - name: Install LAB 005 Web dependencies
         run: npm ci --prefix lab-005/web
+
+      - name: Install LAB 006 Web dependencies
+        run: npm ci --prefix lab-006/web
 
       - name: Download LAB 005 runtime validated by CI
         uses: actions/download-artifact@v4
@@ -88,6 +92,12 @@ jobs:
       - name: Validate LAB 005 staged static resources
         run: npm run validate:lab005:pages
 
+      - name: Stage LAB 006 static application
+        run: npm run build:lab006
+
+      - name: Validate LAB 006 staged static resources
+        run: npm run validate:lab006:pages
+
       - name: Upload static site
         uses: actions/upload-pages-artifact@v4
         with:
@@ -104,7 +114,7 @@ jobs:
         run: |
           set -euo pipefail
           base="${PAGE_URL%/}"
-          for path in "" "lab-002/" "lab-003/" "lab-004/" "lab-005/" "lab-005/assets/samples/manifest.json" "lab-005/LICENSES.md" "lab-005/vendor/opencv.js"; do
+          for path in "" "lab-002/" "lab-003/" "lab-004/" "lab-005/" "lab-005/assets/samples/manifest.json" "lab-005/LICENSES.md" "lab-005/vendor/opencv.js" "lab-006/"; do
             url="$base/$path"
             for attempt in 1 2 3 4 5 6; do
               if curl --fail --silent --show-error --location --max-time 30 "$url" --output /dev/null; then
