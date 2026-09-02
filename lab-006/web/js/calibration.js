@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('captureImage').onclick = captureImage;
     document.getElementById('clearImages').onclick = clearImages;
     document.getElementById('calibrateButton').onclick = performCalibration;
+    document.getElementById('loadSample').onclick = loadSampleData;
     document.getElementById('boardWidth').onchange = e => boardWidth = parseInt(e.target.value);
     document.getElementById('boardHeight').onchange = e => boardHeight = parseInt(e.target.value);
     document.getElementById('squareSize').onchange = e => squareSize = parseInt(e.target.value);
@@ -367,4 +368,112 @@ function calibrateCamera() {
         resultDiv.className = 'status-message status-error mt-3';
         return null;
     }
+}
+
+// 加载示例数据
+async function loadSampleData() {
+    const statusDiv = document.getElementById('statusMessage');
+    statusDiv.innerHTML = '<p>⏳ 正在加载示例数据...</p>';
+    statusDiv.className = 'status-message status-info mt-3';
+
+    try {
+        // 加载manifest
+        const response = await fetch('assets/samples/manifest.json');
+        if (!response.ok) {
+            throw new Error('无法加载示例数据清单');
+        }
+        const manifest = await response.json();
+
+        // 更新标定参数
+        boardWidth = manifest.boardConfig.width;
+        boardHeight = manifest.boardConfig.height;
+        squareSize = manifest.boardConfig.squareSize;
+
+        document.getElementById('boardWidth').value = boardWidth;
+        document.getElementById('boardHeight').value = boardHeight;
+        document.getElementById('squareSize').value = squareSize;
+
+        // 清空之前的图像
+        capturedImages = [];
+        let successCount = 0;
+
+        // 加载并处理每张图像
+        for (const imgInfo of manifest.calibrationImages) {
+            try {
+                const imgResponse = await fetch(`assets/samples/${imgInfo.path}`);
+                if (!imgResponse.ok) continue;
+
+                const blob = await imgResponse.blob();
+                const bitmap = await createImageBitmap(blob);
+
+                // 创建临时canvas处理图像
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = bitmap.width;
+                tempCanvas.height = bitmap.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(bitmap, 0, 0);
+                const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+
+                // 转换为OpenCV格式并检测角点
+                const src = cv.matFromImageData(imageData);
+                const gray = new cv.Mat();
+                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+
+                const corners = new cv.Mat();
+                const patternSize = new cv.Size(boardWidth, boardHeight);
+                const found = cv.findChessboardCorners(gray, patternSize, corners);
+
+                if (found) {
+                    // 亚像素精度角点优化
+                    const criteria = new cv.TermCriteria(
+                        cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001
+                    );
+                    cv.cornerSubPix(gray, corners, new cv.Size(11, 11), new cv.Size(-1, -1), criteria);
+
+                    // 保存图像数据和角点
+                    const cornersArray = [];
+                    for (let i = 0; i < corners.rows; i++) {
+                        cornersArray.push({
+                            x: corners.data32F[i * 2],
+                            y: corners.data32F[i * 2 + 1]
+                        });
+                    }
+
+                    capturedImages.push({
+                        width: tempCanvas.width,
+                        height: tempCanvas.height,
+                        data: Array.from(imageData.data),
+                        corners: cornersArray
+                    });
+                    successCount++;
+                }
+
+                // 清理内存
+                src.delete();
+                gray.delete();
+                corners.delete();
+
+            } catch (err) {
+                console.warn(`加载图像 ${imgInfo.id} 失败:`, err);
+            }
+        }
+
+        // 更新UI
+        updateImageCount();
+        updateImageGrid();
+
+        if (successCount >= 10) {
+            statusDiv.innerHTML = `<p>✅ 成功加载 ${successCount} 张示例图像</p>`;
+            statusDiv.className = 'status-message status-success mt-3';
+            document.getElementById('calibrateButton').disabled = false;
+            showGuideCard('ready');
+        } else {
+            throw new Error(`只成功加载了 ${successCount} 张图像，至少需要10张`);
+        }
+
+    } catch (error) {
+        statusDiv.innerHTML = `<p>❌ 加载示例数据失败: ${error.message}</p>`;
+        statusDiv.className = 'status-message status-error mt-3';
+    }
+}
 }
