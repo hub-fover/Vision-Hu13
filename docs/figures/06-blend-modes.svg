@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="675" viewBox="0 0 1080 675">
+  <title>Vision Hu13 · 混合模式</title>
+  <rect width="1080" height="675" fill="#08111f"/>
+  <path d="M0 90H1080M80 0V675M1000 0V675" stroke="#18314f" stroke-width="1"/>
+  <text x="80" y="67" fill="#126aff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="20" font-weight="700" letter-spacing="2">VISION HU13 · LAB 001</text>
+  <text x="80" y="142" fill="#f4f8ff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="48" font-weight="700">混合模式</text>
+  <text x="80" y="181" fill="#8ea6c3" font-family="Arial, Microsoft YaHei, sans-serif" font-size="21">正片叠底 / 滤色 / 叠加</text>
+  <g id="blend"><circle cx="380" cy="385" r="145" fill="#126aff" opacity=".70"/><circle cx="550" cy="385" r="145" fill="#2dd399" opacity=".64"/>
+<circle cx="720" cy="385" r="145" fill="#ff9f43" opacity=".62"/><text x="540" y="565" text-anchor="middle" fill="#f4f8ff" font-family="Arial,Microsoft YaHei" font-size="22">光线 × 材质 × 颜色</text></g>
+  <text x="80" y="628" fill="#8ea6c3" font-family="Arial, Microsoft YaHei, sans-serif" font-size="17">06 / 10 · PERSPECTIVE PASTE</text>
+</svg>

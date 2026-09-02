@@ -1,0 +1,51 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node and Playwright
+node_modules/
+.npm-cache/
+test-results/
+playwright-report/
+blob-report/
+web/lab-002/
+web/lab-003/
+web/lab-004/
+.superpowers/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local outputs
+perspective-paste.png
+perspective-paste.jpg
+perspective-paste.jpeg
+*.log
+lab-003/artifacts/
+lab-003/tmp/
+lab-003/article/
+lab-005/article/
+lab-005/assets/public/
+lab-005/assets/figures/
+web/lab-005/
+lab-003/assets/figures/
+lab-003/assets/public/
+lab-003/docs/
+lab-003/output/
+lab-004/article/
+lab-004/publication/
+lab-004/output/
+lab-004/tmp/
+lab-004/assets/figures/
+lab-004/assets/public/
+docs/superpowers/plans/*lab-003*
+lab-004/web/vendor/

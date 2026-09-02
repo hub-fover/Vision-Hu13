@@ -1,125 +1,205 @@
-# 📷 相机标定工具
+# Perspective Paste
 
-基于张正友标定法的手机相机标定与测量Web应用
+Perspective Paste 是一个四点透视与真实融合工具：在照片中的近似平面上选择四个角，将文字或透明 PNG 贴入场景，再用亮度、环境色、纹理、模糊和混合模式减少“浮贴感”。
 
-## ✨ 功能特点
+[在线体验](https://hub-fover.github.io/Vision-Hu13/) · [GitHub 源码](https://github.com/hub-fover/Vision-Hu13)
 
-- 📐 **相机标定**：使用棋盘格标定板精确标定手机相机内参和畸变参数
-- 📏 **精确测量**：基于标定结果对平面物体进行毫米级精度测量
-- 💾 **数据管理**：本地存储标定数据，无需重复标定
-- 🌐 **纯前端**：完全运行在浏览器中，无需后端服务器
-- 📱 **移动优先**：专为手机浏览器设计，支持实时相机预览
+LAB 002 panorama-stitch scaffolding and shared contracts live in
+[`lab-002/README.md`](lab-002/README.md). The root Pages experience remains
+LAB 001; LAB 002 is published separately at `/Vision-Hu13/lab-002/`.
 
-## 🚀 快速开始
+LAB 002 release verification is reproducible from the repository root:
+`npm run build:lab002` stages its ignored Pages artifact at `web/lab-002/`,
+then `npm run validate:lab002:release` checks cross-runtime acceptance,
+real-media provenance, deterministic figures, and all staged static resources.
 
-### 在线使用
+LAB 003 is the local three-exposure exposure-fusion lab. It is published at
+[`/Vision-Hu13/lab-003/`](https://hub-fover.github.io/Vision-Hu13/lab-003/) and
+keeps all three input images in the current page only. Use the packaged Peyrou
+sample or select three ordinary JPEG/PNG/WebP files; the browser Worker lazy-loads
+same-origin OpenCV.js and never uploads the photos.
 
-访问：[https://hub-fover.github.io/Vision-Hu13/](https://hub-fover.github.io/Vision-Hu13/)
+LAB 003 release verification is reproducible with:
 
-### 本地运行
-
-1. 克隆仓库：
-```bash
-git clone https://github.com/hub-fover/Vision-Hu13.git
-cd Vision-Hu13
+```powershell
+npm run test:lab003
+npm run test:lab003:e2e
+npm run validate:lab003:release
+npm run build:lab003
 ```
 
-2. 启动本地服务器：
-```bash
-# 使用 Python 3
-python -m http.server 8000
+LAB 004 is the local visual displacement and vibration lab. Fix an ordinary
+camera, mark a textured target and two points with a known real distance, then
+inspect pixel displacement, reference millimetres, a curve, and dominant
+frequency. Template matching is the default and Lucas–Kanade optical flow is
+available as an enhancement. The public app is available at
+[`/Vision-Hu13/lab-004/`](https://hub-fover.github.io/Vision-Hu13/lab-004/).
+Publication drafts, QR codes, figures, and WeChat-specific exports remain
+local-only and are intentionally excluded from this repository.
 
-# 或使用 Node.js
-npx serve
+LAB 004 verification is reproducible with:
+
+```powershell
+npm run test:lab004
+npm run test:lab004:e2e
+npm run build:lab004
+npm run validate:lab004:release
 ```
 
-3. 在浏览器中打开：`http://localhost:8000`
+LAB 005 is a local five-frame defocus-depth experiment. Keep the camera still,
+capture near to far focus, and the browser produces a relative depth map plus
+confidence and invalid-region views. Metric depth is available only after both
+camera-intrinsic and three-distance focus-scale calibration, and is always
+labelled `reference-only`. The public app is available at
+[`/Vision-Hu13/lab-005/`](https://hub-fover.github.io/Vision-Hu13/lab-005/).
+It does not upload or persist images and does not claim LiDAR, stereo, SLAM,
+ARCore/ARKit, or measurement-grade accuracy.
 
-## 📖 使用指南
+LAB 005 verification is reproducible with:
 
-### 1. 准备标定板
-
-- 下载并打印棋盘格模板（9×6 内角点，10×7 方格）
-- 使用 A4 纸，每个方格 25mm × 25mm
-- 建议贴在硬纸板上保持平整
-
-### 2. 相机标定
-
-1. 进入"开始标定"页面
-2. 配置棋盘格参数（默认值通常无需修改）
-3. 启动相机
-4. 从不同角度、距离拍摄 10-20 张棋盘格图像
-   - 建议角度变化：0°, 15°, 30°, 45°
-   - 建议距离：30-80cm
-   - 确保整个棋盘格在画面内
-5. 点击"开始标定"计算相机参数
-
-### 3. 进行测量
-
-1. 完成标定后进入"测量工具"
-2. 选择测量模式：
-   - **两点距离**：测量平面上两点间的距离
-   - **矩形测量**：测量矩形物体的长宽
-3. 启动相机并点击画面标记测量点
-4. 查看实时测量结果
-
-## 🛠️ 技术栈
-
-- **OpenCV.js** 4.8.0 - 计算机视觉库（WebAssembly）
-- **WebRTC** - 访问设备相机
-- **原生 JavaScript** - 零依赖，纯前端实现
-- **localStorage** - 本地数据存储
-
-## 📐 标定原理
-
-本工具使用**张正友标定法**（Zhang's Calibration Method）：
-
-1. 采集多个角度的棋盘格图像
-2. 检测棋盘格角点（亚像素精度）
-3. 建立世界坐标系与图像坐标系的对应关系
-4. 通过优化算法求解相机内参矩阵和畸变系数
-
-标定结果包括：
-- **内参矩阵**：焦距 (fx, fy)、光心 (cx, cy)
-- **畸变系数**：径向畸变 (k1, k2, k3) 和切向畸变 (p1, p2)
-- **重投影误差**：评估标定精度
-
-## 📁 项目结构
-
-```
-Vision-Hu13/
-├── index.html              # 主页
-├── calibration.html        # 标定页面
-├── measurement.html        # 测量页面
-├── css/
-│   └── style.css          # 样式文件
-├── js/
-│   ├── utils.js           # 工具函数
-│   ├── calibration.js     # 标定逻辑
-│   └── measurement.js     # 测量逻辑
-├── assets/
-│   └── checkerboard-template.html  # 标定板模板
-└── README.md
+```powershell
+npm run generate:lab005:samples
+npm run test:lab005
+npm run test:lab005:e2e
+npm run build:lab005
+npm run validate:lab005:release
 ```
 
-## ⚠️ 注意事项
+![篮球场透视合成](docs/figures/01-before-after.png)
 
-- 需要 HTTPS 或 localhost 环境才能访问相机
-- 首次加载 OpenCV.js 需要下载约 8-9MB
-- 标定时光线要均匀，避免反光和阴影
-- 测量仅适用于与标定板同平面的物体
-- 建议使用后置摄像头以获得更好的效果
+## 功能
 
-## 🤝 贡献
+- Python 教学版：OpenCV 窗口交互、Pillow 文字与 PNG 图层、NumPy 几何和融合。
+- 原生 Web 版：HTML、CSS、JavaScript、Canvas 2D 与 Web Worker，运行时无前端第三方依赖。
+- 四点几何检查：点序、自交、近共线、面积过小、目标过细和单应矩阵稳定性。
+- 消影辅助：显示两组方向线、V1/V2、画外箭头、距离提示和可见消影线。
+- 六种场景参数：篮球场、楼体 Logo、墙面、海报、包装和屏幕。
+- 五张真实背景、五个原创透明叠加层、十张 SVG/PNG 技术图和一组篮球场操作演示。
 
-欢迎提交 Issue 和 Pull Request！
+浏览器只在本机读取用户选择的背景、PNG 和字体；应用代码不包含用户图片上传请求。辅助线只用于编辑预览，不会进入 PNG 或 JPEG 导出。
 
-## 📄 许可证
+## 快速开始
 
-MIT License
+### Web
 
-## 🔗 相关资源
+Windows 可双击仓库根目录的 `start-web.cmd`，也可以运行：
 
-- [OpenCV.js 文档](https://docs.opencv.org/4.8.0/d5/d10/tutorial_js_root.html)
-- [张正友标定法论文](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/tr98-71.pdf)
-- [相机标定原理](https://opencv24-python-tutorials.readthedocs.io/en/latest/py_tutorials/py_calib3d/py_calibration/py_calibration.html)
+```powershell
+npm ci
+npm run serve
+```
+
+打开 `http://127.0.0.1:4173/`。不要直接双击 `web/index.html`，`file://` 模式会限制 ES Module、Web Worker 和本地资源加载。首次进入会加载篮球场示例并默认开启消影辅助。
+
+### Python
+
+支持 Python 3.11–3.12：
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python -m pip install -e ".[dev]"
+.\.venv\Scripts\python -m perspective_paste
+```
+
+不传参数时加载内置篮球场。也可以明确指定背景、透明 PNG、参数预设和输出路径：
+
+```powershell
+.\.venv\Scripts\python -m perspective_paste `
+  --background assets/examples/facade.jpg `
+  --asset assets/examples/facade-logo.png `
+  --preset facade `
+  --output facade-result.png
+```
+
+## Python 交互
+
+| 操作 | 作用 |
+|---|---|
+| 鼠标左键 | 添加控制点；16px 范围内选中已有点 |
+| 拖动 | 移动选中的控制点 |
+| 鼠标右键 | 删除命中范围内最近点 |
+| `Enter` | 确认当前有效四边形 |
+| `T` | 在终端输入文字 |
+| `P` | 在终端输入透明 PNG 路径 |
+| `G` | 开关透视网格 |
+| `V` | 开关消影辅助 |
+| `M` | 循环切换 Normal、Multiply、Soft Light |
+| `[` / `]` | 每次降低／提高不透明度 0.05 |
+| `B` | 在 0–2.5px 间循环模糊值 |
+| `S` | 按原图分辨率导出 |
+| `R` | 重置控制点 |
+| `Esc` | 退出 |
+
+拖动预览最长边限制为 1200px；导出使用原图分辨率重新渲染。无效四边形不会覆盖最后一次有效预览，也不能导出。
+
+## 跨端几何接口
+
+点使用 `{x, y}`，四边形统一排序为 `TL → TR → BR → BL`。
+
+| Python | Web |
+|---|---|
+| `order_quad` | `orderQuad` |
+| `validate_quad` | `validateQuad` |
+| `compute_homography` | `computeHomography` |
+| `compute_vanishing_points` | `computeVanishingPoints` |
+| `compute_perspective_guide` | `computePerspectiveGuide` |
+| `warp_asset` | `warpAsset` |
+| `blend_composite` | `blendComposite` |
+
+固定错误码：`OUT_OF_BOUNDS`、`DUPLICATE_POINTS`、`SELF_INTERSECTION`、`NON_CONVEX`、`NEAR_COLLINEAR`、`AREA_TOO_SMALL`、`TOO_SLENDER`、`SINGULAR_HOMOGRAPHY`。
+
+## 测试与再生成
+
+```powershell
+.\.venv\Scripts\python -m pytest
+npm ci
+npm run test:web
+npx playwright install chromium
+npm run test:e2e
+.\.venv\Scripts\python scripts\validate_cross_runtime.py
+```
+
+原创叠加层、离线备用背景、技术图和篮球场演示可重复生成：
+
+```powershell
+.\.venv\Scripts\python scripts\generate_assets.py
+.\.venv\Scripts\python scripts\generate_figures.py
+npm run record:demo
+```
+
+从素材台账列出的 Pexels 原图重新制作真实背景：
+
+```powershell
+.\.venv\Scripts\python scripts\prepare_real_assets.py `
+  --court C:\path\to\court-original.jpg `
+  --facade C:\path\to\facade-original.jpg `
+  --wall C:\path\to\wall-original.jpg `
+  --packaging C:\path\to\packaging-original.jpg `
+  --screen C:\path\to\screen-original.jpg
+```
+
+脚本按审定裁切框生成 1600×1200 派生图，并同步到 Python 和 Web 资源目录；未修改的原始大图不提交到仓库。
+
+## 目录
+
+```text
+python/perspective_paste/  Python 包与交互入口
+web/                       GitHub Pages 静态应用
+shared/                    预设、错误码与跨端测试夹具
+assets/examples/           示例背景与透明 PNG
+docs/figures/              SVG 源图和 PNG 技术图
+demo/                      篮球场 MP4、WebM 与 GIF
+scripts/                   产品资产、技术图和录屏脚本
+tests/                     Python、Web 与 Playwright 测试
+```
+
+## 能力边界
+
+单应性描述近似平面到平面的映射。圆柱、衣物褶皱、曲面屏、前景遮挡、强镜面反射和复杂三维起伏，不适合只用四点透视处理。本项目不实现自动平面检测、遮挡分割、曲面变形、多图层、完整撤销、PSD 或生成式补全。
+
+## 素材与许可
+
+五张场景照片继续适用 Pexels License；原创叠加层、程序化备用背景和技术图采用 CC BY 4.0。逐文件作者、来源和修改方式见[素材台账](assets/SOURCES.md)与机器可读的[`asset-manifest.json`](assets/asset-manifest.json)。
+
+- 代码：[MIT](LICENSE)
+- 原创内容资产：[CC BY 4.0](LICENSE-CONTENT.md)

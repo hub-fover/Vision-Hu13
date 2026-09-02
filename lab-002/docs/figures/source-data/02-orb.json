@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "orb",
+  "generator": "scripts/generate_technical_figures.py",
+  "baseFiles": [
+    "assets/samples/mountains/02.jpg"
+  ],
+  "baseSha256": {
+    "assets/samples/mountains/02.jpg": "df26d23285d42851314d2a9291b52b6c9533ce8d2fc1e3b387a0a6fd0202a924"
+  },
+  "measurements": {
+    "frame": 2,
+    "keypointCount": 2393,
+    "analysisScale": 0.8
+  },
+  "overlays": [
+    {
+      "type": "orb-circles",
+      "displayStride": 2
+    }
+  ],
+  "annotationLabel": "基于真实输入的算法标注",
+  "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License"
+}

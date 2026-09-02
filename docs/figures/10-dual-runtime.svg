@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="675" viewBox="0 0 1080 675">
+  <title>Vision Hu13 · 双端运行</title>
+  <rect width="1080" height="675" fill="#08111f"/>
+  <path d="M0 90H1080M80 0V675M1000 0V675" stroke="#18314f" stroke-width="1"/>
+  <text x="80" y="67" fill="#126aff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="20" font-weight="700" letter-spacing="2">VISION HU13 · LAB 001</text>
+  <text x="80" y="142" fill="#f4f8ff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="48" font-weight="700">双端运行</text>
+  <text x="80" y="181" fill="#8ea6c3" font-family="Arial, Microsoft YaHei, sans-serif" font-size="21">浏览器与 Python 共用几何契约</text>
+  <g id="runtime"><rect x="100" y="265" width="330" height="225" rx="24" fill="#10213a" stroke="#126aff" stroke-width="4"/>
+<rect x="650" y="265" width="330" height="225" rx="24" fill="#10213a" stroke="#2dd399" stroke-width="4"/>
+<text x="265" y="365" text-anchor="middle" fill="#f4f8ff" font-family="Arial" font-size="30">BROWSER</text><text x="815" y="365" text-anchor="middle" fill="#f4f8ff" font-family="Arial" font-size="30">PYTHON</text>
+<path d="M430 377H650" stroke="#ff9f43" stroke-width="8"/><circle cx="540" cy="377" r="34" fill="#ff9f43"/><text x="540" y="385" text-anchor="middle" fill="#08111f" font-family="Arial" font-size="19" font-weight="700">JSON</text></g>
+  <text x="80" y="628" fill="#8ea6c3" font-family="Arial, Microsoft YaHei, sans-serif" font-size="17">010 / 10 · PERSPECTIVE PASTE</text>
+</svg>

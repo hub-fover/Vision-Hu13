@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "status": "PENDING_DEVICE_CAPTURE",
+  "updatedAt": "2026-07-30",
+  "isSimulated": false,
+  "requiredDevices": [
+    "Android Chrome",
+    "iPhone Safari"
+  ],
+  "requiredActions": [
+    "Choose the committed real mountain frames from the device photo library.",
+    "Reorder the photos in the LAB 002 mobile Web UI.",
+    "Run the local stitch, inspect the seam, and adjust the crop.",
+    "Export or share the JPEG while the native device screen recorder is active."
+  ],
+  "requiredOutputs": [
+    {
+      "format": "MP4",
+      "dimensions": "1080x1350",
+      "durationSeconds": 12,
+      "source": "real-device master recording"
+    },
+    {
+      "format": "WebM",
+      "dimensions": "1080x1350",
+      "durationSeconds": 12,
+      "source": "same real-device master recording"
+    },
+    {
+      "format": "GIF",
+      "dimensions": "1080x1350",
+      "durationSeconds": 12,
+      "source": "same real-device master recording"
+    }
+  ],
+  "acceptanceEvidenceRequired": [
+    "device model and OS version",
+    "browser name and version",
+    "native recording SHA-256",
+    "capture date and operator",
+    "derived-file SHA-256 values"
+  ],
+  "publicFiles": [],
+  "blocker": "No genuine Android Chrome or iPhone Safari recording has been supplied yet.",
+  "workflow": "scripts/REAL_DEVICE_CAPTURE.md"
+}

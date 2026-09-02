@@ -1,0 +1,117 @@
+{
+  "geometry": {
+    "minimumPointDistancePixels": 4,
+    "minimumPointDistanceDiagonalRatio": 0.002,
+    "minimumAreaPixelsSquared": 256,
+    "minimumAreaCanvasRatio": 0.001,
+    "minimumEdgeRatio": 0.02,
+    "nearCollinearSine": 0.001,
+    "maximumNormalizedHomographyCondition": 100000000,
+    "maximumReprojectionErrorPixels": 0.5,
+    "parallelLineEpsilon": 1e-10
+  },
+  "presets": {
+    "court": {
+      "blendMode": "normal",
+      "opacity": 0.72,
+      "blurPx": 0.6,
+      "brightnessMatch": true,
+      "tintStrength": 0.12,
+      "textureStrength": 0.38,
+      "saturation": 0.95,
+      "shadow": {
+        "enabled": false,
+        "offsetX": 0,
+        "offsetY": 0,
+        "blur": 0,
+        "opacity": 0
+      },
+      "fitMode": "fill"
+    },
+    "facade": {
+      "blendMode": "multiply",
+      "opacity": 0.86,
+      "blurPx": 0.5,
+      "brightnessMatch": true,
+      "tintStrength": 0.15,
+      "textureStrength": 0.25,
+      "saturation": 0.95,
+      "shadow": {
+        "enabled": false,
+        "offsetX": 0,
+        "offsetY": 0,
+        "blur": 0,
+        "opacity": 0
+      },
+      "fitMode": "fill"
+    },
+    "wall": {
+      "blendMode": "multiply",
+      "opacity": 0.78,
+      "blurPx": 0.7,
+      "brightnessMatch": true,
+      "tintStrength": 0.18,
+      "textureStrength": 0.35,
+      "saturation": 1.0,
+      "shadow": {
+        "enabled": false,
+        "offsetX": 0,
+        "offsetY": 0,
+        "blur": 0,
+        "opacity": 0
+      },
+      "fitMode": "fill"
+    },
+    "poster": {
+      "blendMode": "normal",
+      "opacity": 0.95,
+      "blurPx": 0.8,
+      "brightnessMatch": true,
+      "tintStrength": 0.12,
+      "textureStrength": 0.12,
+      "saturation": 1.0,
+      "shadow": {
+        "enabled": true,
+        "offsetX": 6,
+        "offsetY": 8,
+        "blur": 12,
+        "opacity": 0.22
+      },
+      "fitMode": "fill"
+    },
+    "packaging": {
+      "blendMode": "multiply",
+      "opacity": 0.85,
+      "blurPx": 0.4,
+      "brightnessMatch": true,
+      "tintStrength": 0.15,
+      "textureStrength": 0.25,
+      "saturation": 1.0,
+      "shadow": {
+        "enabled": false,
+        "offsetX": 0,
+        "offsetY": 0,
+        "blur": 0,
+        "opacity": 0
+      },
+      "fitMode": "fill"
+    },
+    "screen": {
+      "blendMode": "normal",
+      "opacity": 1.0,
+      "blurPx": 0.2,
+      "brightnessMatch": false,
+      "tintStrength": 0.08,
+      "textureStrength": 0.0,
+      "saturation": 1.1,
+      "shadow": {
+        "enabled": false,
+        "offsetX": 0,
+        "offsetY": 0,
+        "blur": 0,
+        "opacity": 0
+      },
+      "fitMode": "fill"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schema": "lab005.contracts.v1",
+  "defaults": {
+    "inputCount": 5,
+    "analysisMaxSide": 1280,
+    "maxOutputPixels": 4000000,
+    "maxWorkingSetMiB": 320,
+    "tileSizePx": 8,
+    "focusMetric": "tenengrad",
+    "minPeakProminence": 0.08,
+    "minTexture": 0.02,
+    "maxAlignmentErrorPx": 2.0,
+    "stableConfidence": 0.70,
+    "referenceConfidence": 0.45,
+    "calibrationSchema": "lab005.camera-intrinsics.v1",
+    "depthScaleSchema": "lab005.focus-depth-scale.v1"
+  },
+  "errorCodes": [
+    "INVALID_FRAME_COUNT", "UNSUPPORTED_FORMAT", "DECODE_FAILED",
+    "CAMERA_MOVED", "SCENE_CHANGED", "FOCUS_SPREAD_TOO_SMALL",
+    "LOW_TEXTURE", "LOW_PEAK_PROMINENCE", "ALIGNMENT_FAILED",
+    "CALIBRATION_FAILED", "DEPTH_SCALE_UNCALIBRATED", "INTRINSICS_MISMATCH",
+    "MEMORY_BUDGET_EXCEEDED", "RUNTIME_MISSING", "CANCELLED"
+  ],
+  "publicTypes": [
+    "FocusFrame", "FocusStack", "FocusMetricCurve", "RelativeDepthMap",
+    "DepthSample", "CameraIntrinsics", "FocusCalibration",
+    "DepthScaleCalibration", "DepthResult", "DepthReport"
+  ]
+}

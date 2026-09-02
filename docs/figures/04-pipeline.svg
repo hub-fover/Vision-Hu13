@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="675" viewBox="0 0 1080 675">
+  <title>Vision Hu13 · 处理管线</title>
+  <rect width="1080" height="675" fill="#08111f"/>
+  <path d="M0 90H1080M80 0V675M1000 0V675" stroke="#18314f" stroke-width="1"/>
+  <text x="80" y="67" fill="#126aff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="20" font-weight="700" letter-spacing="2">VISION HU13 · LAB 001</text>
+  <text x="80" y="142" fill="#f4f8ff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="48" font-weight="700">处理管线</text>
+  <text x="80" y="181" fill="#8ea6c3" font-family="Arial, Microsoft YaHei, sans-serif" font-size="21">选择 → 变换 → 混合 → 导出</text>
+  <g id="pipeline"><rect x="90" y="300" width="180" height="120" rx="20" fill="#10213a" stroke="#126aff" stroke-width="4"/><text x="180" y="370" text-anchor="middle" fill="#f4f8ff" font-family="Arial,Microsoft YaHei" font-size="26">选择</text><path d="M275 360H320" stroke="#8ea6c3" stroke-width="5"/><rect x="330" y="300" width="180" height="120" rx="20" fill="#10213a" stroke="#2dd399" stroke-width="4"/><text x="420" y="370" text-anchor="middle" fill="#f4f8ff" font-family="Arial,Microsoft YaHei" font-size="26">变换</text><path d="M515 360H560" stroke="#8ea6c3" stroke-width="5"/><rect x="570" y="300" width="180" height="120" rx="20" fill="#10213a" stroke="#ff9f43" stroke-width="4"/><text x="660" y="370" text-anchor="middle" fill="#f4f8ff" font-family="Arial,Microsoft YaHei" font-size="26">混合</text><path d="M755 360H800" stroke="#8ea6c3" stroke-width="5"/><rect x="810" y="300" width="180" height="120" rx="20" fill="#10213a" stroke="#126aff" stroke-width="4"/><text x="900" y="370" text-anchor="middle" fill="#f4f8ff" font-family="Arial,Microsoft YaHei" font-size="26">导出</text></g>
+  <text x="80" y="628" fill="#8ea6c3" font-family="Arial, Microsoft YaHei, sans-serif" font-size="17">04 / 10 · PERSPECTIVE PASTE</text>
+</svg>

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "candidate-matches",
+  "generator": "scripts/generate_technical_figures.py",
+  "baseFiles": [
+    "assets/samples/mountains/01.jpg",
+    "assets/samples/mountains/02.jpg"
+  ],
+  "baseSha256": {
+    "assets/samples/mountains/01.jpg": "bc798aaa9eec3c6169f946ad3a481ee86ebbe1cddd3b4aa90e8cdf384c1b736d",
+    "assets/samples/mountains/02.jpg": "df26d23285d42851314d2a9291b52b6c9533ce8d2fc1e3b387a0a6fd0202a924"
+  },
+  "measurements": {
+    "candidateCount": 2146,
+    "displayedCount": 100
+  },
+  "overlays": [
+    {
+      "type": "candidate-match-lines",
+      "limit": 100
+    }
+  ],
+  "annotationLabel": "基于真实输入的算法标注",
+  "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License"
+}

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="在浏览器中完成精确透视贴图与环境融合。">
+  <title>Vision Hub · 透视贴图实验室</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Vision Hub 首页">
+      <span class="brand-mark" aria-hidden="true">V</span>
+      <span><strong>Vision Hub</strong><small>Perspective Lab</small></span>
+    </a>
+    <div class="privacy"><span aria-hidden="true">●</span> 本地处理 · 图片不会上传</div>
+  </header>
+  <p id="mobile-warning" role="status">小屏幕下已切换为纵向布局；建议使用 960px 以上桌面屏幕精调控制点。</p>
+  <div id="protocol-warning" role="alert" hidden>
+    <strong>当前页面是直接从文件打开的，浏览器已阻止渲染模块。</strong>
+    <span>请关闭本页，回到项目根目录双击 <code>start-web.cmd</code>；或在终端运行 <code>npm run serve</code> 后访问 <code>http://127.0.0.1:4173/</code>。</span>
+  </div>
+
+  <main class="workspace">
+    <aside class="panel controls" aria-label="素材与融合控制">
+      <section>
+        <h2><span>01</span> 素材</h2>
+        <label class="file-field">背景图
+          <input id="background-input" type="file" accept="image/*">
+          <span>选择 JPG / PNG</span>
+        </label>
+        <div class="asset-tabs" role="group" aria-label="贴图类型">
+          <button class="active" type="button" data-asset-tab="text">文字</button>
+          <button type="button" data-asset-tab="png">PNG</button>
+        </div>
+        <label for="text-input">贴图文字</label>
+        <textarea id="text-input" rows="3">先贴得准，再融得真</textarea>
+        <label class="file-field">透明 PNG
+          <input id="asset-input" type="file" accept="image/png">
+          <span>选择 PNG</span>
+        </label>
+        <label class="file-field">自定义字体
+          <input id="font-input" type="file" accept=".ttf,.otf,.woff,.woff2">
+          <span>选择字体文件</span>
+        </label>
+        <div class="two-fields">
+          <label>字号 <input id="font-size" type="number" min="12" max="360" value="96"></label>
+          <label>文字色 <input id="text-color" type="color" value="#ffffff"></label>
+        </div>
+      </section>
+
+      <section>
+        <h2><span>02</span> 融合</h2>
+        <label for="preset-select">场景预设</label>
+        <select id="preset-select">
+          <option value="court" selected>篮球场</option>
+          <option value="facade">楼体 Logo</option>
+          <option value="wall">墙面</option>
+          <option value="poster">海报</option>
+          <option value="packaging">包装</option>
+          <option value="screen">屏幕</option>
+        </select>
+        <label for="blend-mode">混合模式</label>
+        <select id="blend-mode" data-option="blendMode">
+          <option value="normal">正常</option>
+          <option value="multiply" selected>正片叠底</option>
+          <option value="soft-light">柔光</option>
+        </select>
+        <label for="opacity">不透明度 <output id="opacity-value">78%</output></label>
+        <input id="opacity" data-option="opacity" type="range" min="0" max="1" step=".01" value=".78">
+        <label for="texture">纹理强度 <output id="texture-value">35%</output></label>
+        <input id="texture" data-option="textureStrength" type="range" min="0" max="1" step=".01" value=".35">
+        <label for="tint">环境染色 <output id="tint-value">18%</output></label>
+        <input id="tint" data-option="tintStrength" type="range" min="0" max="1" step=".01" value=".18">
+        <label for="blur">模糊 <output id="blur-value">0.7px</output></label>
+        <input id="blur" data-option="blurPx" type="range" min="0" max="2.5" step=".1" value=".7">
+        <label for="saturation">饱和度 <output id="saturation-value">100%</output></label>
+        <input id="saturation" data-option="saturation" type="range" min="0" max="2" step=".05" value="1">
+        <label for="fit-mode">PNG 适配</label>
+        <select id="fit-mode" data-option="fitMode">
+          <option value="fill">铺满目标区域</option>
+          <option value="contain">保持比例留白</option>
+        </select>
+        <div class="check-grid">
+          <label><input id="brightness" data-option="brightnessMatch" type="checkbox" checked> 亮度匹配</label>
+          <label><input id="shadow" data-option="shadow.enabled" type="checkbox"> 投影</label>
+          <label><input id="grid-toggle" type="checkbox"> 透视网格</label>
+          <label><input id="vanishing-toggle" type="checkbox" checked> 消影辅助</label>
+        </div>
+        <div class="two-fields shadow-fields">
+          <label>阴影 X <input id="shadow-x" data-option="shadow.offsetX" type="number" min="-80" max="80" step="1" value="6"></label>
+          <label>阴影 Y <input id="shadow-y" data-option="shadow.offsetY" type="number" min="-80" max="80" step="1" value="8"></label>
+          <label>模糊半径 <input id="shadow-blur" data-option="shadow.blur" type="number" min="0" max="80" step="1" value="12"></label>
+          <label>阴影透明度 <input id="shadow-opacity" data-option="shadow.opacity" type="number" min="0" max="1" step=".01" value="0"></label>
+        </div>
+      </section>
+    </aside>
+
+    <section class="stage" aria-label="透视编辑画布">
+      <div class="stage-toolbar">
+        <div>
+          <strong id="point-status" aria-live="polite">点击画面依次添加 4 个角点</strong>
+          <span id="geometry-error" role="alert"></span>
+        </div>
+        <button id="reset-button" type="button">重置角点</button>
+      </div>
+      <div class="canvas-shell">
+        <canvas id="editor-canvas" width="1200" height="760" tabindex="0"
+          aria-label="背景与四点透视编辑画布"
+          aria-describedby="keyboard-instructions"></canvas>
+        <p id="empty-message">正在加载示例背景…</p>
+      </div>
+      <p id="keyboard-instructions" class="hint">鼠标：按左上 → 右上 → 右下 → 左下点击。键盘：1–4 选择点，方向键移动，Shift 加速，空格添加，Delete 删除，Enter 精确渲染。</p>
+      <p id="keyboard-status" class="visually-hidden" aria-live="polite"></p>
+    </section>
+
+    <aside class="panel output" aria-label="比较与导出">
+      <section>
+        <h2><span>03</span> 对比</h2>
+        <button id="original-button" class="secondary wide" type="button">按住查看原图</button>
+        <label for="compare-slider">左右对比 <output id="compare-value">100%</output></label>
+        <input id="compare-slider" type="range" min="0" max="100" value="100">
+      </section>
+      <section>
+        <h2><span>04</span> 导出</h2>
+        <p class="export-note">按背景原始分辨率精确渲染。JPEG 使用 92% 品质。</p>
+        <button id="export-png" class="primary wide" type="button" disabled>导出 PNG</button>
+        <button id="export-jpeg" class="secondary wide" type="button" disabled>导出 JPEG</button>
+        <p id="render-status" class="render-status" role="status">等待有效四边形</p>
+      </section>
+      <section class="mini-guide">
+        <h3>几何安全提示</h3>
+        <ul>
+          <li>四条边不要交叉</li>
+          <li>避免三个点几乎共线</li>
+          <li>无效拖动会保留上次有效预览，但禁止导出</li>
+        </ul>
+      </section>
+    </aside>
+  </main>
+  <script>
+    if (window.location.protocol === "file:") {
+      window.addEventListener("DOMContentLoaded", function () {
+        var warning = document.getElementById("protocol-warning");
+        var message = document.getElementById("empty-message");
+        warning.hidden = false;
+        message.hidden = false;
+        message.textContent = "文件直开模式无法加载背景、导入图片或启动 Web Worker。请按顶部提示通过本地服务器打开。";
+        ["background-input", "asset-input", "font-input"].forEach(function (id) {
+          var input = document.getElementById(id);
+          input.disabled = true;
+          input.title = "请先通过 start-web.cmd 启动本地服务器";
+        });
+      });
+    }
+  </script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

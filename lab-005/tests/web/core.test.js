@@ -1,0 +1,119 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { edgeAwareSmooth, estimateDepth, estimateDepthFromScores, fitPeak } from '../../web/js/depth.js';
+import { canUseMetricDepth, fitScale, mapDepthToMeters, validateCalibration, validateScale } from '../../web/js/calibration.js';
+import { checkAlignment, alignFrames, validateSceneConsistency } from '../../web/js/alignment.js';
+import { createInitialState, moveFrame, readyFrames } from '../../web/js/state.js';
+import { estimateWorkingSetBytes, getFocusCapabilities, resolveSampleUrl, setFocusDistance, stopMediaStream, validateAnalysisStack } from '../../web/js/capture.js';
+import { collectTransfers } from '../../web/js/worker-client.js';
+import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../');
+
+test('focus peak is fitted between frames', () => assert.ok(Math.abs(fitPeak([1, 4, 3, 1, 0]) - 1.2) < 0.15));
+test('relative depth selects a peak and confidence map', () => {
+  const gray = Float32Array.from({ length: 64 }, (_, i) => (i % 8) / 8); const frames = [0, 1, 2, 3, 4].map(index => ({ width: 8, height: 8, gray: gray.map(value => value * (index === 2 ? 2 : 1)) }));
+  const result = estimateDepth(frames, { tileSize: 8, minTexture: 0, minPeakProminence: 0 }); assert.equal(result.depth.length, 1); assert.equal(result.confidence.length, 1);
+});
+test('confidence and invalid mask use the shared prominence and reference gate', () => {
+  const curves = [
+    Float32Array.of(0.1, 0.1), Float32Array.of(0.2, 0.2),
+    Float32Array.of(0.9, 0.9), Float32Array.of(0.2, 0.2),
+    Float32Array.of(0.1, 0.1),
+  ];
+  const result = estimateDepthFromScores(curves, 1, 2, {
+    texture: Float32Array.of(0.15, 0.03),
+  });
+  assert.ok(Math.abs(result.confidence[0] - 5 / 6) < 1e-6);
+  assert.ok(Math.abs(result.confidence[1] - 1 / 6) < 1e-6);
+  assert.deepEqual(Array.from(result.invalid), [0, 1]);
+});
+test('edge-aware smoothing preserves a two-plane depth discontinuity', () => {
+  const smoothed = edgeAwareSmooth(
+    Float32Array.of(0, 0.2, 0.8, 1),
+    Float32Array.of(1, 1, 1, 1),
+    Uint8Array.of(0, 0, 0, 0),
+    1, 4, 0.25,
+  );
+  assert.deepEqual(Array.from(smoothed).map(value => Number(value.toFixed(6))), [0.1, 0.1, 0.9, 0.9]);
+  assert.ok(smoothed[2] - smoothed[1] >= 0.6);
+});
+test('alignment rejects a moved stack', () => assert.throws(() => checkAlignment([{ width: 10, height: 10, meanX: 0, meanY: 0 }, { width: 10, height: 10, meanX: 0, meanY: 0 }, { width: 10, height: 10, meanX: 0, meanY: 0 }, { width: 10, height: 10, meanX: 0, meanY: 0 }, { width: 10, height: 10, meanX: 30, meanY: 0 }]), error => error.code === 'CAMERA_MOVED'));
+test('browser alignment applies bounded translation before focus scoring', () => { const width = 16; const height = 16; const reference = new Float32Array(width * height); for (let index = 0; index < reference.length; index++) reference[index] = (index % width) / width; const shifted = new Float32Array(width * height); for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) shifted[y * width + x] = reference[Math.min(height - 1, y + 1) * width + Math.min(width - 1, x + 1)]; const frames = Array.from({ length: 5 }, (_, index) => ({ width, height, gray: index === 1 ? shifted : reference, meanX: width / 2, meanY: height / 2 })); const result = alignFrames(frames, 2); assert.equal(result.applied, true); assert.ok(Math.hypot(result.shifts[1].dx, result.shifts[1].dy) > 0); });
+test('scene consistency rejects a different low-frequency structure', () => {
+  const width = 32; const height = 32;
+  const left = new Float32Array(width * height); const right = new Float32Array(width * height);
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) { left[y * width + x] = x < 12 ? 1 : 0; right[y * width + x] = x > 20 ? 1 : 0; }
+  const frame = gray => ({ width, height, gray, meanX: width / 2, meanY: height / 2 });
+  assert.throws(() => validateSceneConsistency([frame(left), frame(left), frame(left), frame(right), frame(left)]), error => error.code === 'SCENE_CHANGED');
+});
+test('scale mapping is versioned and monotonic', () => { const scale = fitScale([0.8, 0.2, 0.5], [1, 0.3, 0.6]); assert.equal(scale.schema, 'lab005.focus-depth-scale.v1'); assert.deepEqual(scale.focusIndices, [0.2, 0.5, 0.8]); });
+test('scale reports a nonzero linear trend residual for nonlinear samples', () => { const scale = fitScale([0, 0.5, 1], [0.3, 0.8, 1]); assert.ok(scale.residualM > 0.05); });
+test('calibration import validates schema', () => assert.throws(() => validateCalibration({ schema: 'wrong', intrinsics: {} }), error => error.code === 'INTRINSICS_MISMATCH'));
+test('calibration imports reject non-finite matrices and non-monotonic scale distances', () => {
+  assert.throws(() => validateCalibration({ schema: 'lab005.camera-intrinsics.v1', intrinsics: { matrix: [[NaN, 0, 0], [0, 1, 0], [0, 0, 1]], distortion: [], imageSize: [100, 80] } }), error => error.code === 'INTRINSICS_MISMATCH');
+  assert.throws(() => validateScale({ schema: 'lab005.focus-depth-scale.v1', focusIndices: [0, 0.5, 1], distancesM: [0.3, 1, 0.6] }), error => error.code === 'DEPTH_SCALE_UNCALIBRATED');
+});
+test('initial state has five empty capture slots', () => { const state = createInitialState(); assert.equal(state.frames.length, 5); assert.equal(readyFrames(state), false); });
+test('sample paths resolve relative to the sample manifest', () => { assert.equal(resolveSampleUrl('focus-near.svg'), './assets/samples/focus-near.svg'); assert.equal(resolveSampleUrl('assets/samples/focus-near.svg'), './assets/samples/focus-near.svg'); });
+test('hardware focus range is exposed only when the track supports it', async () => {
+  assert.deepEqual(await getFocusCapabilities({ getCapabilities: () => ({}) }), { supported: false, min: null, max: null, step: null });
+  assert.deepEqual(await getFocusCapabilities({ getCapabilities: () => ({ focusDistance: { min: 0.1, max: 3, step: 0.1 } }) }), { supported: true, min: 0.1, max: 3, step: 0.1 });
+});
+test('manual focus applies a numeric constraint and media release stops every track', async () => {
+  let constraints; const stopped = [];
+  const track = { getCapabilities: () => ({ focusDistance: { min: 0.1, max: 3, step: 0.1 } }), applyConstraints: async value => { constraints = value; } };
+  assert.equal(await setFocusDistance(track, '1.5'), true);
+  assert.equal(constraints.advanced[0].focusDistance, 1.5);
+  stopMediaStream({ getTracks: () => [{ stop: () => stopped.push(1) }, { stop: () => stopped.push(2) }] });
+  assert.deepEqual(stopped, [1, 2]);
+});
+test('worker transfer collection includes nested scale frames', () => { const a = {}, b = {}, c = {}; const payload = { frames: [{ bitmap: a }, { bitmap: b }], groups: [{ frames: [{ bitmap: c }] }] }; assert.deepEqual(collectTransfers('estimate', payload), [a, b]); assert.deepEqual(collectTransfers('calibrateScale', payload), [a, b, c]); });
+test('enhanced calibration calls OpenCV chessboard and calibrateCamera APIs', () => { const source = readFileSync(join(ROOT, 'web/js/defocus.worker.js'), 'utf8'); assert.match(source, /findChessboardCorners/); assert.match(source, /cornerSubPix/); assert.match(source, /calibrateCamera/); assert.doesNotMatch(source, /fx:\s*first\.width/); });
+test('browser calibration has a real checkerboard fallback and extended calibrator', () => { const calibration = readFileSync(join(ROOT, 'web/js/calibration.js'), 'utf8'); const worker = readFileSync(join(ROOT, 'web/js/defocus.worker.js'), 'utf8'); assert.match(calibration, /connectedComponentsWithStats/); assert.match(calibration, /THRESH_OTSU/); assert.match(calibration, /matFromArray/); assert.match(worker, /calibrateCameraExtended/); assert.match(worker, /canvasToRgbaMat/); assert.doesNotMatch(worker, /cv\.imread\(canvas\)/); });
+test('scale calibration requires exactly fifteen frames', () => { const source = readFileSync(join(ROOT, 'web/js/app.js'), 'utf8'); assert.match(source, /files\.length\s*!==\s*15/); assert.match(source, /groups|frames.*slice/); });
+test('web app stays local-only and exposes five capture positions', () => { const html = readFileSync(join(ROOT, 'web/index.html'), 'utf8'); assert.match(html, /capture="environment"/); const source = readFileSync(join(ROOT, 'web/js/app.js'), 'utf8'); assert.doesNotMatch(source, /fetch\(['"]https?:|navigator\.sendBeacon|localStorage|indexedDB|document\.cookie/); });
+test('worker client transfers image bitmaps instead of cloning them', () => { const source = readFileSync(join(ROOT, 'web/js/worker-client.js'), 'utf8'); assert.match(source, /postMessage\([^;]+transfer/); assert.match(source, /collectTransfers|ImageBitmap/); });
+test('browser calibration uses same-origin OpenCV and never fabricates intrinsics', () => { const source = readFileSync(join(ROOT, 'web/js/defocus.worker.js'), 'utf8'); assert.match(source, /vendor\/opencv\.js/); assert.match(source, /findChessboardCorners/); assert.match(source, /cornerSubPix/); assert.match(source, /calibrateCamera/); assert.doesNotMatch(source, /fx:\s*first\.width\s*\*\s*0\.9/); });
+test('calibration panel explains browser calibration and the Python fallback', () => { const html = readFileSync(join(ROOT, 'web/index.html'), 'utf8'); assert.match(html, /浏览器会在本地尝试检测棋盘格并标定镜头/); assert.match(html, /Python 标定命令/); });
+test('imported intrinsics only require undistort while calibration requires calib3d', () => { const source = readFileSync(join(ROOT, 'web/js/defocus.worker.js'), 'utf8'); assert.match(source, /calibration\s*=\s*false/); assert.match(source, /typeof runtime\.undistort/); assert.match(source, /loadOpenCv\([^\n]+calibration:\s*true/); });
+test('scale calibration derives three focus samples from fifteen frames', () => { const app = readFileSync(join(ROOT, 'web/js/app.js'), 'utf8'); const worker = readFileSync(join(ROOT, 'web/js/defocus.worker.js'), 'utf8'); assert.match(app, /files\.length\s*!==\s*15/); assert.match(worker, /calibrateScaleStacks/); });
+test('result image exposes local depth queries and hardware focus is feature detected', () => { const app = readFileSync(join(ROOT, 'web/js/app.js'), 'utf8'); const capture = readFileSync(join(ROOT, 'web/js/capture.js'), 'utf8'); assert.match(app, /query-value/); assert.match(app, /result-preview[^\n]+addEventListener\(['"]click/); assert.match(capture, /getCapabilities/); assert.match(capture, /focusDistance/); });
+test('scale calibration maps focus depth to reference metres', () => { const scale = fitScale([0, 0.5, 1], [0.3, 0.6, 1]); assert.ok(Math.abs(mapDepthToMeters(0.25, scale) - 0.45) < 1e-9); assert.ok(Math.abs(mapDepthToMeters(0.75, scale) - 0.8) < 1e-9); });
+test('result workflow imports calibration and renders best frame and curve', () => { const html = readFileSync(join(ROOT, 'web/index.html'), 'utf8'); const app = readFileSync(join(ROOT, 'web/js/app.js'), 'utf8'); assert.match(html, /intrinsics-import/); assert.match(html, /scale-import/); assert.match(html, /best-preview/); assert.match(html, /focus-curve/); assert.match(app, /calibration:\s*state\.calibration/); assert.match(app, /scaleCalibration:\s*state\.scaleCalibration/); });
+test('focus frames can be reordered with mobile-friendly controls', () => { const state = createInitialState(); state.frames[0].file = { name: 'a' }; state.frames[1].file = { name: 'b' }; moveFrame(state, 1, 0); assert.equal(state.frames[0].file.name, 'b'); const app = readFileSync(join(ROOT, 'web/js/app.js'), 'utf8'); assert.match(app, /move-left/); assert.match(app, /move-right/); });
+test('Python and legacy Web calibration JSON normalize to shared schemas', () => { const intrinsics = validateCalibration({ schema: 'lab005.camera-intrinsics.v1', intrinsics: { matrix: [[100, 0, 50], [0, 101, 40], [0, 0, 1]], distortion: [0, 0, 0, 0, 0], imageSize: [100, 80] }, rmsErrorPx: 0.4 }); assert.deepEqual(intrinsics.intrinsics.imageSize, [100, 80]); const legacy = validateCalibration({ schema: 'lab005.camera-intrinsics.v1', image: { width: 100, height: 80 }, intrinsics: { fx: 100, fy: 101, cx: 50, cy: 40, distortion: [] } }); assert.deepEqual(legacy.intrinsics.matrix[0], [100, 0, 50]); const scale = validateScale({ schema: 'lab005.focus-depth-scale.v1', focusIndices: [0, 0.5, 1], distancesM: [0.3, 0.6, 1] }); assert.deepEqual(scale.distancesM, [0.3, 0.6, 1]); const legacyScale = validateScale({ schema: 'lab005.focus-depth-scale.v1', samples: [{ focus: 0, distance: 0.3 }, { focus: 1, distance: 1 }] }); assert.deepEqual(legacyScale.focusIndices, [0, 1]); });
+test('intrinsics scale to the analysis image only when aspect ratio and camera conditions match', () => {
+  const input = { schema: 'lab005.camera-intrinsics.v1', intrinsics: { matrix: [[2000, 0, 1000], [0, 2020, 750], [0, 0, 1]], distortion: [0, 0, 0, 0, 0], imageSize: [2000, 1500] }, lensId: 'rear-wide', orientation: 1, zoom: 1 };
+  const scaled = validateCalibration(input, { width: 1000, height: 750, lensId: 'rear-wide', orientation: 1, zoom: 1 });
+  assert.deepEqual(scaled.intrinsics.imageSize, [1000, 750]);
+  assert.deepEqual(scaled.intrinsics.matrix[0], [1000, 0, 500]);
+  assert.deepEqual(scaled.intrinsics.matrix[1], [0, 1010, 375]);
+  assert.throws(() => validateCalibration(input, { width: 1000, height: 700 }), error => error.code === 'INTRINSICS_MISMATCH');
+  assert.throws(() => validateCalibration(input, { width: 1000, height: 750, lensId: 'tele' }), error => error.code === 'INTRINSICS_MISMATCH');
+});
+test('browser enforces the shared five-frame memory budget before Worker transfer', () => {
+  assert.equal(estimateWorkingSetBytes(1280, 960), 1280 * 960 * 5 * 5 * 4);
+  assert.doesNotThrow(() => validateAnalysisStack(Array.from({ length: 5 }, () => ({ width: 1280, height: 960 }))));
+  assert.throws(() => validateAnalysisStack(Array.from({ length: 5 }, () => ({ width: 5000, height: 5000 }))), error => error.code === 'MEMORY_BUDGET_EXCEEDED');
+  assert.throws(() => validateAnalysisStack([{ width: 640, height: 480 }, ...Array.from({ length: 4 }, () => ({ width: 800, height: 600 }))]), error => error.code === 'INTRINSICS_MISMATCH');
+});
+test('reference metres require compatible intrinsics and scale calibrations together', () => {
+  const intrinsics = validateCalibration({ schema: 'lab005.camera-intrinsics.v1', intrinsics: { matrix: [[100, 0, 50], [0, 100, 40], [0, 0, 1]], distortion: [], imageSize: [100, 80] } });
+  const scale = validateScale({ schema: 'lab005.focus-depth-scale.v1', focusIndices: [0, 0.5, 1], distancesM: [0.3, 0.6, 1], residualM: 0.02, intrinsicsSchema: 'lab005.camera-intrinsics.v1', imageSize: [100, 80] });
+  assert.equal(canUseMetricDepth(intrinsics, scale), true);
+  assert.equal(canUseMetricDepth(null, scale), false);
+  assert.equal(canUseMetricDepth(intrinsics, null), false);
+});
+test('cross-runtime verifier compares depth confidence invalid mask and errors', () => {
+  const run = spawnSync(process.execPath, [join(ROOT, 'scripts/cross_runtime_web.mjs')], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  const report = JSON.parse(run.stdout);
+  assert.equal(report.maxDepthDifference, 0);
+  assert.equal(report.maxConfidenceDifference, 0);
+  assert.equal(report.invalidMaskMismatchCount, 0);
+  assert.equal(report.errorCodeMismatchCount, 0);
+  assert.deepEqual(report.depthOrder, [0, 1, 2, 3, 4]);
+});

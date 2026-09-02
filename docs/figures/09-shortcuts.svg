@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="675" viewBox="0 0 1080 675">
+  <title>Vision Hu13 · 快捷键</title>
+  <rect width="1080" height="675" fill="#08111f"/>
+  <path d="M0 90H1080M80 0V675M1000 0V675" stroke="#18314f" stroke-width="1"/>
+  <text x="80" y="67" fill="#126aff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="20" font-weight="700" letter-spacing="2">VISION HU13 · LAB 001</text>
+  <text x="80" y="142" fill="#f4f8ff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="48" font-weight="700">快捷键</text>
+  <text x="80" y="181" fill="#8ea6c3" font-family="Arial, Microsoft YaHei, sans-serif" font-size="21">高频操作保持在指尖</text>
+  <g id="shortcuts"><rect x="100" y="285" width="180" height="160" rx="22" fill="#10213a" stroke="#126aff" stroke-width="4"/><text x="190" y="350" text-anchor="middle" fill="#f4f8ff" font-family="Arial" font-size="38" font-weight="700">1</text><text x="190" y="410" text-anchor="middle" fill="#8ea6c3" font-family="Arial,Microsoft YaHei" font-size="21">选择</text><rect x="340" y="285" width="180" height="160" rx="22" fill="#10213a" stroke="#2dd399" stroke-width="4"/><text x="430" y="350" text-anchor="middle" fill="#f4f8ff" font-family="Arial" font-size="38" font-weight="700">2</text><text x="430" y="410" text-anchor="middle" fill="#8ea6c3" font-family="Arial,Microsoft YaHei" font-size="21">定位</text><rect x="580" y="285" width="180" height="160" rx="22" fill="#10213a" stroke="#ff9f43" stroke-width="4"/><text x="670" y="350" text-anchor="middle" fill="#f4f8ff" font-family="Arial" font-size="38" font-weight="700">3</text><text x="670" y="410" text-anchor="middle" fill="#8ea6c3" font-family="Arial,Microsoft YaHei" font-size="21">混合</text><rect x="820" y="285" width="180" height="160" rx="22" fill="#10213a" stroke="#126aff" stroke-width="4"/><text x="910" y="350" text-anchor="middle" fill="#f4f8ff" font-family="Arial" font-size="38" font-weight="700">↵</text><text x="910" y="410" text-anchor="middle" fill="#8ea6c3" font-family="Arial,Microsoft YaHei" font-size="21">应用</text></g>
+  <text x="80" y="628" fill="#8ea6c3" font-family="Arial, Microsoft YaHei, sans-serif" font-size="17">09 / 10 · PERSPECTIVE PASTE</text>
+</svg>

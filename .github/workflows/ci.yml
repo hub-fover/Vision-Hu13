@@ -1,0 +1,254 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python ${{ matrix.python-version }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            lab-002/pyproject.toml
+            lab-002/requirements-lock.txt
+            lab-003/pyproject.toml
+            lab-003/requirements-lock.txt
+            lab-004/pyproject.toml
+            lab-004/requirements-lock.txt
+            lab-005/pyproject.toml
+            lab-005/requirements-lock.txt
+
+      - name: Set up Node.js for cross-runtime validation
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            lab-002/web/package-lock.json
+            lab-003/web/package-lock.json
+            lab-004/web/package-lock.json
+            lab-005/web/package-lock.json
+
+      - name: Install CJK fonts on Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes fonts-noto-cjk
+
+      - name: Install Python dependencies
+        run: python -m pip install -e ".[dev]" -e "./lab-002[test]" -e "./lab-003[test]" -e "./lab-004[test]" -e "./lab-005[dev]"
+
+      - name: Install LAB 002 Web dependencies
+        run: npm ci --prefix lab-002/web
+
+      - name: Install LAB 003 Web dependencies
+        run: npm ci --prefix lab-003/web
+
+      - name: Install LAB 004 Web dependencies
+        run: npm ci --prefix lab-004/web
+
+      - name: Install LAB 005 Web dependencies
+        run: npm ci --prefix lab-005/web
+
+      - name: Vendor same-origin OpenCV for acceptance
+        run: npm --prefix lab-002/web run vendor:opencv
+
+      - name: Vendor LAB 005 same-origin OpenCV runtime
+        run: npm --prefix lab-005/web run vendor:opencv
+
+      - name: Run LAB 001 Python regression tests
+        run: python -m pytest
+
+      - name: Run LAB 002 Python tests
+        run: npm run test:lab002:python
+
+      - name: Run LAB 002 cross-runtime acceptance
+        run: npm run test:lab002:acceptance
+
+      - name: Validate LAB 002 public assets
+        run: npm run validate:lab002:assets
+
+      - name: Run LAB 003 Python tests
+        run: npm run test:lab003:python
+
+      - name: Run LAB 003 cross-runtime acceptance
+        run: npm run test:lab003:acceptance
+
+      - name: Run LAB 004 Python tests
+        run: npm run test:lab004:python
+
+      - name: Run LAB 004 cross-runtime contract checks
+        run: npm run test:lab004:cross-runtime
+
+      - name: Run LAB 005 Python tests
+        run: npm run test:lab005:python
+
+      - name: Run LAB 005 release acceptance
+        run: npm run test:lab005:acceptance
+
+      - name: Validate LAB 005 public assets
+        run: npm run validate:lab005:assets
+
+  web:
+    name: Web, browser, and release validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            lab-002/web/package-lock.json
+            lab-003/web/package-lock.json
+            lab-004/web/package-lock.json
+            lab-005/web/package-lock.json
+
+      - name: Set up release-validation Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            lab-002/pyproject.toml
+            lab-002/requirements-lock.txt
+            lab-003/pyproject.toml
+            lab-003/requirements-lock.txt
+            lab-004/pyproject.toml
+            lab-004/requirements-lock.txt
+            lab-005/pyproject.toml
+            lab-005/requirements-lock.txt
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install LAB 002 Web dependencies
+        run: npm ci --prefix lab-002/web
+
+      - name: Install LAB 003 Web dependencies
+        run: npm ci --prefix lab-003/web
+
+      - name: Install LAB 004 Web dependencies
+        run: npm ci --prefix lab-004/web
+
+      - name: Install LAB 005 Web dependencies
+        run: npm ci --prefix lab-005/web
+
+      - name: Vendor LAB 005 same-origin OpenCV runtime
+        run: npm --prefix lab-005/web run vendor:opencv
+
+      - name: Install release-validation Python dependencies
+        run: python -m pip install -e ".[dev]" -e "./lab-002[test]" -e "./lab-003[test]" -e "./lab-004[test]" -e "./lab-005[dev]"
+
+      - name: Run LAB 001 Node regression tests
+        run: npm run test:web
+
+      - name: Run LAB 002 Node tests
+        run: npm run test:lab002:web
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run LAB 001 browser acceptance tests
+        run: npm run test:e2e
+
+      - name: Run LAB 002 real Worker and Pixel 7 tests
+        run: npm run test:lab002:e2e
+
+      - name: Run LAB 003 Web tests
+        run: npm run test:lab003:web
+
+      - name: Run LAB 003 real Worker and Pixel 7 tests
+        run: npm run test:lab003:e2e
+
+      - name: Run LAB 004 Web tests
+        run: npm run test:lab004:web
+
+      - name: Run LAB 004 real Worker and Pixel 7 tests
+        shell: bash
+        run: |
+          set +e
+          npm run test:lab004:e2e 2>&1 | tee lab004-e2e.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            summary=$(tail -n 80 lab004-e2e.log | tac | sed 's/%/%25/g; s/\r/%0D/g; s/$/%0A/' | tr -d '\n')
+            echo "::error title=LAB 004 real Worker E2E failed::$summary"
+          fi
+          exit "$status"
+
+      - name: Run LAB 005 Web tests
+        run: npm run test:lab005:web
+
+      - name: Stage LAB 002 Pages artifact
+        run: npm run build:lab002
+
+      - name: Validate LAB 002 Pages staging
+        run: npm run validate:lab002:pages
+
+      - name: Stage LAB 003 Pages artifact
+        run: npm run build:lab003
+
+      - name: Validate LAB 003 runtime release
+        run: npm run validate:lab003:release
+
+      - name: Stage LAB 004 Pages artifact
+        run: npm run build:lab004
+
+      - name: Validate LAB 004 Pages staging
+        run: npm run validate:lab004:release
+
+      - name: Stage LAB 005 Pages artifact
+        run: npm run build:lab005
+
+      - name: Validate LAB 005 runtime release
+        run: npm run validate:lab005:release
+
+      - name: Upload validated LAB 005 OpenCV runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: lab005-opencv-${{ github.sha }}
+          path: |
+            lab-005/web/vendor/opencv.js
+            lab-005/web/vendor/manifest.local.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Playwright reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports
+          path: |
+            playwright-report/
+            lab-002/playwright-report/
+            lab-003/playwright-report/
+            lab-004/playwright-report/
+            lab-005/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7

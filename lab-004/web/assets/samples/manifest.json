@@ -1,0 +1,14 @@
+{
+  "schema": "lab004.static-scene-speed-samples.v2",
+  "sampleId": "static-scene-speed",
+  "title": "确定性静止纹理测速样例",
+  "license": "MIT",
+  "frameCount": 180,
+  "fps": 30,
+  "groundTruthVelocityMps": 0.12,
+  "groundTruthDirectionDeg": 0,
+  "scaleReference": {"p1Px": [80, 300], "p2Px": [280, 300], "realDistanceM": 1},
+  "generator": "lab-004/web/js/measurement.js::buildSampleFrames",
+  "processing": "Deterministic static-scene texture translated at 24 px/s; generated for runtime verification, not phone-capture accuracy.",
+  "samples": [{"path": "motion.json", "sha256": "b56c51d063278f05d1f9de648df4b592f24793629dbfc6f9ac21bd052ddb768e"}]
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="675" viewBox="0 0 1080 675">
+  <title>Vision Hu13 · 纹理保留</title>
+  <rect width="1080" height="675" fill="#08111f"/>
+  <path d="M0 90H1080M80 0V675M1000 0V675" stroke="#18314f" stroke-width="1"/>
+  <text x="80" y="67" fill="#126aff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="20" font-weight="700" letter-spacing="2">VISION HU13 · LAB 001</text>
+  <text x="80" y="142" fill="#f4f8ff" font-family="Arial, Microsoft YaHei, sans-serif" font-size="48" font-weight="700">纹理保留</text>
+  <text x="80" y="181" fill="#8ea6c3" font-family="Arial, Microsoft YaHei, sans-serif" font-size="21">让墙面细节穿过贴图</text>
+  <g id="texture"><rect x="80" y="225" width="920" height="320" rx="20" fill="#10213a"/><path d="M130 280Q350 245 540 280T950 270" fill="none" stroke="#8ea6c3" opacity=".45" stroke-width="3"/><path d="M130 312Q350 283 540 309T950 304" fill="none" stroke="#8ea6c3" opacity=".45" stroke-width="3"/><path d="M130 344Q350 321 540 338T950 338" fill="none" stroke="#8ea6c3" opacity=".45" stroke-width="3"/><path d="M130 376Q350 359 540 367T950 372" fill="none" stroke="#8ea6c3" opacity=".45" stroke-width="3"/><path d="M130 408Q350 397 540 396T950 406" fill="none" stroke="#8ea6c3" opacity=".45" stroke-width="3"/><path d="M130 440Q350 435 540 425T950 440" fill="none" stroke="#8ea6c3" opacity=".45" stroke-width="3"/><path d="M130 472Q350 473 540 454T950 474" fill="none" stroke="#8ea6c3" opacity=".45" stroke-width="3"/><path d="M130 504Q350 511 540 483T950 508" fill="none" stroke="#8ea6c3" opacity=".45" stroke-width="3"/><path d="M330 280L800 250 760 500 300 520Z" fill="#126aff" opacity=".30" stroke="#2dd399" stroke-width="4"/></g>
+  <text x="80" y="628" fill="#8ea6c3" font-family="Arial, Microsoft YaHei, sans-serif" font-size="17">07 / 10 · PERSPECTIVE PASTE</text>
+</svg>

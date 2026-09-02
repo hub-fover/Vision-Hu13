@@ -1,0 +1,2 @@
+import { defineConfig, devices } from '@playwright/test';
+export default defineConfig({ testDir: './tests/e2e', timeout: 30000, use: { baseURL: 'http://127.0.0.1:4195', trace: 'retain-on-failure' }, webServer: { command: 'python -m http.server 4195 --directory web', cwd: import.meta.dirname, url: 'http://127.0.0.1:4195', reuseExistingServer: true }, projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'] } }, { name: 'pixel-7', use: { ...devices['Pixel 7'] } }] });

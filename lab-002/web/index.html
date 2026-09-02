@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>LAB 002 — 全景图像拼接</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="masthead">
+      <a class="lab-mark" href="../">VISION / HU13</a>
+      <span class="privacy-pill">仅在本机处理 · 不上传照片</span>
+    </header>
+
+    <main>
+      <div class="intro">
+        <p class="eyebrow">LAB 002 · PANORAMA STITCH</p>
+        <h1>几张照片，<br>怎样接成一张？</h1>
+        <p class="promise">一键打开，三步完成</p>
+        <p class="lede">选择照片、排好顺序、开始拼接。浏览器会在本机寻找共同画面、对齐并融合接缝。</p>
+        <p class="privacy-copy">照片只在这台设备的浏览器里处理，不上传。</p>
+        <p id="compatibility-notice" class="compatibility-notice" aria-live="polite" hidden></p>
+      </div>
+
+      <section class="step" aria-labelledby="step-one-title">
+        <div class="step-heading">
+          <span class="step-number">01</span>
+          <div>
+            <h2 id="step-one-title">选择照片</h2>
+            <p>相邻照片建议保留约 30%–50% 的共同画面。</p>
+          </div>
+        </div>
+        <div class="choice-grid">
+          <label class="action action-primary" for="gallery-input">从相册选择</label>
+          <input id="gallery-input" type="file" multiple accept="image/jpeg,image/png,image/webp">
+          <label class="action" for="camera-input">后置相机追加</label>
+          <input id="camera-input" type="file" capture="environment" accept="image/jpeg,image/png,image/webp">
+          <button id="sample-button" class="action" type="button">先用示例试一次</button>
+        </div>
+        <p id="sample-status" class="inline-status" aria-live="polite"></p>
+      </section>
+
+      <section class="step" aria-labelledby="step-two-title">
+        <div class="step-heading">
+          <span class="step-number">02</span>
+          <div>
+            <h2 id="step-two-title">确认拍摄顺序</h2>
+            <p>拖动缩略图，或使用每张图上的前移、后移按钮。</p>
+          </div>
+        </div>
+        <ol id="image-queue" class="image-queue" aria-label="待拼接照片"></ol>
+        <p id="empty-queue" class="empty-state">还没有照片。先加入至少两张相邻画面。</p>
+        <div id="queue-warnings" class="warnings" aria-live="polite"></div>
+      </section>
+
+      <section class="step" aria-labelledby="step-three-title">
+        <div class="step-heading">
+          <span class="step-number">03</span>
+          <div>
+            <h2 id="step-three-title">拼接与导出</h2>
+            <p>默认上限 12MP；HD 上限 24MP，并遵守 384MiB 内存预算。</p>
+          </div>
+        </div>
+
+        <div class="run-controls">
+          <label for="quality">导出规格</label>
+          <select id="quality">
+            <option value="mobile">手机 · 12MP</option>
+            <option value="hd">HD · 24MP</option>
+          </select>
+          <button id="run-button" class="action action-primary" type="button" disabled>开始拼接</button>
+          <button id="cancel-button" class="action action-danger" type="button" hidden>取消拼接</button>
+        </div>
+
+        <div id="progress-panel" class="progress-panel" hidden>
+          <div class="progress-copy">
+            <span id="progress-stage">准备中</span>
+            <output id="progress-percent">0%</output>
+          </div>
+          <progress id="progress" max="1" value="0"></progress>
+        </div>
+        <p id="app-status" class="inline-status" aria-live="polite"></p>
+        <p id="error-message" class="error-message" role="alert" hidden></p>
+
+        <div id="result-panel" class="result-panel" hidden>
+          <div class="preview-shell">
+            <img id="result-preview" alt="拼接结果预览">
+            <img id="seam-preview" alt="接缝覆盖预览" hidden>
+          </div>
+          <label class="toggle">
+            <input id="seam-toggle" type="checkbox">
+            <span>显示接缝</span>
+          </label>
+
+          <fieldset class="crop-controls">
+            <legend>安全裁切（只能向内收）</legend>
+            <label>左侧内收 <input id="crop-left" type="range" min="0" value="0"></label>
+            <label>右侧内收 <input id="crop-right" type="range" min="0" value="0"></label>
+            <label>顶部内收 <input id="crop-top" type="range" min="0" value="0"></label>
+            <label>底部内收 <input id="crop-bottom" type="range" min="0" value="0"></label>
+            <p id="crop-summary">左 0 · 右 0 · 上 0 · 下 0</p>
+          </fieldset>
+
+          <div class="export-actions">
+            <button id="download-button" class="action action-primary" type="button">下载 JPEG</button>
+            <button id="share-button" class="action" type="button">分享</button>
+          </div>
+          <p id="share-status" class="inline-status" aria-live="polite"></p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>照片像素不会离开此设备。OpenCV.js 只在开始拼接时从本站加载。</p>
+    </footer>
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>

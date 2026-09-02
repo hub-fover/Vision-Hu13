@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "id": "transformed-canvas",
+  "generator": "scripts/generate_technical_figures.py",
+  "baseFiles": [
+    "assets/samples/mountains/01.jpg",
+    "assets/samples/mountains/02.jpg",
+    "assets/samples/mountains/03.jpg"
+  ],
+  "baseSha256": {
+    "assets/samples/mountains/01.jpg": "bc798aaa9eec3c6169f946ad3a481ee86ebbe1cddd3b4aa90e8cdf384c1b736d",
+    "assets/samples/mountains/02.jpg": "df26d23285d42851314d2a9291b52b6c9533ce8d2fc1e3b387a0a6fd0202a924",
+    "assets/samples/mountains/03.jpg": "9da9cd87ca94201810afbf86f0a9b7400e4f2be624b7b235b9793d8e5700f590"
+  },
+  "measurements": {
+    "canvasSize": [
+      2553,
+      1026
+    ],
+    "outputScale": 1.0,
+    "estimatedWorkingSetMiB": 213.12032318115234,
+    "canvasTransforms": [
+      [
+        [
+          1.1793274257950412,
+          -0.0057884448623944955,
+          5.82326596607254
+        ],
+        [
+          0.05853377405920541,
+          1.096741987518109,
+          0.2637329759830038
+        ],
+        [
+          8.387769754819994e-05,
+          8.93497968146107e-06,
+          1.0
+        ]
+      ],
+      [
+        [
+          1.0,
+          0.0,
+          461.0
+        ],
+        [
+          0.0,
+          1.0,
+          83.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      [
+        [
+          0.8410841883557933,
+          0.0011155525399371806,
+          889.1192224536646
+        ],
+        [
+          -0.03483889916310397,
+          0.9588641506333138,
+          96.44454752464966
+        ],
+        [
+          -7.780280116653437e-05,
+          6.437233725066217e-06,
+          1.0
+        ]
+      ]
+    ]
+  },
+  "overlays": [
+    {
+      "type": "transformed-source-polygons"
+    }
+  ],
+  "annotationLabel": "基于真实输入的算法标注",
+  "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License"
+}

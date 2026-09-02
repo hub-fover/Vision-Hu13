@@ -1,0 +1,13 @@
+# LAB 002 license boundaries
+
+- Project source code and configuration are licensed under the repository
+  [MIT License](../LICENSE).
+- Original technical figures and algorithm annotations are licensed under
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- OpenCV is used under its [Apache-2.0 license](https://opencv.org/license/).
+- The bundled Noto Sans SC figure-font subsets remain licensed under the
+  [SIL Open Font License 1.1](assets/fonts/OFL.txt). They are not relicensed
+  under MIT or CC BY 4.0.
+- Third-party photographs, videos, and derived frames retain the license from
+  their source. Each asset must record that source and license in the LAB 002
+  asset manifest before it is used publicly.

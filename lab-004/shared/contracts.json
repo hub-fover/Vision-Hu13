@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "lab004.static-scene-speed.v2",
+  "analysisMaxSide": 1280,
+  "targetAnalysisFps": 30,
+  "maxWorkingSetMiB": 320,
+  "defaultMethod": "flow",
+  "minScaleLengthPx": 40,
+  "maxCameraDriftPx": 1.5,
+  "maxForwardBackwardErrorPx": 1.5,
+  "minTrackedPoints": 12,
+  "minInlierRatio": 0.6,
+  "quality": {"stableConfidence": 0.8, "referenceConfidence": 0.5},
+  "lengthUnit": "metre",
+  "errorCodes": {
+    "INVALID_FRAME": "Frame or image dimensions are invalid.",
+    "UNSUPPORTED_FORMAT": "The input format is unsupported.",
+    "DECODE_FAILED": "The input could not be decoded.",
+    "INVALID_SCALE": "Two-point scale reference is invalid.",
+    "TARGET_TOO_SMALL": "The static scene region is too small or outside the frame.",
+    "LOW_TEXTURE": "The selected static scene has insufficient texture.",
+    "LOW_CONTRAST": "The selected static scene has insufficient contrast.",
+    "SCENE_CHANGED": "The scene cannot be represented by one motion model.",
+    "CAMERA_ROTATION_TOO_LARGE": "Camera rotation exceeds the supported local approximation.",
+    "FLOW_LOST": "Too few features survived optical-flow checks.",
+    "BACKGROUND_UNTRACKABLE": "The static scene cannot be used as a tracking anchor.",
+    "FPS_UNSTABLE": "Frame timestamps are too irregular for speed estimation.",
+    "RUNTIME_MISSING": "The local computer-vision runtime is unavailable.",
+    "PERMISSION_DENIED": "Camera permission was denied.",
+    "CANCELLED": "The operation was cancelled."
+  },
+  "types": {
+    "ScaleReference": {"fields": {"p1Px": "[x,y]", "p2Px": "[x,y]", "realDistanceM": "positive number", "unit": "mm|cm|m"}},
+    "StaticSceneRegion": {"fields": {"xPx": "number", "yPx": "number", "widthPx": "positive number", "heightPx": "positive number"}},
+    "SpeedOptions": {"fields": {"fps": "positive number", "maxCameraDriftPx": "positive number", "maxForwardBackwardErrorPx": "positive number", "minInlierRatio": "0..1", "minTrackedPoints": "integer"}},
+    "SpeedSample": {"fields": {"frameIndex": "integer", "timeS": "number", "velocityMps": "number", "velocityKmh": "number", "directionDeg": "number", "confidence": "0..1", "valid": "boolean", "errorCode": "error code|null"}},
+    "SpeedSeries": {"fields": {"samples": "SpeedSample[]"}},
+    "SpeedDiagnostics": {"fields": {"inlierCount": "integer", "inlierRatio": "0..1", "medianReprojectionErrorPx": "number", "forwardBackwardErrorPx": "number", "trackedPointCount": "integer", "cameraStable": "boolean", "sceneTextureScore": "number", "validRatio": "0..1", "failureIntervals": "object[]"}},
+    "SpeedReport": {"fields": {"schemaVersion": "lab004.static-scene-speed.v2", "velocityMps": "number", "velocityKmh": "number", "directionDeg": "number", "meanSpeedMps": "number", "peakSpeedMps": "number", "validRatio": "0..1", "samples": "SpeedSample[]", "diagnostics": "SpeedDiagnostics"}}
+  }
+}

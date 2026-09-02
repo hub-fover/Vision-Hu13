@@ -1,0 +1,18 @@
+{
+  "family": "Noto Sans SC",
+  "version": "2.002",
+  "license": "SIL Open Font License 1.1",
+  "licenseFile": "assets/fonts/OFL.txt",
+  "licenseUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanssc/OFL.txt",
+  "sourcePage": "https://fonts.google.com/noto/specimen/Noto+Sans+SC",
+  "subsetTool": "fonttools 4.59.2",
+  "modifications": "Subset to the ASCII and Chinese glyphs used by scripts/generate_technical_figures.py; no scene pixels or glyph shapes were generated.",
+  "sourceFiles": {
+    "NotoSansSC-Regular.otf": "a2b93e6c2db05d6bbbf6f27d413ec73269735b7b679019c8a5aa9670ff0ffbf2",
+    "NotoSansSC-Bold.otf": "d1961be1161ea1be08496c920862d06ea5c23a757628f4fd69368de1d9f51bed"
+  },
+  "files": {
+    "NotoSansSC-Regular-subset.otf": "ba094f104664de551f04244d2e57e2522d25e834b08bd3c63dd42dd033ddafac",
+    "NotoSansSC-Bold-subset.otf": "aa4c20dea0eb7ac75ad0be33f38fb5b822336f17d5e1f38cf9e0e1c071c84589"
+  }
+}

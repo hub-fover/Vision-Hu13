@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "middle-anchor",
+  "generator": "scripts/generate_technical_figures.py",
+  "baseFiles": [
+    "assets/samples/mountains/01.jpg",
+    "assets/samples/mountains/02.jpg",
+    "assets/samples/mountains/03.jpg"
+  ],
+  "baseSha256": {
+    "assets/samples/mountains/01.jpg": "bc798aaa9eec3c6169f946ad3a481ee86ebbe1cddd3b4aa90e8cdf384c1b736d",
+    "assets/samples/mountains/02.jpg": "df26d23285d42851314d2a9291b52b6c9533ce8d2fc1e3b387a0a6fd0202a924",
+    "assets/samples/mountains/03.jpg": "9da9cd87ca94201810afbf86f0a9b7400e4f2be624b7b235b9793d8e5700f590"
+  },
+  "measurements": {
+    "anchorIndex": 1,
+    "anchorTransforms": [
+      [
+        [
+          1.1406598072253211,
+          -0.009907470495548049,
+          -455.17673403392746
+        ],
+        [
+          0.05157192516270481,
+          1.0960003842045478,
+          -82.736267024017
+        ],
+        [
+          8.387769754819994e-05,
+          8.93497968146107e-06,
+          1.0
+        ]
+      ],
+      [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      [
+        [
+          0.8769512796935657,
+          -0.0018520122073183455,
+          428.1192224536646
+        ],
+        [
+          -0.028381266666281615,
+          0.9583298602341332,
+          13.444547524649668
+        ],
+        [
+          -7.780280116653437e-05,
+          6.437233725066217e-06,
+          1.0
+        ]
+      ]
+    ]
+  },
+  "overlays": [
+    {
+      "type": "anchor-points-and-arrows"
+    }
+  ],
+  "annotationLabel": "基于真实输入的算法标注",
+  "credit": "来源：cottonbro studio · Pexels 视频 9943097 · Pexels License"
+}

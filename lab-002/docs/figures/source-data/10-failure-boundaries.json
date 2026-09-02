@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "failure-boundaries",
+  "generator": "scripts/generate_technical_figures.py",
+  "baseFiles": [
+    "assets/samples/ocean/01.jpg",
+    "assets/samples/ocean/02.jpg"
+  ],
+  "baseSha256": {
+    "assets/samples/ocean/01.jpg": "1aa4ff2477526d2dda07587605b891507ea9df6cba41330cfe57a91947fce084",
+    "assets/samples/ocean/02.jpg": "8a67958ff1f450969b26d20dd1da4bea1d19d740e7a7e93a419c4c331f4a271d"
+  },
+  "measurements": {
+    "roiXYXY": [
+      0,
+      450,
+      1600,
+      850
+    ],
+    "featureCounts": [
+      947,
+      741
+    ],
+    "candidateCount": 947,
+    "ratioMatchCount": 9,
+    "failureCode": "INSUFFICIENT_OVERLAP",
+    "failureMessage": "Only 9 distinctive matches survived; capture more overlap between adjacent images.",
+    "fullSequenceObservation": "The committed three-frame ocean sequence stitched successfully in this run.",
+    "unshownLimitations": [
+      "near-field parallax requires a separate genuine capture",
+      "moving-object ghosting requires a separate genuine capture"
+    ]
+  },
+  "overlays": [
+    {
+      "type": "actual-roi-match-lines"
+    },
+    {
+      "type": "honest-unshown-limitations-note"
+    }
+  ],
+  "annotationLabel": "基于真实输入的算法标注",
+  "credit": "来源：James Cheney · Pexels 视频 6746361 · Pexels License"
+}

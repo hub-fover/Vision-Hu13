@@ -1,0 +1,8 @@
+{
+  "name": "visual-measurement-lab-004-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {"test":"node --test tests/*.test.js","test:e2e":"playwright test -c playwright.config.js","build:pages":"node ../scripts/stage-pages.mjs ../../web/lab-004","validate:pages":"node ../scripts/stage-pages.mjs --validate-only ../../web/lab-004"},
+  "devDependencies": {"@playwright/test":"^1.62.0"}
+}

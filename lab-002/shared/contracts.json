@@ -1,0 +1,62 @@
+{
+  "defaults": {
+    "analysisMaxSide": 1280,
+    "maxFeatures": 2500,
+    "ratioThreshold": 0.75,
+    "ransacThresholdPx": 3,
+    "minInliers": 20,
+    "minInlierRatio": 0.25,
+    "maxMedianErrorPx": 2.5,
+    "exposureGain": { "min": 0.7, "max": 1.3 },
+    "blendWidthPx": 96,
+    "outputMegapixels": { "mobile": 12, "hd": 24 },
+    "maxWorkingSetMiB": 384,
+    "warningThresholds": { "imageCount": 6, "sourceMegapixels": 60 },
+    "jpegQuality": 0.92
+  },
+  "errorCodes": [
+    "NOT_ENOUGH_IMAGES",
+    "UNSUPPORTED_FORMAT",
+    "DECODE_FAILED",
+    "LOW_TEXTURE",
+    "INSUFFICIENT_OVERLAP",
+    "AMBIGUOUS_MATCHES",
+    "HOMOGRAPHY_UNSTABLE",
+    "HIGH_REPROJECTION_ERROR",
+    "OUTPUT_TOO_LARGE",
+    "CANCELLED"
+  ],
+  "types": {
+    "StitchOptions": {
+      "description": "Shared, portable controls for a local adjacent-pair panorama stitch.",
+      "fields": {
+        "quality": "Requested mobile or HD output quality tier.",
+        "analysisMaxSide": "Maximum long side in pixels used only for feature analysis.",
+        "maxFeatures": "Maximum ORB features extracted per image.",
+        "ratioThreshold": "Lowe ratio threshold for KNN feature matching.",
+        "ransacThresholdPx": "RANSAC reprojection threshold in pixels.",
+        "minInliers": "Minimum accepted RANSAC inlier count.",
+        "minInlierRatio": "Minimum accepted inlier fraction.",
+        "maxMedianErrorPx": "Maximum accepted median reprojection error in pixels.",
+        "exposureGain": "Inclusive exposure gain clamp for overlap correction.",
+        "blendWidthPx": "Feather width in pixels at the seam.",
+        "outputMegapixels": "Maximum output megapixels for mobile and HD exports.",
+        "maxWorkingSetMiB": "Maximum estimated image working set.",
+        "warningThresholds": "Warn when source count or source megapixels exceeds these values.",
+        "jpegQuality": "Default JPEG quality expressed as 0 to 1."
+      }
+    },
+    "MatchMetrics": {
+      "description": "Quality measurements produced for one adjacent image pair.",
+      "fields": {
+        "pairIndex": "Zero-based left image index for the adjacent pair.",
+        "candidateCount": "Raw KNN candidate match count.",
+        "ratioMatchCount": "Matches remaining after the ratio filter.",
+        "mutualMatchCount": "Matches remaining after mutual consistency.",
+        "inlierCount": "RANSAC inlier count.",
+        "inlierRatio": "RANSAC inliers divided by mutually consistent matches.",
+        "medianReprojectionErrorPx": "Median inlier reprojection error in pixels."
+      }
+    }
+  }
+}

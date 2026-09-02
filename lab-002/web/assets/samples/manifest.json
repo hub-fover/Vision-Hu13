@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "defaultSequence": "mountains",
+  "sequences": {
+    "mountains": {
+      "title": "Camera Panning Over Mountains",
+      "creator": "cottonbro studio",
+      "sourceUrl": "https://www.pexels.com/video/camera-panning-over-mountains-9943097/",
+      "license": "Pexels License",
+      "files": [
+        "./mountains/01.jpg",
+        "./mountains/02.jpg",
+        "./mountains/03.jpg"
+      ],
+      "isGenerated": false,
+      "isThirdParty": true
+    },
+    "city": {
+      "title": "Panoramic Cityscape of Modern Urban Skyline",
+      "creator": "Zulfugar Karimov",
+      "sourceUrl": "https://www.pexels.com/video/panoramic-cityscape-of-modern-urban-skyline-36722864/",
+      "license": "Pexels License",
+      "files": [
+        "./city/01.jpg",
+        "./city/02.jpg",
+        "./city/03.jpg",
+        "./city/04.jpg"
+      ],
+      "isGenerated": false,
+      "isThirdParty": true
+    },
+    "ocean": {
+      "title": "Panning Shot of Ocean",
+      "creator": "James Cheney",
+      "sourceUrl": "https://www.pexels.com/video/panning-shot-of-ocean-6746361/",
+      "license": "Pexels License",
+      "files": [
+        "./ocean/01.jpg",
+        "./ocean/02.jpg",
+        "./ocean/03.jpg"
+      ],
+      "isGenerated": false,
+      "isThirdParty": true
+    }
+  }
+}
