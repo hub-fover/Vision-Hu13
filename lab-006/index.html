@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="手机相机标定与测量工具 - 基于张正友标定法，实现毫米级精度测量">
+    <title>相机标定工具 - 精准测量从标定开始</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📷 相机标定工具</h1>
+            <p class="subtitle">基于张正友标定法的精准测量解决方案</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>精准测量，从标定开始</h1>
+            <p>无需专业知识，手机相机也能实现毫米级精度测量</p>
+        </section>
+
+        <!-- Feature Cards -->
+        <section>
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-icon">📐</div>
+                    <h3>相机标定</h3>
+                    <p>使用棋盘格标定板，让手机相机获得精确的内部参数，为后续测量提供可靠基础</p>
+                    <a href="calibration.html" class="btn btn-primary">开始标定</a>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon">📏</div>
+                    <h3>精确测量</h3>
+                    <p>标定完成后，对平面物体进行毫米级精度的实时测量，支持距离和矩形尺寸测量</p>
+                    <a href="measurement.html" class="btn btn-primary">开始测量</a>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon">💡</div>
+                    <h3>新手指南</h3>
+                    <p>零基础也能快速上手的详细教程，从打印标定板到完成测量的完整流程</p>
+                    <a href="tutorial.html" class="btn btn-secondary">查看教程</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Start Guide -->
+        <section>
+            <h2 class="text-center">快速开始</h2>
+            <div class="steps">
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <h4>打印棋盘格标定板</h4>
+                        <p>下载并使用A4纸打印9×6棋盘格模板，确保100%比例不缩放。建议贴在硬纸板上保持平整。</p>
+                        <a href="assets/checkerboard-template.html" class="btn btn-secondary mt-2">下载模板</a>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <h4>采集标定图像</h4>
+                        <p>用手机从不同角度、距离拍摄10-20张棋盘格图像。系统会实时检测角点并自动完成标定计算。</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <div class="step-content">
+                        <h4>开始精准测量</h4>
+                        <p>标定完成后，即可使用相机对平面物体进行实时测量，支持两点距离和矩形尺寸测量。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section>
+            <h2 class="text-center">常见问题</h2>
+            <div class="faq-list mt-4">
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>什么是相机标定？为什么需要它？</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>相机标定是确定相机内部参数（如焦距、光学中心）和畸变参数的过程。就像配眼镜需要先验光一样，要让相机进行精确测量，首先需要"了解"它的光学特性。标定后，系统可以消除镜头畸变，将像素坐标转换为真实世界的尺寸。</p>
+                    </div>
+                </div>
+
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>可以测量什么类型的物体？</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>本工具适用于<strong>平面物体</strong>的测量，如书本、手机屏幕、相框、桌面等。测量时，物体应尽量与标定时的棋盘格在同一平面上。不适用于曲面、立体物体或有明显高度差的场景。</p>
+                    </div>
+                </div>
+
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>测量精度能达到多少？</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>在理想条件下（光线充足、标定准确、相机稳定），可以达到<strong>毫米级精度</strong>。实际精度受多种因素影响：标定质量、拍摄距离、光线条件、手持稳定性等。重投影误差小于0.5像素时，通常能获得较好的测量效果。</p>
+                    </div>
+                </div>
+
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>应用会上传我的照片吗？</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p><strong>不会。</strong>本工具完全在浏览器本地运行，所有图像处理、标定计算和测量都在您的设备上完成。标定数据仅保存在本地浏览器存储中，不会上传到任何服务器。</p>
+                    </div>
+                </div>
+
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>标定需要多长时间？</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>整个标定过程通常需要<strong>3-5分钟</strong>。其中拍摄10-20张照片约需2-3分钟，系统自动计算标定参数约需30秒-1分钟。标定一次后，结果会保存在本地，下次使用时无需重复标定。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature Highlights -->
+        <section>
+            <h2 class="text-center">功能特点</h2>
+            <div class="card-grid mt-4">
+                <div class="guide-card">
+                    <h4>🌐 纯前端实现</h4>
+                    <p>基于 OpenCV.js 和 WebRTC，完全在浏览器中运行，无需安装任何软件或插件。</p>
+                </div>
+
+                <div class="guide-card">
+                    <h4>🔒 隐私安全</h4>
+                    <p>所有数据处理都在本地完成，不上传任何图像或数据到服务器，保护您的隐私。</p>
+                </div>
+
+                <div class="guide-card">
+                    <h4>📱 移动优先</h4>
+                    <p>响应式设计，完美适配手机、平板和桌面设备，随时随地进行标定和测量。</p>
+                </div>
+
+                <div class="guide-card">
+                    <h4>⚡ 实时反馈</h4>
+                    <p>实时检测棋盘格角点，即时显示测量结果，提供流畅的用户体验。</p>
+                </div>
+
+                <div class="guide-card">
+                    <h4>💾 数据持久化</h4>
+                    <p>标定结果和测量历史自动保存在本地，下次使用时无需重复操作。</p>
+                </div>
+
+                <div class="guide-card">
+                    <h4>🎓 零基础友好</h4>
+                    <p>详细的操作提示和新手教程，即使没有计算机视觉知识也能轻松上手。</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 相机标定工具 | 基于张正友标定法</p>
+            <p>
+                <a href="https://github.com/hub-fover/Vision-Hu13" target="_blank">GitHub</a> ·
+                <a href="tutorial.html">使用教程</a> ·
+                <a href="https://docs.opencv.org/4.8.0/d5/d10/tutorial_js_root.html" target="_blank">OpenCV.js 文档</a>
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // FAQ Toggle
+        function toggleFaq(element) {
+            element.classList.toggle('active');
+        }
+
+        // Page Load Animation
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.style.opacity = '0';
+            setTimeout(() => {
+                document.body.style.transition = 'opacity 0.6s ease';
+                document.body.style.opacity = '1';
+            }, 100);
+        });
+    </script>
+</body>
+</html>

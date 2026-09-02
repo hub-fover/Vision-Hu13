@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新手教程 - 相机标定工具</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>💡 新手教程</h1>
+            <p class="subtitle">从零开始学习相机标定与测量</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- 第一部分：什么是相机标定 -->
+        <section>
+            <div class="card">
+                <h2>📖 什么是相机标定？</h2>
+                <p>相机标定是一个确定相机内部参数和畸变参数的过程，就像给相机"配眼镜"一样。</p>
+
+                <div class="guide-card mt-3">
+                    <h4>🤔 通俗解释</h4>
+                    <p>想象一下配眼镜的过程：</p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li style="margin-bottom: 8px;"><strong>验光</strong> → 相机标定：了解镜片（镜头）的光学特性</li>
+                        <li style="margin-bottom: 8px;"><strong>配镜</strong> → 获得参数：记录焦距、畸变等关键数据</li>
+                        <li style="margin-bottom: 8px;"><strong>矫正视力</strong> → 精确测量：消除畸变，准确还原真实世界</li>
+                    </ul>
+                </div>
+
+                <div class="tips-card mt-3">
+                    <h4>🎯 为什么需要标定？</h4>
+                    <ul>
+                        <li><strong>镜头畸变：</strong>手机镜头会产生畸变，直线可能变弯曲</li>
+                        <li><strong>焦距不明：</strong>不知道确切的焦距，无法计算真实尺寸</li>
+                        <li><strong>光学中心：</strong>需要知道图像的光学中心位置</li>
+                        <li><strong>测量需要：</strong>标定后才能将像素转换为真实世界的毫米</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第二部分：如何标定 -->
+        <section>
+            <div class="card">
+                <h2>📐 如何进行标定？</h2>
+
+                <div class="steps mt-3">
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        <div class="step-content">
+                            <h4>准备标定板</h4>
+                            <p><strong>操作：</strong>下载并打印棋盘格模板</p>
+                            <ul style="margin-left: 20px; margin-top: 8px; color: var(--color-text-secondary);">
+                                <li>使用 A4 纸打印，100% 比例，不缩放</li>
+                                <li>黑白打印，对比度要高</li>
+                                <li>打印后贴在硬纸板上保持平整</li>
+                            </ul>
+                            <a href="assets/checkerboard-template.html" class="btn btn-primary mt-2">下载模板</a>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        <div class="step-content">
+                            <h4>启动相机并检测</h4>
+                            <p><strong>操作：</strong>在标定页面启动相机，将棋盘格放入画面</p>
+                            <ul style="margin-left: 20px; margin-top: 8px; color: var(--color-text-secondary);">
+                                <li>确保光线充足，避免强光直射</li>
+                                <li>棋盘格完整出现在画面中</li>
+                                <li>看到绿色角点标记表示检测成功</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        <div class="step-content">
+                            <h4>多角度拍摄</h4>
+                            <p><strong>目标：</strong>从不同角度拍摄 10-20 张照片</p>
+                            <div class="guide-card mt-2">
+                                <h4>📸 拍摄技巧</h4>
+                                <ul style="margin-left: 20px;">
+                                    <li><strong>距离：</strong>保持 30-80cm</li>
+                                    <li><strong>正面：</strong>拍摄 2-3 张正面照片</li>
+                                    <li><strong>左右倾斜：</strong>各拍摄 2-3 张，倾斜约 15-30°</li>
+                                    <li><strong>上下倾斜：</strong>各拍摄 2-3 张，倾斜约 15-30°</li>
+                                    <li><strong>位置变化：</strong>让棋盘格出现在画面不同位置</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <span class="step-number">4</span>
+                        <div class="step-content">
+                            <h4>计算标定参数</h4>
+                            <p><strong>操作：</strong>采集足够照片后，点击"开始标定"</p>
+                            <ul style="margin-left: 20px; margin-top: 8px; color: var(--color-text-secondary);">
+                                <li>系统自动计算相机内参和畸变系数</li>
+                                <li>重投影误差 < 0.5 像素为优秀</li>
+                                <li>标定数据自动保存在本地</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第三部分：如何测量 -->
+        <section>
+            <div class="card">
+                <h2>📏 如何进行测量？</h2>
+
+                <div class="mode-selector mt-3">
+                    <div class="guide-card">
+                        <h4>📏 距离测量</h4>
+                        <p><strong>适用场景：</strong>测量物体的长度、宽度、对角线等</p>
+                        <p><strong>操作步骤：</strong></p>
+                        <ol style="margin-left: 20px; color: var(--color-text-secondary);">
+                            <li>选择"两点距离测量"模式</li>
+                            <li>启动相机，将物体放入画面</li>
+                            <li>点击标记第一个点</li>
+                            <li>点击标记第二个点</li>
+                            <li>系统自动计算并显示距离</li>
+                        </ol>
+                    </div>
+
+                    <div class="guide-card">
+                        <h4>📐 矩形测量</h4>
+                        <p><strong>适用场景：</strong>测量矩形物体的长和宽</p>
+                        <p><strong>操作步骤：</strong></p>
+                        <ol style="margin-left: 20px; color: var(--color-text-secondary);">
+                            <li>选择"矩形测量"模式</li>
+                            <li>启动相机，将矩形物体放入画面</li>
+                            <li>依次点击四个角点</li>
+                            <li>系统自动计算长和宽</li>
+                            <li>测量结果自动保存到历史</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="tips-card mt-3">
+                    <h4>⚠️ 测量注意事项</h4>
+                    <ul>
+                        <li><strong>平面限制：</strong>只能测量平面物体，不适用于曲面</li>
+                        <li><strong>同一平面：</strong>物体应与标定时的棋盘格在同一平面</li>
+                        <li><strong>保持稳定：</strong>手持相机时尽量保持稳定</li>
+                        <li><strong>光线充足：</strong>确保测量环境光线良好</li>
+                        <li><strong>垂直拍摄：</strong>相机尽量垂直于测量平面</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第四部分：实用案例 -->
+        <section>
+            <div class="card">
+                <h2>🎯 实用案例</h2>
+
+                <div class="card-grid mt-3">
+                    <div class="guide-card">
+                        <h4>📚 测量书本尺寸</h4>
+                        <p>将书本平放在桌面上，使用矩形测量模式依次点击四个角，即可获得书本的长和宽。</p>
+                        <p style="color: var(--color-success); margin-top: 8px;"><strong>精度：</strong>±1-2mm</p>
+                    </div>
+
+                    <div class="guide-card">
+                        <h4>🖼️ 测量相框尺寸</h4>
+                        <p>将相框挂在墙上或平放，使用矩形测量模式测量内框或外框的尺寸，便于选购照片。</p>
+                        <p style="color: var(--color-success); margin-top: 8px;"><strong>精度：</strong>±1-2mm</p>
+                    </div>
+
+                    <div class="guide-card">
+                        <h4>📱 测量手机屏幕</h4>
+                        <p>将手机平放，显示纯色画面，使用矩形测量或距离测量获得屏幕尺寸。</p>
+                        <p style="color: var(--color-success); margin-top: 8px;"><strong>精度：</strong>±0.5-1mm</p>
+                    </div>
+
+                    <div class="guide-card">
+                        <h4>🪟 测量家具尺寸</h4>
+                        <p>测量桌面、柜门等平面家具的尺寸，便于购买家居用品或规划空间。</p>
+                        <p style="color: var(--color-info); margin-top: 8px;"><strong>精度：</strong>±2-5mm</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第五部分：常见问题 -->
+        <section>
+            <div class="card">
+                <h2>❓ 常见问题解答</h2>
+
+                <div class="faq-list mt-3">
+                    <div class="faq-item" onclick="toggleFaq(this)">
+                        <div class="faq-question">
+                            <span>标定失败怎么办？</span>
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p><strong>可能原因及解决方案：</strong></p>
+                            <ul style="margin-left: 20px; margin-top: 8px;">
+                                <li>照片数量不足 → 拍摄至少 10 张</li>
+                                <li>角度不够多样 → 从更多角度拍摄</li>
+                                <li>棋盘格弯曲 → 确保标定板平整</li>
+                                <li>光线不足或反光 → 改善光线条件</li>
+                                <li>检测不准确 → 确保看到绿色角点标记</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="faq-item" onclick="toggleFaq(this)">
+                        <div class="faq-question">
+                            <span>测量结果不准确怎么办？</span>
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p><strong>检查以下方面：</strong></p>
+                            <ul style="margin-left: 20px; margin-top: 8px;">
+                                <li>标定质量 → 重投影误差应 < 1.0 像素</li>
+                                <li>测量平面 → 物体必须是平面且与标定板同一平面</li>
+                                <li>相机稳定 → 避免手抖，可使用支架</li>
+                                <li>标记准确 → 准确点击测量点位置</li>
+                                <li>标定参数 → 确认方格尺寸输入正确（默认25mm）</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="faq-item" onclick="toggleFaq(this)">
+                        <div class="faq-question">
+                            <span>需要多久重新标定一次？</span>
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>一般情况下，<strong>标定一次可以长期使用</strong>。但以下情况建议重新标定：</p>
+                            <ul style="margin-left: 20px; margin-top: 8px;">
+                                <li>更换了手机或相机</li>
+                                <li>手机系统更新后相机有明显变化</li>
+                                <li>测量精度明显下降</li>
+                                <li>使用不同的相机应用（如第三方相机App）</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="faq-item" onclick="toggleFaq(this)">
+                        <div class="faq-question">
+                            <span>可以测量什么？不能测量什么？</span>
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p><strong>✓ 可以测量：</strong></p>
+                            <ul style="margin-left: 20px; color: var(--color-success);">
+                                <li>书本、纸张、卡片</li>
+                                <li>手机、平板、电脑屏幕</li>
+                                <li>桌面、墙面上的平面物体</li>
+                                <li>相框、镜框、画框</li>
+                                <li>平铺的布料、垫子</li>
+                            </ul>
+                            <p style="margin-top: 10px;"><strong>✗ 不能测量：</strong></p>
+                            <ul style="margin-left: 20px; color: var(--color-error);">
+                                <li>立体物体的高度或深度</li>
+                                <li>曲面物体（如球体、圆柱）</li>
+                                <li>透明或强反光物体</li>
+                                <li>移动中的物体</li>
+                                <li>不在同一平面的物体</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="faq-item" onclick="toggleFaq(this)">
+                        <div class="faq-question">
+                            <span>数据会被上传吗？安全吗？</span>
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p><strong>完全安全，数据不会上传。</strong></p>
+                            <ul style="margin-left: 20px; margin-top: 8px;">
+                                <li>所有计算都在您的设备上完成</li>
+                                <li>照片和标定数据仅保存在本地浏览器</li>
+                                <li>不会上传任何数据到服务器</li>
+                                <li>可以离线使用（首次加载 OpenCV.js 后）</li>
+                                <li>清除浏览器数据会删除标定记录</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Navigation -->
+        <section>
+            <div class="controls">
+                <a href="index.html" class="btn btn-secondary">返回首页</a>
+                <a href="calibration.html" class="btn btn-primary">开始标定</a>
+                <a href="measurement.html" class="btn btn-primary">开始测量</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 相机标定工具 | 基于张正友标定法</p>
+        </div>
+    </footer>
+
+    <script>
+        // FAQ Toggle
+        function toggleFaq(element) {
+            element.classList.toggle('active');
+        }
+    </script>
+</body>
+</html>
