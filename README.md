@@ -65,6 +65,13 @@ npm run build:lab005
 npm run validate:lab005:release
 ```
 
+LAB 006 is a local camera calibration and measurement tool. Print a checkerboard,
+calibrate your phone camera using Zhang's method, and measure planar objects with
+millimeter precision. The app runs entirely in the browser with OpenCV.js and stores
+calibration data locally. The public app is available at
+[`/Vision-Hu13/lab-006/`](https://hub-fover.github.io/Vision-Hu13/lab-006/).
+See [`lab-006/README.md`](lab-006/README.md) for usage guide.
+
 ![篮球场透视合成](docs/figures/01-before-after.png)
 
 ## 功能

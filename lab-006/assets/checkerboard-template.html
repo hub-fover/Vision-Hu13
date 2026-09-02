@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>棋盘格标定板模板</title>
+    <style>
+        @media print { body { margin: 0; } .no-print { display: none; } }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        .checkerboard { margin: 20px auto; border: 2px solid #000; }
+        .row { display: flex; height: 25mm; }
+        .square { width: 25mm; height: 25mm; }
+        .black { background: #000; }
+        .white { background: #fff; }
+        button { padding: 10px 20px; font-size: 16px; margin: 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <h1>📐 棋盘格标定板模板</h1>
+        <p>请使用A4纸打印，确保不缩放（100%比例）</p>
+        <p>规格：10×7 方格，每个方格 25mm × 25mm</p>
+        <button onclick="window.print()">打印此页面</button>
+        <button onclick="window.location.href='index.html'">返回首页</button>
+    </div>
+
+    <div class="checkerboard" id="checkerboard"></div>
+
+    <script>
+        const rows = 7, cols = 10;
+        const board = document.getElementById('checkerboard');
+
+        for (let r = 0; r < rows; r++) {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'row';
+            for (let c = 0; c < cols; c++) {
+                const sq = document.createElement('div');
+                sq.className = 'square ' + ((r + c) % 2 === 0 ? 'white' : 'black');
+                rowDiv.appendChild(sq);
+            }
+            board.appendChild(rowDiv);
+        }
+    </script>
+</body>
+</html>

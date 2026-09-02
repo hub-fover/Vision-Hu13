@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测量工具 - 相机标定工具</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📏 测量工具</h1>
+            <p class="subtitle">基于标定结果进行精确测量</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section>
+            <h2>标定状态</h2>
+            <div id="calibrationStatus" class="status-message status-info">
+                正在检查标定数据...
+            </div>
+        </section>
+
+        <section>
+            <h2>测量模式</h2>
+            <div class="controls">
+                <button id="distanceMode" class="btn btn-primary">两点距离</button>
+                <button id="rectangleMode" class="btn btn-secondary">矩形测量</button>
+            </div>
+        </section>
+
+        <section>
+            <h2>相机预览</h2>
+            <div class="video-container">
+                <video id="videoElement" autoplay playsinline></video>
+                <canvas id="measureCanvas" class="canvas-overlay"></canvas>
+            </div>
+            <div class="controls">
+                <button id="startCamera" class="btn btn-primary">启动相机</button>
+                <button id="clearPoints" class="btn btn-secondary" disabled>清除标记</button>
+                <button id="stopCamera" class="btn btn-danger" disabled>关闭相机</button>
+            </div>
+        </section>
+
+        <section>
+            <h2>测量结果</h2>
+            <div id="measurementResult">
+                <p>点击画面标记测量点</p>
+            </div>
+        </section>
+
+        <section>
+            <div class="controls">
+                <a href="index.html" class="btn btn-secondary">返回首页</a>
+                <a href="calibration.html" class="btn btn-primary">重新标定</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 相机标定工具 | 基于 OpenCV.js 和张正友标定法</p>
+        </div>
+    </footer>
+
+    <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady()"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/measurement.js"></script>
+</body>
+</html>
