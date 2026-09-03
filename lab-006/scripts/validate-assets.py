@@ -2,6 +2,7 @@
 """验证LAB 006公共资源完整性"""
 
 import sys
+import os
 from pathlib import Path
 
 # 项目根目录
@@ -28,7 +29,14 @@ required_assets = [
     "lab-006/assets/samples/sample-calibration.json",
 ]
 
-print("🔍 验证 LAB 006 公共资源...\n")
+# 设置UTF-8输出（Windows兼容）
+if sys.platform == 'win32':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except AttributeError:
+        pass
+
+print("Validating LAB 006 assets...\n")
 
 all_passed = True
 
@@ -37,17 +45,17 @@ for asset in required_assets:
 
     if asset_path.exists():
         size = asset_path.stat().st_size
-        print(f"✅ {asset} ({size / 1024:.2f} KB)")
+        print(f"[OK] {asset} ({size / 1024:.2f} KB)")
     else:
-        print(f"❌ {asset} - 文件不存在")
+        print(f"[FAIL] {asset} - File not found")
         all_passed = False
 
-print("\n📊 总结:")
+print("\nSummary:")
 if all_passed:
-    print("✅ 所有公共资源验证通过")
+    print("[OK] All assets validated successfully")
     sys.exit(0)
 else:
-    print("❌ 部分资源缺失")
-    print("\n💡 提示: 运行以下命令下载示例图像:")
+    print("[FAIL] Some assets are missing")
+    print("\nHint: Run the following command to download sample images:")
     print("   python lab-006/scripts/download_opencv_samples.py")
     sys.exit(1)
