@@ -509,4 +509,3 @@ async function loadSampleData() {
         statusDiv.className = 'status-message status-error mt-3';
     }
 }
-}
