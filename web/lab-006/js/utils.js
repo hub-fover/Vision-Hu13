@@ -4,7 +4,17 @@ let opencvReady = false;
 // OpenCV.js 加载完成回调
 function onOpenCvReady() {
     opencvReady = true;
-    console.log('OpenCV.js 已加载');
+    console.log('OpenCV.js 已加载完成');
+
+    // 隐藏加载指示器
+    const statusEl = document.getElementById('opencvStatus');
+    if (statusEl) {
+        statusEl.style.display = 'none';
+    }
+
+    // 显示成功提示
+    showToast('OpenCV.js 已就绪', 'success');
+
     if (typeof onOpenCVLoad === 'function') {
         onOpenCVLoad();
     }

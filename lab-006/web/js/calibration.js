@@ -7,6 +7,12 @@ let boardWidth = 8, boardHeight = 5, squareSize = 25;
 let isDetecting = false;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // 显示OpenCV加载状态
+    const statusEl = document.getElementById('opencvStatus');
+    if (statusEl && !opencvReady) {
+        statusEl.style.display = 'block';
+    }
+
     video = document.getElementById('videoElement');
     canvas = document.getElementById('overlayCanvas');
     ctx = canvas.getContext('2d');
@@ -77,6 +83,11 @@ function updateStepIndicator(step) {
 }
 
 async function startCamera() {
+    if (!opencvReady) {
+        showStatus('statusMessage', '⏳ OpenCV.js 正在加载中，请稍候...', 'warning');
+        return;
+    }
+
     const constraints = {
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
     };
@@ -372,17 +383,31 @@ function calibrateCamera() {
 
 // 加载示例数据
 async function loadSampleData() {
+    console.log('[loadSampleData] 开始执行');
+    console.log('[loadSampleData] opencvReady:', opencvReady);
+
     const statusDiv = document.getElementById('statusMessage');
+
+    // 检查OpenCV是否已加载
+    if (!opencvReady) {
+        console.warn('[loadSampleData] OpenCV未就绪，中止加载');
+        statusDiv.innerHTML = '<p>⏳ OpenCV.js 正在加载中，请稍候再试...</p>';
+        statusDiv.className = 'status-message status-warning mt-3';
+        return;
+    }
+
     statusDiv.innerHTML = '<p>⏳ 正在加载示例数据...</p>';
     statusDiv.className = 'status-message status-info mt-3';
 
     try {
         // 加载manifest
+        console.log('[loadSampleData] 开始加载manifest.json');
         const response = await fetch('assets/samples/manifest.json');
         if (!response.ok) {
-            throw new Error('无法加载示例数据清单');
+            throw new Error(`HTTP ${response.status}: 无法加载示例数据清单`);
         }
         const manifest = await response.json();
+        console.log('[loadSampleData] manifest加载成功:', manifest);
 
         // 更新标定参数
         boardWidth = manifest.boardConfig.width;
@@ -400,8 +425,12 @@ async function loadSampleData() {
         // 加载并处理每张图像
         for (const imgInfo of manifest.calibrationImages) {
             try {
+                console.log(`[loadSampleData] 加载图像: ${imgInfo.path}`);
                 const imgResponse = await fetch(`assets/samples/${imgInfo.path}`);
-                if (!imgResponse.ok) continue;
+                if (!imgResponse.ok) {
+                    console.warn(`[loadSampleData] 跳过图像 ${imgInfo.path}: HTTP ${imgResponse.status}`);
+                    continue;
+                }
 
                 const blob = await imgResponse.blob();
                 const bitmap = await createImageBitmap(blob);
@@ -446,6 +475,7 @@ async function loadSampleData() {
                         corners: cornersArray
                     });
                     successCount++;
+                    console.log(`[loadSampleData] 成功检测角点: ${imgInfo.path} (${successCount}/${manifest.calibrationImages.length})`);
                 }
 
                 // 清理内存
@@ -454,9 +484,11 @@ async function loadSampleData() {
                 corners.delete();
 
             } catch (err) {
-                console.warn(`加载图像 ${imgInfo.id} 失败:`, err);
+                console.error(`[loadSampleData] 处理图像 ${imgInfo.path} 失败:`, err);
             }
         }
+
+        console.log(`[loadSampleData] 完成，成功加载 ${successCount} 张图像`);
 
         // 更新UI
         updateImageCount();
@@ -472,6 +504,7 @@ async function loadSampleData() {
         }
 
     } catch (error) {
+        console.error('[loadSampleData] 失败:', error);
         statusDiv.innerHTML = `<p>❌ 加载示例数据失败: ${error.message}</p>`;
         statusDiv.className = 'status-message status-error mt-3';
     }
