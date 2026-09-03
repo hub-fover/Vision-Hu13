@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCV.js calib3d 自动测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .cdn-test {
+            background: white;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .cdn-url {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+        }
+        .testing {
+            border-left: 4px solid #2196F3;
+        }
+        .success {
+            border-left: 4px solid #4CAF50;
+        }
+        .failed {
+            border-left: 4px solid #f44336;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .check {
+            color: #4CAF50;
+        }
+        .cross {
+            color: #f44336;
+        }
+        #summary {
+            background: #fff3cd;
+            padding: 20px;
+            margin-top: 30px;
+            border-radius: 8px;
+            border: 2px solid #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <h1>OpenCV.js calib3d 模块自动测试</h1>
+    <p>自动测试多个CDN源，检测是否包含完整的calib3d模块...</p>
+
+    <div id="tests"></div>
+    <div id="summary" style="display:none;"></div>
+
+    <script>
+        const cdns = [
+            'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.9.0-release.1/dist/opencv.js',
+            'https://unpkg.com/@techstark/opencv-js@4.9.0-release.1/dist/opencv.js',
+            'https://cdn.jsdelivr.net/npm/opencv-wasm@0.0.2/dist/opencv.js',
+            'https://cdn.jsdelivr.net/npm/mirada@0.0.20/dist/src/opencv.js',
+            'https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js',
+            'https://docs.opencv.org/3.4/opencv.js',
+            'https://docs.opencv.org/4.8.0/opencv.js'
+        ];
+
+        const functionsToTest = [
+            'findChessboardCorners',
+            'drawChessboardCorners',
+            'calibrateCamera',
+            'cornerSubPix',
+            'solvePnP',
+            'Rodrigues',
+            'projectPoints'
+        ];
+
+        let currentIndex = 0;
+        let results = [];
+        const testsDiv = document.getElementById('tests');
+
+        function createTestDiv(cdnUrl, index) {
+            const div = document.createElement('div');
+            div.className = 'cdn-test testing';
+            div.id = `test-${index}`;
+            div.innerHTML = `
+                <h3>CDN ${index + 1}/${cdns.length}</h3>
+                <div class="cdn-url">${cdnUrl}</div>
+                <div class="result">⏳ 加载中...</div>
+            `;
+            testsDiv.appendChild(div);
+            return div;
+        }
+
+        function testCurrentCDN() {
+            if (currentIndex >= cdns.length) {
+                showSummary();
+                return;
+            }
+
+            const cdnUrl = cdns[currentIndex];
+            const testDiv = createTestDiv(cdnUrl, currentIndex);
+            const resultDiv = testDiv.querySelector('.result');
+
+            // Remove previous script
+            const oldScripts = document.querySelectorAll('script[src^="http"]');
+            oldScripts.forEach(s => s.remove());
+
+            // Clear cv object
+            if (window.cv) {
+                delete window.cv;
+            }
+
+            const script = document.createElement('script');
+            script.src = cdnUrl;
+            script.async = true;
+
+            let timeoutId = setTimeout(() => {
+                handleLoadFailure(testDiv, resultDiv, cdnUrl, '超时');
+            }, 15000);
+
+            script.onload = function() {
+                clearTimeout(timeoutId);
+
+                // Wait for cv to initialize
+                setTimeout(() => {
+                    if (typeof cv === 'undefined' || !cv.Mat) {
+                        handleLoadFailure(testDiv, resultDiv, cdnUrl, 'cv对象未初始化');
+                        return;
+                    }
+
+                    const testResults = [];
+                    let allPresent = true;
+
+                    functionsToTest.forEach(funcName => {
+                        const exists = typeof cv[funcName] === 'function';
+                        testResults.push({
+                            name: funcName,
+                            exists: exists
+                        });
+                        if (!exists) allPresent = false;
+                    });
+
+                    results.push({
+                        cdn: cdnUrl,
+                        success: allPresent,
+                        functions: testResults
+                    });
+
+                    displayResults(testDiv, resultDiv, testResults, allPresent);
+
+                    currentIndex++;
+                    setTimeout(testCurrentCDN, 1000);
+                }, 2000);
+            };
+
+            script.onerror = function() {
+                clearTimeout(timeoutId);
+                handleLoadFailure(testDiv, resultDiv, cdnUrl, '加载失败');
+            };
+
+            document.body.appendChild(script);
+        }
+
+        function handleLoadFailure(testDiv, resultDiv, cdnUrl, reason) {
+            testDiv.className = 'cdn-test failed';
+            resultDiv.innerHTML = `❌ ${reason}`;
+
+            results.push({
+                cdn: cdnUrl,
+                success: false,
+                error: reason
+            });
+
+            currentIndex++;
+            setTimeout(testCurrentCDN, 1000);
+        }
+
+        function displayResults(testDiv, resultDiv, testResults, allPresent) {
+            testDiv.className = allPresent ? 'cdn-test success' : 'cdn-test failed';
+
+            let html = allPresent ?
+                '<strong style="color:#4CAF50;">✓ 找到完整calib3d模块!</strong><br><br>' :
+                '<strong style="color:#f44336;">✗ calib3d模块不完整</strong><br><br>';
+
+            testResults.forEach(result => {
+                const icon = result.exists ? '<span class="check">✓</span>' : '<span class="cross">✗</span>';
+                html += `${icon} cv.${result.name}: ${result.exists ? '存在' : '缺失'}<br>`;
+            });
+
+            resultDiv.innerHTML = html;
+        }
+
+        function showSummary() {
+            const summaryDiv = document.getElementById('summary');
+            const successfulCDNs = results.filter(r => r.success);
+
+            let html = '<h2>测试完成</h2>';
+
+            if (successfulCDNs.length > 0) {
+                html += '<p style="color:#4CAF50; font-size:18px; font-weight:bold;">✓ 找到可用的CDN!</p>';
+                html += '<h3>推荐使用:</h3>';
+                successfulCDNs.forEach(r => {
+                    html += `<div style="background:#e8f5e9; padding:10px; margin:10px 0; border-radius:4px;">
+                        <code style="color:#2e7d32;">${r.cdn}</code>
+                    </div>`;
+                });
+            } else {
+                html += '<p style="color:#f44336; font-size:18px; font-weight:bold;">✗ 所有CDN都不包含完整的calib3d模块</p>';
+                html += '<p>需要考虑备选方案:</p>';
+                html += '<ul>';
+                html += '<li>自行编译包含calib3d的OpenCV.js</li>';
+                html += '<li>使用纯JavaScript实现棋盘格检测</li>';
+                html += '<li>使用后端服务进行标定</li>';
+                html += '</ul>';
+            }
+
+            summaryDiv.innerHTML = html;
+            summaryDiv.style.display = 'block';
+        }
+
+        // Start testing
+        testCurrentCDN();
+    </script>
+</body>
+</html>
