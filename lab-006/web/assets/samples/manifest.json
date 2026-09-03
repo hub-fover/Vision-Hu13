@@ -1,0 +1,24 @@
+{
+  "boardConfig": {
+    "width": 9,
+    "height": 6,
+    "squareSize": 25
+  },
+  "calibrationImages": [
+    { "path": "left01.jpg", "name": "示例图像 1" },
+    { "path": "left02.jpg", "name": "示例图像 2" },
+    { "path": "left03.jpg", "name": "示例图像 3" },
+    { "path": "left04.jpg", "name": "示例图像 4" },
+    { "path": "left05.jpg", "name": "示例图像 5" },
+    { "path": "left06.jpg", "name": "示例图像 6" },
+    { "path": "left07.jpg", "name": "示例图像 7" },
+    { "path": "left08.jpg", "name": "示例图像 8" },
+    { "path": "left09.jpg", "name": "示例图像 9" },
+    { "path": "left11.jpg", "name": "示例图像 11" },
+    { "path": "left12.jpg", "name": "示例图像 12" },
+    { "path": "left13.jpg", "name": "示例图像 13" },
+    { "path": "left14.jpg", "name": "示例图像 14" }
+  ],
+  "description": "OpenCV官方标定示例图像集",
+  "source": "https://github.com/opencv/opencv/tree/master/samples/data"
+}
