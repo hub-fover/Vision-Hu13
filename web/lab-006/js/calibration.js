@@ -445,26 +445,16 @@ async function loadSampleData() {
 
                 // 转换为OpenCV格式并检测角点
                 const src = cv.matFromImageData(imageData);
-                const gray = new cv.Mat();
-                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-
-                const corners = new cv.Mat();
                 const patternSize = new cv.Size(boardWidth, boardHeight);
-                const found = cv.findChessboardCorners(gray, patternSize, corners);
+                const result = detectChessboardCorners(src, patternSize);
 
-                if (found) {
-                    // 亚像素精度角点优化
-                    const criteria = new cv.TermCriteria(
-                        cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001
-                    );
-                    cv.cornerSubPix(gray, corners, new cv.Size(11, 11), new cv.Size(-1, -1), criteria);
-
+                if (result.found) {
                     // 保存图像数据和角点
                     const cornersArray = [];
-                    for (let i = 0; i < corners.rows; i++) {
+                    for (let i = 0; i < result.corners.rows; i++) {
                         cornersArray.push({
-                            x: corners.data32F[i * 2],
-                            y: corners.data32F[i * 2 + 1]
+                            x: result.corners.data32F[i * 2],
+                            y: result.corners.data32F[i * 2 + 1]
                         });
                     }
 
@@ -479,9 +469,8 @@ async function loadSampleData() {
                 }
 
                 // 清理内存
+                result.corners.delete();
                 src.delete();
-                gray.delete();
-                corners.delete();
 
             } catch (err) {
                 console.error(`[loadSampleData] 处理图像 ${imgInfo.path} 失败:`, err);
