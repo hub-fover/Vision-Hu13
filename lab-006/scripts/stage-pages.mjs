@@ -33,6 +33,7 @@ function copyDir(src, dst) {
     const entries = readdirSync(src);
 
     for (const entry of entries) {
+        if (entry === 'node_modules' || entry === 'package.json' || entry === 'package-lock.json') continue;
         const srcPath = join(src, entry);
         const dstPath = join(dst, entry);
 

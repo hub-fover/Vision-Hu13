@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>测量工具 - 相机标定工具</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20260911-3">
 </head>
-<body>
+<body class="measurement-page">
     <header>
         <div class="container">
             <h1>📏 测量工具</h1>
@@ -15,78 +15,55 @@
     </header>
 
     <main class="container">
-        <!-- Calibration Status -->
-        <section>
-            <div class="card">
-                <h2>标定状态</h2>
-                <div id="calibrationStatus" class="status-message status-info">
+        <section class="measurement-workbench-section">
+            <div class="card measurement-workbench-card">
+                <div class="measurement-workbench-heading">
+                    <div>
+                        <h2>平面测量</h2>
+                        <p>棋盘格与目标物体必须位于同一平面</p>
+                    </div>
+                    <div class="measurement-mode-selector" aria-label="测量模式">
+                        <button type="button" class="measurement-mode-option active" id="distanceModeCard" onclick="selectMode('distance')">📏 两点距离</button>
+                        <button type="button" class="measurement-mode-option" id="rectangleModeCard" onclick="selectMode('rectangle')">📐 矩形尺寸</button>
+                    </div>
+                </div>
+
+                <div id="calibrationStatus" class="status-message status-info measurement-calibration-status">
                     正在检查标定数据...
                 </div>
-            </div>
-        </section>
 
-        <!-- Measurement Mode Selection -->
-        <section>
-            <div class="card">
-                <h2>选择测量模式</h2>
-                <p class="text-secondary mb-3">选择适合您需求的测量方式</p>
-                <div class="mode-selector">
-                    <div class="mode-card active" id="distanceModeCard" onclick="selectMode('distance')">
-                        <div class="mode-icon">📏</div>
-                        <div class="mode-title">两点距离测量</div>
-                        <div class="mode-description">
-                            <p><strong>适用场景：</strong>测量物体的长度、宽度</p>
-                            <p><strong>操作方式：</strong>点击画面标记两个点</p>
+                <div class="measurement-workspace">
+                    <div class="video-container measurement-video-container">
+                        <video id="videoElement" autoplay playsinline></video>
+                        <img id="sampleImageElement" alt="带有棋盘格的测量示例画面" hidden>
+                        <canvas id="measureCanvas" class="canvas-overlay clickable"></canvas>
+                        <div id="measurementMappingStatus" class="camera-detection-status" data-state="idle" role="status" aria-live="polite">
+                            <span class="camera-detection-dot" aria-hidden="true"></span>
+                            <span id="measurementMappingText">等待启动测量</span>
                         </div>
                     </div>
 
-                    <div class="mode-card" id="rectangleModeCard" onclick="selectMode('rectangle')">
-                        <div class="mode-icon">📐</div>
-                        <div class="mode-title">矩形测量</div>
-                        <div class="mode-description">
-                            <p><strong>适用场景：</strong>测量矩形物体的尺寸</p>
-                            <p><strong>操作方式：</strong>依次点击四个角点</p>
+                    <aside class="measurement-control-panel">
+                        <div class="measurement-source-controls">
+                            <button id="startCamera" class="btn btn-primary">启动相机</button>
+                            <button id="loadMeasurementSample" class="btn btn-secondary">加载测量示例</button>
+                            <button id="clearPoints" class="btn btn-secondary" disabled>清除标记</button>
+                            <button id="stopCamera" class="btn btn-danger" disabled>停止测量</button>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </section>
 
-        <!-- Camera Preview -->
-        <section>
-            <div class="card">
-                <h2>实时预览</h2>
-                <div class="video-container">
-                    <video id="videoElement" autoplay playsinline></video>
-                    <canvas id="measureCanvas" class="canvas-overlay clickable"></canvas>
-                </div>
+                        <div id="operationGuide" class="measurement-guide">
+                            <h4 id="guideTitle">准备测量</h4>
+                            <p id="guideText">启动相机或加载测量示例。</p>
+                        </div>
 
-                <!-- Camera Controls -->
-                <div class="controls mt-3">
-                    <button id="startCamera" class="btn btn-primary">启动相机</button>
-                    <button id="clearPoints" class="btn btn-secondary" disabled>清除标记</button>
-                    <button id="stopCamera" class="btn btn-danger" disabled>关闭相机</button>
-                </div>
-
-                <!-- Operation Guide -->
-                <div id="operationGuide" class="guide-card mt-3" style="display: none;">
-                    <h4 id="guideTitle">🎯 操作提示</h4>
-                    <p id="guideText">启动相机后开始标记测量点</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Measurement Result -->
-        <section>
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
-                    <h2>测量结果</h2>
-                    <div>
-                        <button id="unitToggle" class="btn btn-secondary" onclick="toggleUnit()">单位: mm</button>
-                    </div>
-                </div>
-                <div id="measurementResult" class="text-center" style="padding: var(--spacing-lg); font-size: 1.5rem; font-weight: 600; color: var(--color-primary);">
-                    点击画面标记测量点
+                        <div class="measurement-result-panel" aria-live="polite">
+                            <div class="measurement-result-heading">
+                                <h3>测量结果</h3>
+                                <button id="unitToggle" class="btn measurement-unit-toggle" onclick="toggleUnit()">单位: mm</button>
+                            </div>
+                            <div id="measurementResult" class="measurement-result-value">等待棋盘格检测</div>
+                        </div>
+                    </aside>
                 </div>
             </div>
         </section>
@@ -134,8 +111,8 @@
         </div>
     </footer>
 
-    <script async src="https://docs.opencv.org/3.4/opencv.js" onload="onOpenCvReady()"></script></script>
-    <script src="js/utils.js"></script>
-    <script src="js/measurement.js"></script>
+    <script src="js/utils.js?v=20260910-3"></script>
+    <script src="vendor/opencv.js?v=20260910-1" onload="onOpenCvReady()" onerror="onOpenCvError(new Error('无法加载同源 OpenCV.js'))"></script>
+    <script src="js/measurement.js?v=20260911-1"></script>
 </body>
 </html>

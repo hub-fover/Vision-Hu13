@@ -27,6 +27,9 @@ required_assets = [
     "lab-006/assets/samples/left13.jpg",
     "lab-006/assets/samples/left14.jpg",
     "lab-006/assets/samples/sample-calibration.json",
+    "lab-006/assets/samples/sample-corners.json",
+    "lab-006/web/vendor/opencv.js",
+    "lab-006/web/vendor/opencv.wasm",
 ]
 
 # 设置UTF-8输出（Windows兼容）

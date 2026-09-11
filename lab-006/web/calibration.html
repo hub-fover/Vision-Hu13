@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>相机标定 - 相机标定工具</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20260911-2">
 </head>
-<body>
+<body class="calibration-page">
     <header>
         <div class="container">
             <h1>📷 相机标定</h1>
@@ -64,43 +64,45 @@
 
         <!-- Camera Preview Section -->
         <section>
-            <div class="card">
+            <div class="card calibration-camera-card">
                 <h2>实时预览</h2>
-                <div class="video-container">
-                    <video id="videoElement" autoplay playsinline></video>
-                    <canvas id="overlayCanvas" class="canvas-overlay"></canvas>
-                </div>
-
-                <!-- Camera Controls -->
-                <div class="controls mt-3">
-                    <button id="startCamera" class="btn btn-primary">启动相机</button>
-                    <button id="loadSample" class="btn btn-secondary">📦 加载示例数据</button>
-                    <button id="captureImage" class="btn btn-success" disabled>📸 拍摄图像</button>
-                    <button id="stopCamera" class="btn btn-danger" disabled>关闭相机</button>
-                </div>
-
-                <!-- Status Message -->
-                <div id="statusMessage"></div>
-
-                <!-- Dynamic Guide Card -->
-                <div id="guideCard" class="guide-card mt-3" style="display: none;">
-                    <h4 id="guideTitle">📷 准备开始</h4>
-                    <div id="guideContent">
-                        <p>• 请确保棋盘格平整且光线充足</p>
-                        <p>• 点击"启动相机"按钮开始</p>
+                <div class="calibration-camera-workspace">
+                    <div class="video-container calibration-video-container">
+                        <video id="videoElement" autoplay playsinline></video>
+                        <canvas id="overlayCanvas" class="canvas-overlay"></canvas>
+                        <div id="cameraDetectionStatus" class="camera-detection-status" data-state="idle" role="status" aria-live="polite">
+                            <span class="camera-detection-dot" aria-hidden="true"></span>
+                            <span id="cameraDetectionText">等待启动相机</span>
+                        </div>
+                        <button id="captureImage" class="btn btn-success camera-capture-button" disabled>📸 拍摄图像</button>
                     </div>
-                </div>
 
-                <!-- Tips Card -->
-                <div class="tips-card mt-3">
-                    <h4>💡 拍摄技巧</h4>
-                    <ul>
-                        <li>距离：保持 30-80cm 距离拍摄</li>
-                        <li>角度：建议从正面、左右各15°、上下各30°等多角度拍摄</li>
-                        <li>光线：避免强光直射和反光，均匀光线最佳</li>
-                        <li>覆盖：让棋盘格出现在画面的不同位置</li>
-                        <li>数量：至少10张，推荐15-20张以获得更好精度</li>
-                    </ul>
+                    <aside class="calibration-camera-panel">
+                        <div class="controls camera-secondary-controls">
+                            <button id="startCamera" class="btn btn-primary">启动相机</button>
+                            <button id="loadSample" class="btn btn-secondary">📦 加载示例数据</button>
+                            <button id="stopCamera" class="btn btn-danger" disabled>关闭相机</button>
+                        </div>
+
+                        <div id="statusMessage"></div>
+
+                        <div id="guideCard" class="guide-card calibration-guide" style="display: none;">
+                            <h4 id="guideTitle">准备开始</h4>
+                            <div id="guideContent">
+                                <p>请确保棋盘格平整且光线充足。</p>
+                                <p>点击“启动相机”开始。</p>
+                            </div>
+                        </div>
+
+                        <div class="tips-card calibration-tips">
+                            <h4>拍摄要点</h4>
+                            <ul>
+                                <li>棋盘格完整进入画面，距离约 30-80cm</li>
+                                <li>看到绿色角点后再拍摄</li>
+                                <li>改变角度和画面位置，采集至少 10 张</li>
+                            </ul>
+                        </div>
+                    </aside>
                 </div>
             </div>
         </section>
@@ -154,8 +156,8 @@
         </div>
     </footer>
 
-    <script async src="https://docs.opencv.org/3.4/opencv.js" onload="onOpenCvReady()"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/calibration.js"></script>
+    <script src="js/utils.js?v=20260910-3"></script>
+    <script src="vendor/opencv.js?v=20260910-1" onload="onOpenCvReady()" onerror="onOpenCvError(new Error('无法加载同源 OpenCV.js'))"></script>
+    <script src="js/calibration.js?v=20260911-1"></script>
 </body>
 </html>

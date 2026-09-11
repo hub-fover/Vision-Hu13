@@ -1,415 +1,360 @@
-// measurement.js - 测量功能（增强版）
-let video, canvas, ctx;
+let video;
+let sampleImage;
+let canvas;
+let ctx;
 let stream = null;
+let sampleMode = false;
 let calibData = null;
 let measureMode = 'distance';
 let measurePoints = [];
-let currentUnit = 'mm'; // 'mm' or 'cm'
+let currentUnit = 'mm';
 let measurementHistory = [];
+let boardCorners = null;
+let boardHomography = null;
+let frameBusy = false;
+let lastBoardDetection = 0;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
     video = document.getElementById('videoElement');
+    sampleImage = document.getElementById('sampleImageElement');
     canvas = document.getElementById('measureCanvas');
     ctx = canvas.getContext('2d');
-
     document.getElementById('startCamera').onclick = startCamera;
+    document.getElementById('loadMeasurementSample').onclick = loadMeasurementSample;
     document.getElementById('stopCamera').onclick = stopCamera;
     document.getElementById('clearPoints').onclick = clearPoints;
-
     canvas.onclick = handleCanvasClick;
-
     checkCalibration();
     loadMeasurementHistory();
+    updateOperationGuide();
 });
 
-function onOpenCVLoad() {
-    console.log('OpenCV 准备就绪');
-}
+function onOpenCVLoad() { console.log('OpenCV ready for measurement'); }
 
-// 选择测量模式
 function selectMode(mode) {
     measureMode = mode;
     clearPoints();
-
-    // 更新UI
-    document.getElementById('distanceModeCard').classList.remove('active');
-    document.getElementById('rectangleModeCard').classList.remove('active');
-    document.getElementById(mode + 'ModeCard').classList.add('active');
-
+    document.getElementById('distanceModeCard').classList.toggle('active', mode === 'distance');
+    document.getElementById('rectangleModeCard').classList.toggle('active', mode === 'rectangle');
     updateOperationGuide();
-    showToast(mode === 'distance' ? '已切换到距离测量模式' : '已切换到矩形测量模式', 'info');
-}
-
-// 更新操作引导
-function updateOperationGuide() {
-    const guide = document.getElementById('operationGuide');
-    const guideTitle = document.getElementById('guideTitle');
-    const guideText = document.getElementById('guideText');
-
-    if (!stream) {
-        guide.style.display = 'none';
-        return;
-    }
-
-    guide.style.display = 'block';
-
-    const pointsNeeded = measureMode === 'distance' ? 2 : 4;
-    const pointsMarked = measurePoints.length;
-
-    if (pointsMarked === 0) {
-        guideTitle.innerHTML = '🎯 开始标记';
-        guideText.innerHTML = `点击画面标记第 1 个点（共需 ${pointsNeeded} 个点）`;
-    } else if (pointsMarked < pointsNeeded) {
-        guideTitle.innerHTML = '🎯 继续标记';
-        guideText.innerHTML = `已标记 ${pointsMarked}/${pointsNeeded} 个点，点击标记第 ${pointsMarked + 1} 个点`;
-    } else {
-        guideTitle.innerHTML = '✅ 标记完成';
-        guideText.innerHTML = '测量完成！点击"清除标记"开始新的测量';
-    }
 }
 
 function checkCalibration() {
     calibData = loadCalibration();
-    const statusEl = document.getElementById('calibrationStatus');
+    renderCalibrationStatus(false);
+}
 
-    if (calibData) {
-        const date = calibData.date ? new Date(calibData.date).toLocaleString('zh-CN') : '未知';
-        const quality = calibData.error < 0.5 ? '优秀' : calibData.error < 1.0 ? '良好' : '一般';
-
-        statusEl.innerHTML = `
-            <div style="display: grid; gap: var(--spacing-xs);">
-                <p><strong>✓ 已加载标定数据</strong></p>
-                <p>重投影误差：${calibData.error.toFixed(3)} 像素 (${quality})</p>
-                <p>标定时间：${date}</p>
-            </div>
-        `;
-        statusEl.className = 'status-message status-success';
-    } else {
-        statusEl.innerHTML = `
-            <p><strong>⚠️ 未找到标定数据</strong></p>
-            <p>请先完成相机标定才能进行测量</p>
-            <div class="controls mt-2">
-                <a href="calibration.html" class="btn btn-primary">前往标定</a>
-                <button onclick="loadSampleCalibration()" class="btn btn-secondary">📦 加载示例标定</button>
-            </div>
-        `;
-        statusEl.className = 'status-message status-warning';
+function renderCalibrationStatus(isSample) {
+    const status = document.getElementById('calibrationStatus');
+    if (!calibData) {
+        status.innerHTML = '<p><strong>未找到有效标定数据</strong></p><p>请先完成相机标定，或加载示例标定数据。</p><div class="controls mt-2"><a href="calibration.html" class="btn btn-primary">前往标定</a><button onclick="loadSampleCalibration()" class="btn btn-secondary">加载示例标定</button></div>';
+        status.className = 'status-message status-warning measurement-calibration-status';
+        return;
     }
+    const error = Number.isFinite(calibData.error) ? calibData.error.toFixed(3) : '未知';
+    const label = isSample ? '已加载测量示例标定（不会覆盖已保存标定）' : '已加载标定数据';
+    status.innerHTML = `<p><strong>${label}</strong></p><p>重投影误差：${error} 像素</p><p>测量时必须让棋盘格与目标物体共面。</p>`;
+    status.className = 'status-message status-success measurement-calibration-status';
+}
+
+function measurementSourceActive() { return Boolean(stream || sampleMode); }
+
+function setMeasurementAspect(width = 16, height = 9) {
+    const container = document.querySelector('.measurement-video-container');
+    if (container && width > 0 && height > 0) container.style.aspectRatio = `${width} / ${height}`;
+}
+
+function setMappingStatus(state, text) {
+    const status = document.getElementById('measurementMappingStatus');
+    const label = document.getElementById('measurementMappingText');
+    if (!status || !label) return;
+    status.dataset.state = state;
+    label.textContent = text;
+}
+
+function updateSourceControls(active) {
+    document.getElementById('startCamera').disabled = active;
+    document.getElementById('loadMeasurementSample').disabled = active;
+    document.getElementById('clearPoints').disabled = !active;
+    document.getElementById('stopCamera').disabled = !active;
 }
 
 async function startCamera() {
-    if (!calibData) {
-        showToast('请先完成相机标定', 'error');
-        return;
-    }
-
-    const constraints = {
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-    };
-
+    if (sampleMode) stopCamera();
+    if (!calibData) { showToast('请先完成相机标定', 'error'); return; }
     try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        await waitForOpenCv();
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } });
         video.srcObject = stream;
-        video.onloadedmetadata = () => {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-        };
-
-        document.getElementById('startCamera').disabled = true;
-        document.getElementById('clearPoints').disabled = false;
-        document.getElementById('stopCamera').disabled = false;
-
+        await video.play();
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        setMeasurementAspect(video.videoWidth, video.videoHeight);
+        video.hidden = false;
+        sampleImage.hidden = true;
+        updateSourceControls(true);
         updateOperationGuide();
-        requestAnimationFrame(updateCanvas);
-        showToast('相机已启动', 'success');
+        updateMeasurement();
+        requestAnimationFrame(processFrame);
+        showToast('相机已启动，请将棋盘格与目标物体放在同一平面', 'success');
     } catch (error) {
-        showToast('无法访问相机，请检查权限', 'error');
+        showToast(`无法启动测量：${error.message}`, 'error');
     }
 }
 
 function stopCamera() {
-    if (stream) stream.getTracks().forEach(t => t.stop());
+    const wasSample = sampleMode;
+    if (stream) stream.getTracks().forEach(track => track.stop());
     stream = null;
     video.srcObject = null;
+    video.hidden = false;
+    sampleMode = false;
+    sampleImage.hidden = true;
+    sampleImage.removeAttribute('src');
+    boardCorners = null;
+    boardHomography = null;
+    measurePoints = [];
+    setMeasurementAspect();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    document.getElementById('startCamera').disabled = false;
-    document.getElementById('clearPoints').disabled = true;
-    document.getElementById('stopCamera').disabled = true;
-
-    clearPoints();
-    document.getElementById('operationGuide').style.display = 'none';
-    showToast('相机已关闭', 'info');
+    updateSourceControls(false);
+    if (wasSample) checkCalibration();
+    updateMeasurement();
+    updateOperationGuide();
 }
 
 function clearPoints() {
     measurePoints = [];
     updateMeasurement();
     updateOperationGuide();
+    drawOverlay();
 }
 
-function handleCanvasClick(e) {
-    if (!stream) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-    const maxPoints = measureMode === 'distance' ? 2 : 4;
-
-    if (measurePoints.length < maxPoints) {
-        measurePoints.push({ x, y });
-        updateMeasurement();
-        updateOperationGuide();
-
-        // 如果标记完成，添加到历史
-        if (measurePoints.length === maxPoints) {
-            addToHistory();
-        }
-    }
-}
-
-function updateCanvas() {
-    if (!stream) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // 绘制标记点
-    measurePoints.forEach((p, i) => {
-        ctx.fillStyle = '#0071e3';
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 3;
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 8, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
-
-        // 绘制点序号
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 16px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(i + 1, p.x, p.y);
-    });
-
-    // 绘制连线
-    if (measurePoints.length === 2 && measureMode === 'distance') {
-        ctx.strokeStyle = '#0071e3';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([5, 5]);
-        ctx.beginPath();
-        ctx.moveTo(measurePoints[0].x, measurePoints[0].y);
-        ctx.lineTo(measurePoints[1].x, measurePoints[1].y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-    } else if (measurePoints.length === 4 && measureMode === 'rectangle') {
-        ctx.strokeStyle = '#0071e3';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([5, 5]);
-        ctx.beginPath();
-        ctx.moveTo(measurePoints[0].x, measurePoints[0].y);
-        for (let i = 1; i < 4; i++) {
-            ctx.lineTo(measurePoints[i].x, measurePoints[i].y);
-        }
-        ctx.closePath();
-        ctx.stroke();
-        ctx.setLineDash([]);
-    }
-
-    requestAnimationFrame(updateCanvas);
-}
-
-function updateMeasurement() {
-    const resultEl = document.getElementById('measurementResult');
-
-    if (measurePoints.length === 2 && measureMode === 'distance') {
-        const dist = calculateDistance(measurePoints[0], measurePoints[1]);
-        const realDist = (dist * calibData.squareSize) / calibData.cameraMatrix[0];
-        const displayValue = currentUnit === 'mm' ? realDist : realDist / 10;
-        const unit = currentUnit === 'mm' ? '毫米' : '厘米';
-
-        resultEl.innerHTML = `<strong>测量距离：</strong>${displayValue.toFixed(2)} ${unit}`;
-        resultEl.style.color = 'var(--color-primary)';
-    } else if (measurePoints.length === 4 && measureMode === 'rectangle') {
-        const width = calculateDistance(measurePoints[0], measurePoints[1]);
-        const height = calculateDistance(measurePoints[1], measurePoints[2]);
-        const realWidth = (width * calibData.squareSize) / calibData.cameraMatrix[0];
-        const realHeight = (height * calibData.squareSize) / calibData.cameraMatrix[0];
-
-        const displayWidth = currentUnit === 'mm' ? realWidth : realWidth / 10;
-        const displayHeight = currentUnit === 'mm' ? realHeight : realHeight / 10;
-        const unit = currentUnit === 'mm' ? '毫米' : '厘米';
-
-        resultEl.innerHTML = `<strong>矩形尺寸：</strong>${displayWidth.toFixed(2)} × ${displayHeight.toFixed(2)} ${unit}`;
-        resultEl.style.color = 'var(--color-primary)';
-    } else {
-        const pointsNeeded = measureMode === 'distance' ? '两个' : '四个';
-        resultEl.innerHTML = `点击画面标记${pointsNeeded}测量点`;
-        resultEl.style.color = 'var(--color-text-secondary)';
-    }
-}
-
-// 单位切换
-function toggleUnit() {
-    currentUnit = currentUnit === 'mm' ? 'cm' : 'mm';
-    document.getElementById('unitToggle').textContent = `单位: ${currentUnit}`;
-    updateMeasurement();
-    updateHistoryDisplay();
-    showToast(`已切换到${currentUnit === 'mm' ? '毫米' : '厘米'}`, 'info');
-}
-
-// 添加到历史记录
-function addToHistory() {
-    const timestamp = new Date().toLocaleString('zh-CN');
-    let measurement = {};
-
-    if (measureMode === 'distance' && measurePoints.length === 2) {
-        const dist = calculateDistance(measurePoints[0], measurePoints[1]);
-        const realDist = (dist * calibData.squareSize) / calibData.cameraMatrix[0];
-        measurement = {
-            type: 'distance',
-            value: realDist,
-            timestamp: timestamp
-        };
-    } else if (measureMode === 'rectangle' && measurePoints.length === 4) {
-        const width = calculateDistance(measurePoints[0], measurePoints[1]);
-        const height = calculateDistance(measurePoints[1], measurePoints[2]);
-        const realWidth = (width * calibData.squareSize) / calibData.cameraMatrix[0];
-        const realHeight = (height * calibData.squareSize) / calibData.cameraMatrix[0];
-        measurement = {
-            type: 'rectangle',
-            width: realWidth,
-            height: realHeight,
-            timestamp: timestamp
-        };
-    }
-
-    if (measurement.type) {
-        measurementHistory.unshift(measurement);
-        if (measurementHistory.length > 20) {
-            measurementHistory = measurementHistory.slice(0, 20);
-        }
-        saveMeasurementHistory();
-        updateHistoryDisplay();
-    }
-}
-
-// 保存测量历史
-function saveMeasurementHistory() {
-    try {
-        localStorage.setItem('measurementHistory', JSON.stringify(measurementHistory));
-    } catch (e) {
-        console.error('保存测量历史失败:', e);
-    }
-}
-
-// 加载测量历史
-function loadMeasurementHistory() {
-    try {
-        const data = localStorage.getItem('measurementHistory');
-        if (data) {
-            measurementHistory = JSON.parse(data);
-            updateHistoryDisplay();
-        }
-    } catch (e) {
-        console.error('加载测量历史失败:', e);
-    }
-}
-
-// 更新历史显示
-function updateHistoryDisplay() {
-    const historyList = document.getElementById('historyList');
-
-    if (measurementHistory.length === 0) {
-        historyList.innerHTML = '<li class="status-message status-info">暂无测量记录</li>';
+function updateOperationGuide() {
+    const guide = document.getElementById('operationGuide');
+    guide.style.display = 'block';
+    const title = document.getElementById('guideTitle');
+    const text = document.getElementById('guideText');
+    if (!measurementSourceActive()) {
+        title.textContent = '准备测量';
+        text.textContent = '启动相机或加载测量示例。';
+        setMappingStatus('idle', '等待启动测量');
         return;
     }
+    if (!boardHomography) {
+        title.textContent = '等待棋盘格';
+        text.textContent = '请让完整的 9×6 棋盘格进入画面，并与目标物体共面。';
+        setMappingStatus('searching', '正在寻找 9×6 棋盘格');
+        return;
+    }
+    const required = measureMode === 'distance' ? 2 : 4;
+    title.textContent = measurePoints.length === required ? '测量完成' : sampleMode ? '示例棋盘格已锁定' : '棋盘格已锁定';
+    text.textContent = measurePoints.length === required ? '点击清除标记开始下一次测量。' : `点击画面标记 ${required} 个点（已标记 ${measurePoints.length} 个）。`;
+    setMappingStatus('found', `平面映射有效 · 已标记 ${measurePoints.length}/${required}`);
+}
 
-    historyList.innerHTML = measurementHistory.map((item, index) => {
-        let valueText = '';
-        if (item.type === 'distance') {
-            const value = currentUnit === 'mm' ? item.value : item.value / 10;
-            valueText = `${value.toFixed(2)} ${currentUnit}`;
-        } else {
-            const width = currentUnit === 'mm' ? item.width : item.width / 10;
-            const height = currentUnit === 'mm' ? item.height : item.height / 10;
-            valueText = `${width.toFixed(2)} × ${height.toFixed(2)} ${currentUnit}`;
+function processFrame() {
+    if (!stream) return;
+    const now = performance.now();
+    if (!frameBusy && now - lastBoardDetection >= 200) {
+        frameBusy = true;
+        lastBoardDetection = now;
+        let src = null;
+        let result = null;
+        try {
+            src = captureVideoFrame(video);
+            result = detectChessboardCorners(src, new cv.Size(calibData.boardConfig.width, calibData.boardConfig.height));
+            boardCorners = result.found ? undistortPointList(cornersToPoints(result.corners), calibData) : null;
+            if (boardCorners) boardHomography = buildBoardHomography(boardCorners);
+            else boardHomography = null;
+            updateOperationGuide();
+        } catch (error) {
+            console.error('测量帧处理失败', error);
+            boardCorners = null;
+            boardHomography = null;
+        } finally {
+            if (result?.corners) result.corners.delete();
+            if (src) src.delete();
+            frameBusy = false;
         }
+    }
+    drawOverlay();
+    requestAnimationFrame(processFrame);
+}
 
-        const icon = item.type === 'distance' ? '📏' : '📐';
+function cornersToPoints(corners) {
+    const points = [];
+    for (let i = 0; i < corners.rows; i += 1) points.push({ x: corners.data32F[i * 2], y: corners.data32F[i * 2 + 1] });
+    return points;
+}
 
-        return `
-            <li class="history-item">
-                <div>
-                    <span class="history-value">${icon} ${valueText}</span>
-                    <div class="history-date">${item.timestamp}</div>
-                </div>
-                <div class="history-actions">
-                    <button class="icon-btn" onclick="copyMeasurement(${index})" title="复制">📋</button>
-                    <button class="icon-btn" onclick="deleteHistoryItem(${index})" title="删除">🗑️</button>
-                </div>
-            </li>
-        `;
+function buildBoardHomography(corners) {
+    const width = calibData.boardConfig.width;
+    const height = calibData.boardConfig.height;
+    const source = [corners[0], corners[width - 1], corners[(height - 1) * width + width - 1], corners[(height - 1) * width]];
+    const target = [{ x: 0, y: 0 }, { x: (width - 1) * calibData.squareSize, y: 0 }, { x: (width - 1) * calibData.squareSize, y: (height - 1) * calibData.squareSize }, { x: 0, y: (height - 1) * calibData.squareSize }];
+    return solveHomography(source, target);
+}
+
+function drawOverlay() {
+    if (!measurementSourceActive()) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (boardCorners) {
+        ctx.fillStyle = '#2ecc71';
+        boardCorners.forEach(point => { ctx.beginPath(); ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI); ctx.fill(); });
+    }
+    ctx.strokeStyle = '#0071e3';
+    ctx.lineWidth = 3;
+    if (measurePoints.length > 1) {
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(measurePoints[0].x, measurePoints[0].y);
+        for (let i = 1; i < measurePoints.length; i += 1) ctx.lineTo(measurePoints[i].x, measurePoints[i].y);
+        if (measureMode === 'rectangle' && measurePoints.length === 4) ctx.closePath();
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    measurePoints.forEach((point, index) => {
+        ctx.fillStyle = '#0071e3'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(index + 1, point.x, point.y);
+    });
+}
+
+function handleCanvasClick(event) {
+    if (!measurementSourceActive() || !boardHomography) { showToast('请先让棋盘格进入画面并保持共面', 'warning'); return; }
+    const rect = canvas.getBoundingClientRect();
+    const rawPoint = { x: (event.clientX - rect.left) * canvas.width / rect.width, y: (event.clientY - rect.top) * canvas.height / rect.height };
+    const point = undistortPointList([rawPoint], calibData)[0];
+    const maxPoints = measureMode === 'distance' ? 2 : 4;
+    if (measurePoints.length >= maxPoints) return;
+    measurePoints.push(point);
+    updateMeasurement();
+    updateOperationGuide();
+    drawOverlay();
+    if (measurePoints.length === maxPoints) addToHistory();
+}
+
+function mapMeasurePoints() { return measurePoints.map(point => mapPointWithHomography(point, boardHomography)); }
+
+function updateMeasurement() {
+    const result = document.getElementById('measurementResult');
+    if (!boardHomography) { result.textContent = '等待棋盘格检测，无法进行毫米测量'; result.style.color = 'var(--color-text-secondary)'; return; }
+    try {
+        const points = mapMeasurePoints();
+        const unitFactor = currentUnit === 'mm' ? 1 : 0.1;
+        const unit = currentUnit === 'mm' ? '毫米' : '厘米';
+        if (measureMode === 'distance' && points.length === 2) {
+            result.innerHTML = `<strong>测量距离：</strong>${(calculateDistance(points[0], points[1]) * unitFactor).toFixed(2)} ${unit}`;
+        } else if (measureMode === 'rectangle' && points.length === 4) {
+            const width = calculateDistance(points[0], points[1]) * unitFactor;
+            const height = calculateDistance(points[1], points[2]) * unitFactor;
+            result.innerHTML = `<strong>矩形尺寸：</strong>${width.toFixed(2)} × ${height.toFixed(2)} ${unit}`;
+        } else result.textContent = `点击画面标记${measureMode === 'distance' ? '两个' : '四个'}测量点`;
+        result.style.color = 'var(--color-primary)';
+    } catch (error) { result.textContent = `测量失败：${error.message}`; result.style.color = 'var(--color-danger)'; }
+}
+
+function addToHistory() {
+    try {
+        const points = mapMeasurePoints();
+        const item = { type: measureMode, timestamp: new Date().toISOString(), calibrationVersion: calibData.version || 1 };
+        if (measureMode === 'distance') item.value = calculateDistance(points[0], points[1]);
+        else { item.width = calculateDistance(points[0], points[1]); item.height = calculateDistance(points[1], points[2]); }
+        measurementHistory = [item, ...measurementHistory].slice(0, 20);
+        saveMeasurementHistory();
+        updateHistoryDisplay();
+    } catch (error) { showToast(`无法保存测量：${error.message}`, 'error'); }
+}
+
+function toggleUnit() { currentUnit = currentUnit === 'mm' ? 'cm' : 'mm'; document.getElementById('unitToggle').textContent = `单位: ${currentUnit}`; updateMeasurement(); updateHistoryDisplay(); }
+function saveMeasurementHistory() { try { localStorage.setItem('measurementHistory', JSON.stringify(measurementHistory)); } catch (error) { console.error(error); } }
+function loadMeasurementHistory() { try { const value = JSON.parse(localStorage.getItem('measurementHistory') || '[]'); measurementHistory = Array.isArray(value) ? value.filter(item => Number.isFinite(item.value) || Number.isFinite(item.width)) : []; updateHistoryDisplay(); } catch { measurementHistory = []; } }
+
+function updateHistoryDisplay() {
+    const list = document.getElementById('historyList');
+    if (!measurementHistory.length) { list.innerHTML = '<li class="status-message status-info">暂无测量记录</li>'; return; }
+    const factor = currentUnit === 'mm' ? 1 : 0.1;
+    list.innerHTML = measurementHistory.map((item, index) => {
+        const text = item.type === 'distance' ? `${(item.value * factor).toFixed(2)} ${currentUnit}` : `${(item.width * factor).toFixed(2)} × ${(item.height * factor).toFixed(2)} ${currentUnit}`;
+        return `<li class="history-item"><div><span class="history-value">${item.type === 'distance' ? '距离' : '矩形'} ${text}</span><div class="history-date">${formatDate(item.timestamp)}</div></div><div class="history-actions"><button class="icon-btn" onclick="copyMeasurement(${index})" title="复制">复制</button><button class="icon-btn" onclick="deleteHistoryItem(${index})" title="删除">删除</button></div></li>`;
     }).join('');
 }
 
-// 复制测量结果
-function copyMeasurement(index) {
-    const item = measurementHistory[index];
-    let text = '';
+function copyMeasurement(index) { const item = measurementHistory[index]; const factor = currentUnit === 'mm' ? 1 : 0.1; const text = item.type === 'distance' ? `距离: ${(item.value * factor).toFixed(2)} ${currentUnit}` : `矩形: ${(item.width * factor).toFixed(2)} × ${(item.height * factor).toFixed(2)} ${currentUnit}`; copyToClipboard(text); showToast('已复制到剪贴板', 'success'); }
+function deleteHistoryItem(index) { measurementHistory.splice(index, 1); saveMeasurementHistory(); updateHistoryDisplay(); }
+function clearMeasurementHistory() { if (measurementHistory.length && confirm('确定要清空所有测量历史吗？')) { measurementHistory = []; saveMeasurementHistory(); updateHistoryDisplay(); } }
 
-    if (item.type === 'distance') {
-        const value = currentUnit === 'mm' ? item.value : item.value / 10;
-        text = `距离: ${value.toFixed(2)} ${currentUnit}`;
-    } else {
-        const width = currentUnit === 'mm' ? item.width : item.width / 10;
-        const height = currentUnit === 'mm' ? item.height : item.height / 10;
-        text = `矩形: ${width.toFixed(2)} × ${height.toFixed(2)} ${currentUnit}`;
-    }
-
-    copyToClipboard(text);
-    showToast('已复制到剪贴板', 'success');
-}
-
-// 删除历史记录项
-function deleteHistoryItem(index) {
-    measurementHistory.splice(index, 1);
-    saveMeasurementHistory();
-    updateHistoryDisplay();
-    showToast('已删除记录', 'info');
-}
-
-// 清空测量历史
-function clearMeasurementHistory() {
-    if (measurementHistory.length === 0) return;
-
-    if (confirm('确定要清空所有测量历史吗？')) {
-        measurementHistory = [];
-        saveMeasurementHistory();
-        updateHistoryDisplay();
-        showToast('已清空历史记录', 'info');
-    }
-}
-
-// 加载示例标定数据
 async function loadSampleCalibration() {
     try {
         const response = await fetch('assets/samples/sample-calibration.json');
-        if (!response.ok) {
-            throw new Error('无法加载示例标定数据');
-        }
-        const sampleCalib = await response.json();
-
-        // 保存到localStorage
-        saveCalibration(sampleCalib);
-
-        // 重新加载标定数据
-        calibData = sampleCalib;
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const sample = await response.json();
+        if (!sample.boardConfig) sample.boardConfig = { width: 9, height: 6 };
+        if (!saveCalibration(sample)) throw new Error('示例标定数据格式无效');
+        calibData = loadCalibration();
         checkCalibration();
+        showToast('已加载示例标定数据', 'success');
+    } catch (error) { showToast(`加载示例标定失败：${error.message}`, 'error'); }
+}
 
-        showToast('✅ 已加载示例标定数据', 'success');
+async function loadMeasurementSample() {
+    const button = document.getElementById('loadMeasurementSample');
+    button.disabled = true;
+    try {
+        await waitForOpenCv();
+        const [calibrationResponse, cornersResponse] = await Promise.all([
+            fetch('assets/samples/sample-calibration.json'),
+            fetch('assets/samples/sample-corners.json')
+        ]);
+        if (!calibrationResponse.ok) throw new Error(`示例标定 HTTP ${calibrationResponse.status}`);
+        if (!cornersResponse.ok) throw new Error(`示例角点 HTTP ${cornersResponse.status}`);
+        const sampleCalibration = normalizeCalibrationData(await calibrationResponse.json());
+        const validation = validateCalibrationData(sampleCalibration);
+        if (!validation.valid) throw new Error(validation.reason);
+        const sampleCorners = await cornersResponse.json();
+        const samplePath = 'left01.jpg';
+        const sampleEntry = sampleCorners.images?.find(item => item.path === samplePath);
+        const expectedCorners = sampleCalibration.boardConfig.width * sampleCalibration.boardConfig.height;
+        if (sampleCorners.schema !== 'lab006.sample-corners.v1' || !sampleEntry || sampleEntry.corners.length !== expectedCorners) {
+            throw new Error('示例角点数据无效');
+        }
+        if (sampleEntry.corners.some(point => !Number.isFinite(point.x) || !Number.isFinite(point.y))) {
+            throw new Error('示例角点包含无效数值');
+        }
+
+        if (measurementSourceActive()) stopCamera();
+        await new Promise((resolve, reject) => {
+            sampleImage.onload = resolve;
+            sampleImage.onerror = () => reject(new Error('示例图像加载失败'));
+            sampleImage.src = `assets/samples/${samplePath}`;
+        });
+        if (sampleImage.naturalWidth !== sampleCalibration.imageSize.width || sampleImage.naturalHeight !== sampleCalibration.imageSize.height) {
+            throw new Error('示例图像尺寸与标定数据不一致');
+        }
+
+        calibData = sampleCalibration;
+        sampleMode = true;
+        video.hidden = true;
+        sampleImage.hidden = false;
+        canvas.width = sampleImage.naturalWidth;
+        canvas.height = sampleImage.naturalHeight;
+        setMeasurementAspect(sampleImage.naturalWidth, sampleImage.naturalHeight);
+        boardCorners = undistortPointList(sampleEntry.corners, calibData);
+        boardHomography = buildBoardHomography(boardCorners);
+        measureMode = 'distance';
+        document.getElementById('distanceModeCard').classList.add('active');
+        document.getElementById('rectangleModeCard').classList.remove('active');
+        measurePoints = [boardCorners[0], boardCorners[calibData.boardConfig.width - 1]];
+        updateSourceControls(true);
+        renderCalibrationStatus(true);
+        updateMeasurement();
+        updateOperationGuide();
+        drawOverlay();
+        showToast('测量示例已加载：标记线长度为 200 mm', 'success');
     } catch (error) {
-        showToast('❌ 加载示例数据失败: ' + error.message, 'error');
+        if (sampleMode) stopCamera();
+        showToast(`加载测量示例失败：${error.message}`, 'error');
+    } finally {
+        if (!measurementSourceActive()) button.disabled = false;
     }
 }

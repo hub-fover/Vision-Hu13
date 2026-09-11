@@ -14,5 +14,8 @@
     "zhang-zhengyou"
   ],
   "author": "Vision Hu13",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "fast-opencv-wasm": "4.10.0-14"
+  }
 }

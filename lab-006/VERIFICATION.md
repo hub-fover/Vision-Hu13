@@ -27,7 +27,10 @@
 - [ ] 页面加载时自动检测标定数据
 - [ ] 显示"已加载标定数据"状态
 - [ ] 启动相机按钮可用
-- [ ] 或者点击"加载示例标定"使用预生成数据
+- [ ] 点击“加载测量示例”后显示完整示例画面、54 个角点和 200.00 mm 参考线
+- [ ] 清除标记后点击首行两个端点，结果约为 200 mm
+- [ ] 矩形模式点击四个外侧内角点，结果约为 200 × 125 mm
+- [ ] 停止示例后恢复原标定状态，且示例不覆盖 localStorage 中的标定数据
 
 ### 4. 完整流程
 访问: http://localhost:8006/
@@ -38,6 +41,10 @@
 - [ ] 所有页面响应式布局正常
 
 ## GitHub Pages 部署验证
+
+The current measurement workflow requires the chessboard to remain visible and
+coplanar with the object. Without a valid board homography, clicks are rejected
+and no millimetre result is produced.
 
 部署后访问: https://hub-fover.github.io/Vision-Hu13/lab-006/
 

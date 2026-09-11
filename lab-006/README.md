@@ -17,7 +17,7 @@
 2. 点击"加载示例数据"按钮
 3. 自动加载13张OpenCV标准标定图像
 4. 点击"开始标定"查看标定结果
-5. 前往[测量页面](https://hub-fover.github.io/Vision-Hu13/lab-006/measurement.html)体验测量功能
+5. 前往[测量页面](https://hub-fover.github.io/Vision-Hu13/lab-006/measurement.html)，点击“加载测量示例”查看 200 mm 的参考测量
 
 ### 方式二：实际标定自己的相机
 
@@ -42,6 +42,7 @@
 
 4. **开始测量**
    - 前往测量页面
+   - 启动相机，并让棋盘格与被测物体保持共面
    - 选择测量模式（距离/矩形）
    - 在相机画面中点击测量点
 
@@ -163,3 +164,15 @@ A: 不可以。本工具基于平面单应性变换，仅适用于平面物体�
 ---
 
 🔗 **在线体验**: https://hub-fover.github.io/Vision-Hu13/lab-006/
+
+### Measurement constraint
+
+The measurement page only reports millimetres when a complete 9x6 chessboard is
+visible in the current camera frame. Keep the board and the measured object on
+the same plane. The app uses the board square size and a planar homography;
+pixel distance divided by focal length is not used as a physical measurement.
+
+OpenCV.js 4.10 is served from the same origin as separate `opencv.js` and
+`opencv.wasm` files. Both files are pinned to checksums verified by
+`scripts/build.py`, allowing the browser to compile WASM without blocking on a
+large base64-embedded runtime.

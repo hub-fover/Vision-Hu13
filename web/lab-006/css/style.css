@@ -414,16 +414,332 @@ header .subtitle {
     background: #000;
 }
 
-#videoElement {
+#videoElement,
+#sampleImageElement {
     width: 100%;
     display: block;
+}
+
+#videoElement[hidden],
+#sampleImageElement[hidden] {
+    display: none;
 }
 
 .canvas-overlay {
     position: absolute;
     top: 0;
     left: 0;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
+}
+
+/* ========== Calibration Capture Workspace ========== */
+.calibration-camera-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 300px);
+    gap: var(--spacing-md);
+    align-items: start;
+}
+
+.calibration-page > header,
+.measurement-page > header {
+    position: static;
+    padding: var(--spacing-md) 0;
+}
+
+.calibration-page > header h1,
+.measurement-page > header h1 {
+    font-size: 2rem;
+    margin-bottom: 4px;
+}
+
+.calibration-page > header .subtitle,
+.measurement-page > header .subtitle {
+    margin-bottom: 0;
+    font-size: var(--font-size-small);
+}
+
+.calibration-video-container {
+    max-width: none;
+    aspect-ratio: 16 / 9;
+}
+
+.calibration-video-container #videoElement {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: contain;
+}
+
+.calibration-camera-card:hover {
+    transform: none;
+}
+
+.camera-detection-status {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: calc(100% - 24px);
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: var(--radius-sm);
+    background: rgba(18, 18, 20, 0.82);
+    color: #fff;
+    font-size: var(--font-size-small);
+    line-height: 1.35;
+    backdrop-filter: blur(8px);
+    z-index: 3;
+}
+
+.camera-detection-dot {
+    width: 9px;
+    height: 9px;
+    flex: 0 0 9px;
+    border-radius: 50%;
+    background: #a1a1a6;
+}
+
+.camera-detection-status[data-state="searching"] .camera-detection-dot {
+    background: var(--color-warning);
+    box-shadow: 0 0 0 4px rgba(255, 149, 0, 0.2);
+}
+
+.camera-detection-status[data-state="found"] .camera-detection-dot,
+.camera-detection-status[data-state="ready"] .camera-detection-dot {
+    background: var(--color-success);
+    box-shadow: 0 0 0 4px rgba(52, 199, 89, 0.22);
+}
+
+.camera-capture-button {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    min-width: 156px;
+    min-height: 48px;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.32);
+    z-index: 4;
+}
+
+.camera-capture-button:disabled {
+    background: rgba(70, 70, 74, 0.88);
+    color: rgba(255, 255, 255, 0.75);
+    border-color: rgba(255, 255, 255, 0.45);
+    opacity: 1;
+}
+
+.calibration-camera-panel {
+    min-width: 0;
+}
+
+.camera-secondary-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    margin-top: 0;
+}
+
+.camera-secondary-controls .btn {
+    width: 100%;
+}
+
+.guide-card.calibration-guide {
+    padding: var(--spacing-sm) 0;
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.calibration-guide p:last-child {
+    margin-bottom: 0;
+}
+
+.tips-card.calibration-tips {
+    padding: var(--spacing-sm);
+    border-left: 4px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+    background: #f2f2f7;
+    color: var(--color-text);
+}
+
+.tips-card.calibration-tips h4 {
+    color: var(--color-text);
+}
+
+.tips-card.calibration-tips li {
+    color: var(--color-text-secondary);
+}
+
+/* ========== Measurement Workspace ========== */
+.measurement-workbench-section {
+    margin-top: var(--spacing-md);
+}
+
+.measurement-workbench-card:hover {
+    transform: none;
+}
+
+.measurement-workbench-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.measurement-workbench-heading h2,
+.measurement-workbench-heading p {
+    margin-bottom: 0;
+}
+
+.measurement-workbench-heading p {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-small);
+}
+
+.measurement-mode-selector {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: min(100%, 360px);
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    background: #e8e8ed;
+}
+
+.measurement-mode-option {
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font: 600 var(--font-size-small)/1.3 var(--font-system);
+    cursor: pointer;
+}
+
+.measurement-mode-option.active {
+    background: var(--color-card);
+    color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.measurement-calibration-status {
+    margin: 0 0 var(--spacing-md);
+    padding: 10px 14px;
+    font-size: var(--font-size-small);
+}
+
+.measurement-calibration-status p {
+    display: inline;
+    margin: 0 12px 0 0;
+}
+
+.measurement-calibration-status .controls {
+    display: inline-flex;
+    margin: 0;
+    vertical-align: middle;
+}
+
+.measurement-calibration-status .btn {
+    padding: 7px 12px;
+    font-size: var(--font-size-small);
+}
+
+.measurement-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(270px, 320px);
+    gap: var(--spacing-md);
+    align-items: start;
+}
+
+.measurement-video-container {
+    max-width: none;
+    aspect-ratio: 16 / 9;
+}
+
+.measurement-video-container #videoElement,
+.measurement-video-container #sampleImageElement {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.measurement-control-panel {
+    display: grid;
+    gap: var(--spacing-sm);
+    min-width: 0;
+}
+
+.measurement-source-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-xs);
+}
+
+.measurement-source-controls .btn {
+    min-height: 44px;
+    padding: 9px 10px;
+    font-size: var(--font-size-small);
+}
+
+.measurement-guide {
+    padding: var(--spacing-sm) 0;
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.measurement-guide h4,
+.measurement-guide p {
+    margin-bottom: 0;
+}
+
+.measurement-guide p {
+    margin-top: var(--spacing-xs);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-small);
+}
+
+.measurement-result-panel {
+    padding: var(--spacing-sm);
+    border-left: 4px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+    background: #f2f2f7;
+}
+
+.measurement-result-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+}
+
+.measurement-result-heading h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.measurement-unit-toggle {
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    background: var(--color-card);
+    color: var(--color-text);
+    font-size: var(--font-size-small);
+}
+
+.measurement-result-value {
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    margin-top: var(--spacing-xs);
+    color: var(--color-text-secondary);
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1.4;
 }
 
 canvas.clickable {
@@ -454,10 +770,13 @@ canvas.clickable {
     z-index: 10;
 }
 
-.image-item img {
+.image-item img,
+.image-item canvas {
+    display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    background: #111;
 }
 
 .image-item .delete-btn {
@@ -818,6 +1137,86 @@ footer p {
 
     .controls {
         flex-direction: column;
+    }
+
+    .calibration-camera-card {
+        padding: var(--spacing-sm);
+    }
+
+    .calibration-camera-workspace {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+
+    .calibration-video-container .camera-capture-button {
+        right: 10px;
+        bottom: 10px;
+        width: auto;
+        min-width: 142px;
+        min-height: 44px;
+        padding: 9px 16px;
+    }
+
+    .camera-secondary-controls {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--spacing-xs);
+    }
+
+    .camera-secondary-controls #stopCamera {
+        grid-column: 1 / -1;
+    }
+
+    .camera-secondary-controls .btn {
+        min-height: 44px;
+        padding: 8px;
+        font-size: var(--font-size-small);
+    }
+
+    .measurement-workbench-card {
+        padding: var(--spacing-sm);
+    }
+
+    .measurement-workbench-heading {
+        align-items: stretch;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .measurement-mode-selector {
+        width: 100%;
+    }
+
+    .measurement-calibration-status p {
+        display: block;
+        margin: 0 0 var(--spacing-xs);
+    }
+
+    .measurement-calibration-status .controls {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+    }
+
+    .measurement-workspace {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+
+    .measurement-source-controls .btn {
+        width: 100%;
+    }
+
+    .measurement-result-panel {
+        order: 2;
+    }
+
+    .measurement-result-heading .measurement-unit-toggle {
+        width: auto;
+        flex: 0 0 auto;
+    }
+
+    .measurement-guide {
+        order: 3;
     }
 
     .btn {

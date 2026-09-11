@@ -40,21 +40,25 @@ python -m http.server 8006
 ### 步骤5: 进入测量
 点击 **"进入测量模式"** 或直接访问 [measurement.html](http://localhost:8006/measurement.html)
 
+点击 **“加载测量示例”** 后，页面会显示带有棋盘格的固定画面和一条 200 mm 的参考测量线。示例使用临时标定数据，不会覆盖浏览器中已保存的相机标定。
+
 ---
 
 ## 📏 使用测量功能
 
 ### 距离测量
 1. 选择 **"距离测量"** 模式
-2. 启动相机（或加载示例标定数据）
+2. 启动相机，或点击 **“加载测量示例”** 体验固定画面
 3. 在画面中点击两个点
 4. 实时显示距离（毫米）
 
 ### 矩形测量
 1. 选择 **"矩形测量"** 模式
-2. 启动相机
+2. 启动相机，或加载测量示例后清除预置标记
 3. 在画面中依次点击四个角点
 4. 显示矩形的长和宽（毫米）
+
+使用真实相机时，画面中必须能检测到棋盘格，并确保棋盘格与被测物体处于同一平面。
 
 ---
 
@@ -236,3 +240,8 @@ const constraints = {
 
 **需要帮助？** 访问项目主页或提交Issue  
 **在线体验**: https://hub-fover.github.io/Vision-Hu13/lab-006/
+# Measurement note
+
+For real measurements, keep the complete calibration board visible beside the
+target and on the same physical plane. The app maps clicks through that board;
+it will refuse to produce a millimetre value while the board is not detected.

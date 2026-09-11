@@ -35,6 +35,7 @@ def generate_sample_calibration():
 
     img_size = None
     success_count = 0
+    detected_images = []
 
     for img_path in image_files:
         img = cv2.imread(str(img_path))
@@ -59,6 +60,13 @@ def generate_sample_calibration():
 
             objpoints.append(objp)
             imgpoints.append(corners2)
+            detected_images.append({
+                "path": img_path.name,
+                "corners": [
+                    {"x": float(point[0][0]), "y": float(point[0][1])}
+                    for point in corners2
+                ],
+            })
             success_count += 1
             print(f"OK {img_path.name}")
         else:
@@ -103,7 +111,18 @@ def generate_sample_calibration():
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(calibration_data, f, indent=2, ensure_ascii=False)
 
+    corners_path = samples_dir / 'sample-corners.json'
+    corners_data = {
+        "schema": "lab006.sample-corners.v1",
+        "boardConfig": {"width": board_width, "height": board_height, "squareSize": square_size},
+        "imageSize": {"width": int(img_size[0]), "height": int(img_size[1])},
+        "images": detected_images,
+    }
+    with open(corners_path, 'w', encoding='utf-8') as f:
+        json.dump(corners_data, f, indent=2, ensure_ascii=False)
+
     print(f"\nSaved to: {output_path}")
+    print(f"Saved to: {corners_path}")
     return calibration_data
 
 if __name__ == '__main__':
