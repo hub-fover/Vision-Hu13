@@ -40,19 +40,21 @@ test('cancel rejects the active request and ignores its late result', async () =
   engine.cancel();
   worker.emit({ type: 'result', requestId, width: 1, height: 1, depth: new Float32Array([1]).buffer });
   await assert.rejects(promise, error => error.name === 'AbortError');
-  assert.equal(worker.messages.at(-1).type, 'cancel');
+  assert.equal(worker.terminated, true);
   engine.dispose();
 });
 
-test('starting a second inference cancels the first before posting the next request', async () => {
+test('starting a second inference terminates the first worker before creating another', async () => {
   const engine = createDepthEngine({ workerUrl: './depth.worker.js', WorkerClass: FakeWorker });
   const first = engine.infer(new Blob(['first'], { type: 'image/jpeg' }));
+  const firstWorker = FakeWorker.instances.at(-1);
   const second = engine.infer(new Blob(['second'], { type: 'image/jpeg' }));
-  const worker = FakeWorker.instances.at(-1);
+  const secondWorker = FakeWorker.instances.at(-1);
   await assert.rejects(first, error => error.name === 'AbortError');
-  const inferMessages = worker.messages.filter(message => message.type === 'infer');
-  assert.equal(inferMessages.length, 2);
-  worker.emit({ type: 'result', requestId: inferMessages[1].requestId, width: 1, height: 1, depth: new Float32Array([0.5]).buffer, model: 'Depth Anything V2 Small', revision: 'abc', backend: 'wasm' });
+  assert.equal(firstWorker.terminated, true);
+  assert.notEqual(firstWorker, secondWorker);
+  const requestId = secondWorker.messages[0].requestId;
+  secondWorker.emit({ type: 'result', requestId, width: 1, height: 1, depth: new Float32Array([0.5]).buffer, model: 'Depth Anything V2 Small', revision: 'abc', backend: 'wasm' });
   assert.equal((await second).depth[0], 0.5);
   engine.dispose();
 });

@@ -6,7 +6,7 @@ export function createDepthEngine({ workerUrl, WorkerClass = globalThis.Worker }
   if (!workerUrl) throw new TypeError('workerUrl is required');
   if (typeof WorkerClass !== 'function') throw new TypeError('Worker is not available');
 
-  const worker = new WorkerClass(workerUrl, { type: 'module', name: 'lab007-depth' });
+  let worker = null;
   let sequence = 0;
   let active = null;
 
@@ -16,46 +16,55 @@ export function createDepthEngine({ workerUrl, WorkerClass = globalThis.Worker }
     callback();
   };
 
-  worker.addEventListener('message', event => {
-    const message = event.data || {};
-    if (!active || message.requestId !== active.requestId) return;
-    if (message.type === 'progress') {
-      active.onProgress(message.progress || {});
-      return;
-    }
-    const request = active;
-    if (message.type === 'error') {
-      finish(request, () => request.reject(new Error(message.message || '深度模型运行失败')));
-      return;
-    }
-    if (message.type === 'result') {
-      const depth = message.depth instanceof ArrayBuffer ? new Float32Array(message.depth) : new Float32Array(message.depth || []);
-      if (!Number.isInteger(message.width) || !Number.isInteger(message.height) || depth.length !== message.width * message.height) {
-        finish(request, () => request.reject(new Error('模型返回了无效的深度矩阵')));
+  function createWorker() {
+    const instance = new WorkerClass(workerUrl, { type: 'module', name: 'lab007-depth' });
+    instance.addEventListener('message', event => {
+      const message = event.data || {};
+      if (!active || active.worker !== instance || message.requestId !== active.requestId) return;
+      if (message.type === 'progress') {
+        active.onProgress(message.progress || {});
         return;
       }
-      finish(request, () => request.resolve({
-        width: message.width,
-        height: message.height,
-        depth,
-        model: message.model,
-        revision: message.revision,
-        backend: message.backend,
-        mode: 'relative',
-      }));
-    }
-  });
+      const request = active;
+      if (message.type === 'error') {
+        finish(request, () => request.reject(new Error(message.message || '深度模型运行失败')));
+        return;
+      }
+      if (message.type === 'result') {
+        const depth = message.depth instanceof ArrayBuffer ? new Float32Array(message.depth) : new Float32Array(message.depth || []);
+        if (!Number.isInteger(message.width) || !Number.isInteger(message.height) || depth.length !== message.width * message.height) {
+          finish(request, () => request.reject(new Error('模型返回了无效的深度矩阵')));
+          return;
+        }
+        finish(request, () => request.resolve({
+          width: message.width,
+          height: message.height,
+          depth,
+          model: message.model,
+          revision: message.revision,
+          backend: message.backend,
+          mode: 'relative',
+        }));
+      }
+    });
+    instance.addEventListener('error', event => {
+      if (!active || active.worker !== instance) return;
+      const request = active;
+      finish(request, () => request.reject(new Error(event.message || '深度 Worker 运行失败')));
+    });
+    return instance;
+  }
 
-  worker.addEventListener('error', event => {
-    if (!active) return;
-    const request = active;
-    finish(request, () => request.reject(new Error(event.message || '深度 Worker 运行失败')));
-  });
+  function getWorker() {
+    if (!worker) worker = createWorker();
+    return worker;
+  }
 
   function cancel() {
     if (!active) return;
     const request = active;
-    worker.postMessage({ type: 'cancel', requestId: request.requestId });
+    request.worker.terminate();
+    if (worker === request.worker) worker = null;
     finish(request, () => request.reject(abortError()));
   }
 
@@ -64,7 +73,8 @@ export function createDepthEngine({ workerUrl, WorkerClass = globalThis.Worker }
     cancel();
     const requestId = `depth-${Date.now()}-${++sequence}`;
     return new Promise((resolve, reject) => {
-      const request = { requestId, resolve, reject, signal, onProgress, abortListener: null };
+      const requestWorker = getWorker();
+      const request = { requestId, resolve, reject, signal, onProgress, abortListener: null, worker: requestWorker };
       request.abortListener = () => cancel();
       active = request;
       if (signal?.aborted) {
@@ -72,13 +82,14 @@ export function createDepthEngine({ workerUrl, WorkerClass = globalThis.Worker }
         return;
       }
       signal?.addEventListener('abort', request.abortListener, { once: true });
-      worker.postMessage({ type: 'infer', requestId, blob });
+      requestWorker.postMessage({ type: 'infer', requestId, blob });
     });
   }
 
   function dispose() {
     cancel();
-    worker.terminate();
+    worker?.terminate();
+    worker = null;
   }
 
   return { infer, cancel, dispose };
