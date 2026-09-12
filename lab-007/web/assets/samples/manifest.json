@@ -1,0 +1,53 @@
+{
+  "schema": "lab007.samples.v1",
+  "samples": [
+    {
+      "id": "indoor",
+      "label": "室内",
+      "path": "assets/samples/indoor.jpg",
+      "width": 1600,
+      "height": 1200,
+      "sha256": "a6f25f63d8e4602ea6b96d4f70bcc4b01dce992edd0648071491307be2b04ef5",
+      "source": {
+        "title": "TV in a Living Room",
+        "creator": "Lisa Anna",
+        "url": "https://www.pexels.com/photo/tv-in-a-living-room-19866439/",
+        "license": "Pexels License",
+        "licenseUrl": "https://www.pexels.com/legal-pages/license/",
+        "modifications": "Centered 4:3 crop, resized to 1600x1200, mild contrast and color adjustment, JPEG optimized"
+      }
+    },
+    {
+      "id": "street",
+      "label": "街道",
+      "path": "assets/samples/street.jpg",
+      "width": 1600,
+      "height": 900,
+      "sha256": "0359f8f9876dac233f7985d88890e2dcd1a6626c223517744e1c26dfd65125b3",
+      "source": {
+        "title": "Panoramic Cityscape of Modern Urban Skyline",
+        "creator": "Zulfugar Karimov",
+        "url": "https://www.pexels.com/video/panoramic-cityscape-of-modern-urban-skyline-36722864/",
+        "license": "Pexels License",
+        "licenseUrl": "https://www.pexels.com/legal-pages/license/",
+        "modifications": "Frame at 4.037 seconds, centered 16:9 crop, bounded color correction, Lanczos resize to 1600x900, JPEG quality 90"
+      }
+    },
+    {
+      "id": "person",
+      "label": "人物",
+      "path": "assets/samples/person.jpg",
+      "width": 1280,
+      "height": 850,
+      "sha256": "7e3ac8c23ca4566afc12cefccf42c4d836440be4e1c5bbf558aecb53bd3940bf",
+      "source": {
+        "title": "Street Craftsman in Olinda",
+        "creator": "Wilfredor",
+        "url": "https://commons.wikimedia.org/wiki/File:Street_Craftsman_in_Olinda.jpg",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "modifications": "Wikimedia Commons 1280-pixel JPEG thumbnail; no further image edits"
+      }
+    }
+  ]
+}

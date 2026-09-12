@@ -72,6 +72,14 @@ calibration data locally. The public app is available at
 [`/Vision-Hu13/lab-006/`](https://hub-fover.github.io/Vision-Hu13/lab-006/).
 See [`lab-006/README.md`](lab-006/README.md) for usage guide.
 
+LAB 007 is a mobile-first monocular relative-depth experience. Take or choose one
+photo, run the pinned Depth Anything V2 Small model in a Dedicated Worker, compare
+the source with its depth map, and inspect up to three points. The photo remains in
+the current browser session; the runtime and model are downloaded from their stated
+sources. Relative results are never labelled as metres. The public app is available
+at [`/Vision-Hu13/lab-007/`](https://hub-fover.github.io/Vision-Hu13/lab-007/).
+See [`lab-007/README.md`](lab-007/README.md) for local and release verification.
+
 ![篮球场透视合成](docs/figures/01-before-after.png)
 
 ## 功能

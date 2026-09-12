@@ -44,6 +44,7 @@ jobs:
             lab-004/web/package-lock.json
             lab-005/web/package-lock.json
             lab-006/web/package-lock.json
+            lab-007/web/package-lock.json
 
       - name: Install LAB 002 Web dependencies
         run: npm ci --prefix lab-002/web
@@ -59,6 +60,9 @@ jobs:
 
       - name: Install LAB 006 Web dependencies
         run: npm ci --prefix lab-006/web
+
+      - name: Install LAB 007 Web dependencies
+        run: npm ci --prefix lab-007/web
 
       - name: Download LAB 005 runtime validated by CI
         uses: actions/download-artifact@v4
@@ -98,6 +102,12 @@ jobs:
       - name: Validate LAB 006 staged static resources
         run: npm run validate:lab006:pages
 
+      - name: Stage LAB 007 static application
+        run: npm run build:lab007
+
+      - name: Validate LAB 007 staged static resources
+        run: npm run validate:lab007:pages
+
       - name: Upload static site
         uses: actions/upload-pages-artifact@v4
         with:
@@ -114,7 +124,7 @@ jobs:
         run: |
           set -euo pipefail
           base="${PAGE_URL%/}"
-          for path in "" "lab-002/" "lab-003/" "lab-004/" "lab-005/" "lab-005/assets/samples/manifest.json" "lab-005/LICENSES.md" "lab-005/vendor/opencv.js" "lab-006/" "lab-006/calibration.html" "lab-006/measurement.html" "lab-006/assets/samples/manifest.json" "lab-006/assets/samples/sample-corners.json" "lab-006/vendor/opencv.js" "lab-006/vendor/opencv.wasm"; do
+          for path in "" "lab-002/" "lab-003/" "lab-004/" "lab-005/" "lab-005/assets/samples/manifest.json" "lab-005/LICENSES.md" "lab-005/vendor/opencv.js" "lab-006/" "lab-006/calibration.html" "lab-006/measurement.html" "lab-006/assets/samples/manifest.json" "lab-006/assets/samples/sample-corners.json" "lab-006/vendor/opencv.js" "lab-006/vendor/opencv.wasm" "lab-007/" "lab-007/assets/samples/manifest.json" "lab-007/vendor/manifest.json" "lab-007/vendor/transformers.web.min.js" "lab-007/vendor/ort-wasm-simd-threaded.asyncify.mjs" "lab-007/vendor/ort-wasm-simd-threaded.asyncify.wasm"; do
             url="$base/$path"
             for attempt in 1 2 3 4 5 6; do
               if curl --fail --silent --show-error --location --max-time 30 "$url" --output /dev/null; then
