@@ -1,4 +1,4 @@
-import { cp, mkdir, readdir, rm, stat } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, rm, stat } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -10,9 +10,10 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const labRoot = resolve(scriptDir, '..');
 const source = resolve(labRoot, 'web');
 const defaultDestination = resolve(scriptDir, '../../web/lab-007');
-const excluded = new Set(['node_modules', 'package.json', 'package-lock.json', 'test-results', 'vendor']);
+const excluded = new Set(['node_modules', 'package.json', 'package-lock.json', '.gitignore', 'test-results', 'vendor']);
 const required = [
   'LICENSES.md', 'THIRD_PARTY_NOTICES.md', 'assets/samples/SOURCES.md',
+  'index.html', 'styles.css', 'config.js', 'js/app.js', 'js/canvas-renderer.js',
   'js/depth-engine.js', 'js/depth-utils.js', 'js/depth.worker.js', 'js/image-utils.js',
   'js/metric-api.js', 'js/model-config.js', 'js/share-card.js', 'js/ui-state.js',
   'js/worker-controller.js', 'js/worker-core.js', 'assets/samples/manifest.json',
@@ -40,7 +41,11 @@ function safeDestination(destination) {
 export async function validatePagesStage(destination = defaultDestination) {
   const root = resolve(destination);
   for (const path of required) {
-    if (!(await stat(resolve(root, path))).isFile()) throw new Error(`missing staged asset: ${path}`);
+    try {
+      if (!(await stat(resolve(root, path))).isFile()) throw new Error();
+    } catch {
+      throw new Error(`missing staged asset: ${path}`);
+    }
   }
   const samples = await validateSamples(root);
   const runtime = await validateRuntime(root);
@@ -48,6 +53,18 @@ export async function validatePagesStage(destination = defaultDestination) {
   if (files.some(path => path.split('/').includes('node_modules') || path === 'package.json' || path === 'package-lock.json')) {
     throw new Error('development dependencies leaked into LAB 007 Pages staging');
   }
+  const html = await readFile(resolve(root, 'index.html'), 'utf8');
+  if (/<script[^>]+src=["']https?:\/\//i.test(html) || /<link[^>]+rel=["']stylesheet["'][^>]+href=["']https?:\/\//i.test(html)) {
+    throw new Error('remote runtime reference in index.html');
+  }
+  if (/(?:src|href)=["']\/(?!\/)/i.test(html)) throw new Error('root-absolute resource in index.html');
+  if (!/viewport-fit=cover/i.test(html)) throw new Error('index.html must respect safe-area viewports');
+  if (!/<input[^>]+type=["']file["'][^>]+capture=["']environment["']/i.test(html)) throw new Error('index.html must expose a rear-camera input');
+  for (const reference of ['./vendor/lucide.min.js', './vendor/qrcode.min.js']) {
+    if (!html.includes(reference)) throw new Error(`missing same-origin runtime reference: ${reference}`);
+  }
+  const worker = await readFile(resolve(root, 'js/depth.worker.js'), 'utf8');
+  if (!worker.includes("from '../vendor/transformers.web.min.js'")) throw new Error('Depth Worker must import same-origin Transformers.js');
   return { files, sampleCount: samples.samples.length, runtimeCount: runtime.files.length };
 }
 

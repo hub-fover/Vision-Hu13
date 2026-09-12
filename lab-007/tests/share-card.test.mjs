@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildShareCaption, normalizeSharePoints } from '../web/js/share-card.js';
+import { buildShareCaption, normalizeSharePoints, shareOrDownload } from '../web/js/share-card.js';
 
 test('relative share text never claims physical units', () => {
   const caption = buildShareCaption([{ value: 0.72 }], 'relative');
@@ -21,4 +21,28 @@ test('share points are capped at three and clamped to the image', () => {
   assert.deepEqual(result.map(({ x, y, value }) => ({ x, y, value })), [
     { x: 0, y: 1, value: 1 }, { x: 0.2, y: 0.3, value: 2 }, { x: 0.4, y: 0.5, value: 3 },
   ]);
+});
+
+test('shareOrDownload downloads the PNG when system sharing fails', async () => {
+  const events = [];
+  const anchor = {
+    click: () => events.push('click'),
+    remove: () => events.push('remove'),
+  };
+  const result = await shareOrDownload(new Blob(['card'], { type: 'image/png' }), {
+    navigatorObject: {
+      canShare: () => true,
+      share: async () => { throw new Error('share cancelled'); },
+    },
+    documentObject: {
+      createElement: () => anchor,
+      body: { append: () => events.push('append') },
+    },
+    createObjectUrl: () => 'blob:card',
+    revokeObjectUrl: url => events.push(`revoke:${url}`),
+  });
+  assert.equal(result, 'downloaded');
+  assert.equal(anchor.download, 'lab-007-depth.png');
+  assert.equal(anchor.href, 'blob:card');
+  assert.deepEqual(events, ['append', 'click', 'remove', 'revoke:blob:card']);
 });

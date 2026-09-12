@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="LAB 007 在浏览器中用单张照片生成相对深度图。">
+  <link rel="canonical" href="https://hub-fover.github.io/Vision-Hu13/lab-007/">
+  <link rel="stylesheet" href="./styles.css">
+  <title>LAB 007 单目深度</title>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="LAB 007 首页">
+      <span class="brand-index">LAB 007</span>
+      <span class="brand-name">MONO DEPTH</span>
+    </a>
+    <button class="icon-button" id="info-button" type="button" aria-label="了解更多" title="了解更多">
+      <i data-lucide="info" aria-hidden="true"></i>
+    </button>
+  </header>
+
+  <main>
+    <section class="screen home-screen" data-screen="home">
+      <div class="home-heading">
+        <h1>LAB 007 单目深度</h1>
+        <p>用一张照片，观察画面中连续的相对深浅。</p>
+      </div>
+      <figure class="hero-media">
+        <img src="./assets/samples/indoor.jpg" alt="室内空间深度示例">
+        <figcaption>所有图片处理都在当前浏览器中完成</figcaption>
+      </figure>
+      <aside class="home-actions">
+      <div class="input-actions" aria-label="选择图片">
+        <label class="primary-button" for="camera-input"><i data-lucide="camera" aria-hidden="true"></i><span>拍照</span></label>
+        <label class="secondary-button" for="album-input"><i data-lucide="image-plus" aria-hidden="true"></i><span>选择照片</span></label>
+        <input class="visually-hidden" id="camera-input" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif" capture="environment">
+        <input class="visually-hidden" id="album-input" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif">
+      </div>
+      <p class="network-note">首次运行会联网下载约 27 MB 模型；照片不会随模型下载上传。</p>
+
+      <section class="samples-section" aria-labelledby="samples-title">
+        <div class="section-heading">
+          <h2 id="samples-title">试试这些场景</h2>
+          <a href="./assets/samples/SOURCES.md">素材来源</a>
+        </div>
+        <div class="sample-grid">
+          <button class="sample-card" type="button" data-sample="./assets/samples/indoor.jpg" aria-label="使用室内示例">
+            <img src="./assets/samples/indoor.jpg" alt="灰色客厅">
+            <span>室内</span>
+          </button>
+          <button class="sample-card" type="button" data-sample="./assets/samples/street.jpg" aria-label="使用街道示例">
+            <img src="./assets/samples/street.jpg" alt="城市远景">
+            <span>街道</span>
+          </button>
+          <button class="sample-card" type="button" data-sample="./assets/samples/person.jpg" aria-label="使用人物示例">
+            <img src="./assets/samples/person.jpg" alt="街头手工艺人">
+            <span>人物</span>
+          </button>
+        </div>
+      </section>
+      </aside>
+    </section>
+
+    <section class="screen processing-screen" data-screen="processing" hidden>
+      <div class="processing-layout">
+        <div class="processing-media"><img id="processing-preview" alt="待处理照片"></div>
+        <div class="processing-copy" id="processing-active">
+          <p class="status-line" id="processing-status">准备图片</p>
+          <h2>正在理解画面层次</h2>
+          <ol class="stage-list">
+            <li data-stage="0"><span>1</span>准备图片</li>
+            <li data-stage="1"><span>2</span>加载模型</li>
+            <li data-stage="2"><span>3</span>推理深度</li>
+          </ol>
+          <div class="progress-track" role="progressbar" aria-label="处理进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <span id="progress-fill"></span>
+          </div>
+          <button class="text-button" id="cancel-button" type="button">取消处理</button>
+        </div>
+        <div class="processing-copy error-copy" id="processing-error" hidden>
+          <i data-lucide="circle-alert" aria-hidden="true"></i>
+          <h2 id="error-title">深度模型运行失败</h2>
+          <p id="error-message">请检查网络后重试。</p>
+          <div class="error-actions">
+            <button class="primary-button" id="retry-button" type="button">重试</button>
+            <button class="secondary-button" id="choose-again-button" type="button">重新选择</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen result-screen" data-screen="result" hidden>
+      <div class="result-heading">
+        <div>
+          <p class="status-line" id="backend-label">本地推理</p>
+          <h2>画面深度</h2>
+        </div>
+        <button class="icon-button" id="new-image-button" type="button" aria-label="选择新图片" title="选择新图片">
+          <i data-lucide="image-plus" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="result-visual" id="result-visual" data-view="compare" style="--compare: 50%; --ratio: 4 / 3">
+        <canvas id="source-canvas" aria-label="原始照片"></canvas>
+        <canvas id="depth-canvas" aria-label="相对深度图"></canvas>
+        <span class="compare-divider" aria-hidden="true"><b><i data-lucide="move-horizontal"></i></b></span>
+        <div class="marker-layer" id="marker-layer" aria-live="polite"></div>
+      </div>
+
+      <div class="segmented-control" role="group" aria-label="结果视图">
+        <button type="button" data-view-button="original" aria-pressed="false">原图</button>
+        <button type="button" data-view-button="depth" aria-pressed="false">深度图</button>
+        <button type="button" data-view-button="compare" aria-pressed="true">对比</button>
+      </div>
+      <label class="compare-control" for="compare-slider">
+        <span>对比位置</span>
+        <input id="compare-slider" type="range" min="10" max="90" value="50">
+      </label>
+
+      <div class="reading-row">
+        <span>当前读数</span>
+        <strong id="current-reading">未选择位置</strong>
+      </div>
+      <p class="relative-notice">仅表示相对深浅，不是实际距离</p>
+
+      <div class="result-actions">
+        <button class="secondary-button" id="metric-button" type="button" disabled>米制深度未连接</button>
+        <button class="primary-button" id="share-button" type="button"><i data-lucide="share-2" aria-hidden="true"></i><span>分享结果</span></button>
+      </div>
+      <p class="action-status" id="action-status" role="status" aria-live="polite"></p>
+
+      <details class="learn-more">
+        <summary>了解更多</summary>
+        <div>
+          <h3>相对深度是什么</h3>
+          <p>颜色和值只比较同一张照片里的前后层次，不能换算成米，也不能替代测距设备。</p>
+          <h3>本地处理与联网下载</h3>
+          <p>照片在浏览器内完成预处理和相对深度推理。首次运行仍需从模型托管站下载固定版本的模型文件，浏览器随后可缓存这些文件。</p>
+          <h3>可选米制服务</h3>
+          <p>只有配置独立服务后才可使用。发送照片前会再次确认，返回值会单独标记为米制结果。</p>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <dialog class="info-dialog" id="info-dialog">
+    <form method="dialog">
+      <button class="icon-button dialog-close" value="close" aria-label="关闭" title="关闭"><i data-lucide="x" aria-hidden="true"></i></button>
+      <h2>关于 LAB 007</h2>
+      <p>Depth Anything V2 Small 根据单张照片预测连续的相对深度。结果适合观察空间层次，不提供真实距离。</p>
+      <p>模型固定到公开版本，推理优先使用 WebGPU，不支持时回退到单线程 WASM。</p>
+      <nav><a href="./LICENSES.md">许可证</a><a href="./THIRD_PARTY_NOTICES.md">第三方说明</a></nav>
+    </form>
+  </dialog>
+
+  <dialog class="metric-dialog" id="metric-dialog">
+    <form method="dialog">
+      <h2>上传照片获取米制深度？</h2>
+      <p>这会把当前照片发送到已配置的远端服务。相对深度的本地处理不受影响。</p>
+      <div class="dialog-actions"><button class="secondary-button" value="cancel">取消</button><button class="primary-button" id="metric-confirm" value="confirm">确认上传</button></div>
+    </form>
+  </dialog>
+
+  <script src="./vendor/lucide.min.js"></script>
+  <script src="./vendor/qrcode.min.js"></script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
