@@ -15,6 +15,8 @@ ALLOWED_PUBLICATION_FILES = {
 }
 ALLOWED_PLAN_FILES = {
     "docs/superpowers/plans/2026-07-31-lab-003-exposure-fusion.md",
+    "docs/superpowers/plans/2026-09-11-monocular-depth-lab-007.md",
+    "docs/superpowers/specs/2026-09-11-monocular-depth-lab-007-design.md",
 }
 
 
