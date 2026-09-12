@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -33,6 +33,8 @@ test('vendorRuntime creates a deterministic same-origin browser runtime', async 
     ]);
     assert.ok(result.files.every(file => /^[a-f0-9]{64}$/.test(file.sha256) && file.bytes > 0));
     assert.ok(result.files.reduce((total, file) => total + file.bytes, 0) < 45 * 1024 * 1024);
+    const transformers = await readFile(join(temporary, 'vendor/transformers.web.min.js'), 'utf8');
+    assert.doesNotMatch(transformers, /(?:from|import\()["'](?:onnxruntime(?:-web)?|@huggingface)\//);
     assert.deepEqual(await validateRuntime(temporary), result);
   } finally {
     await rm(temporary, { recursive: true, force: true });

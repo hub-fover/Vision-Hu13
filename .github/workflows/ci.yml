@@ -138,6 +138,8 @@ jobs:
             lab-003/web/package-lock.json
             lab-004/web/package-lock.json
             lab-005/web/package-lock.json
+            lab-006/web/package-lock.json
+            lab-007/web/package-lock.json
 
       - name: Set up release-validation Python
         uses: actions/setup-python@v6
@@ -173,6 +175,9 @@ jobs:
       - name: Install LAB 006 Web dependencies
         run: npm ci --prefix lab-006/web
 
+      - name: Install LAB 007 Web dependencies
+        run: npm ci --prefix lab-007/web
+
       - name: Vendor LAB 005 same-origin OpenCV runtime
         run: npm --prefix lab-005/web run vendor:opencv
 
@@ -185,8 +190,8 @@ jobs:
       - name: Run LAB 002 Node tests
         run: npm run test:lab002:web
 
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Run LAB 001 browser acceptance tests
         run: npm run test:e2e
@@ -248,6 +253,9 @@ jobs:
       - name: Validate LAB 006 Pages staging
         run: npm run validate:lab006:pages
 
+      - name: Run LAB 007 release gate
+        run: npm run test:lab007:release
+
       - name: Upload validated LAB 005 OpenCV runtime
         uses: actions/upload-artifact@v4
         with:
@@ -269,5 +277,6 @@ jobs:
             lab-003/playwright-report/
             lab-004/playwright-report/
             lab-005/playwright-report/
+            lab-007/playwright-report/
           if-no-files-found: ignore
           retention-days: 7

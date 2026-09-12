@@ -13,13 +13,14 @@ const runtimeFiles = [
   [onnxRuntimeLicense, 'licenses/onnxruntime-web.txt'],
   ['node_modules/lucide/LICENSE', 'licenses/lucide.txt'],
   ['node_modules/qrcode/license', 'licenses/qrcode.txt'],
-  ['node_modules/@huggingface/transformers/dist/transformers.web.min.js', 'transformers.web.min.js'],
   ['node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.mjs', 'ort-wasm-simd-threaded.asyncify.mjs'],
   ['node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.wasm', 'ort-wasm-simd-threaded.asyncify.wasm'],
   ['node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.mjs'],
   ['node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm', 'ort-wasm-simd-threaded.wasm'],
   ['node_modules/lucide/dist/umd/lucide.min.js', 'lucide.min.js'],
 ];
+
+const generatedRuntimeFiles = ['qrcode.min.js', 'transformers.web.min.js'];
 
 async function packageVersion(dependencyRoot, relativePath) {
   const payload = JSON.parse(await readFile(resolve(dependencyRoot, relativePath), 'utf8'));
@@ -68,6 +69,17 @@ export async function vendorRuntime({ webRoot = defaultWebRoot, dependencyRoot =
   const require = createRequire(resolve(modulesRoot, 'package.json'));
   const { build } = require('esbuild');
   await build({
+    entryPoints: [resolve(modulesRoot, 'node_modules/@huggingface/transformers/dist/transformers.web.min.js')],
+    outfile: resolve(vendorRoot, 'transformers.web.min.js'),
+    bundle: true,
+    minify: true,
+    format: 'esm',
+    platform: 'browser',
+    target: ['es2020'],
+    conditions: ['onnxruntime-web-use-extern-wasm'],
+    legalComments: 'none',
+  });
+  await build({
     entryPoints: [resolve(modulesRoot, 'node_modules/qrcode/lib/browser.js')],
     outfile: resolve(vendorRoot, 'qrcode.min.js'),
     bundle: true,
@@ -79,7 +91,7 @@ export async function vendorRuntime({ webRoot = defaultWebRoot, dependencyRoot =
     legalComments: 'none',
   });
 
-  const files = [...runtimeFiles.map(([, destination]) => destination), 'qrcode.min.js'].sort();
+  const files = [...runtimeFiles.map(([, destination]) => destination), ...generatedRuntimeFiles].sort();
   const manifest = {
     schema: 'lab007.runtime.v1',
     packages: {

@@ -7,6 +7,7 @@ import {
   configureTransformers,
   createInferencePlan,
 } from '../web/js/model-config.js';
+import * as modelConfig from '../web/js/model-config.js';
 
 test('inference plan uses pinned q4 model and falls back from WebGPU to WASM', () => {
   assert.equal(MODEL_ID, 'onnx-community/depth-anything-v2-small');
@@ -18,6 +19,17 @@ test('inference plan uses pinned q4 model and falls back from WebGPU to WASM', (
   assert.deepEqual(createInferencePlan({ hasWebGpu: false }), [
     { backend: 'wasm', device: 'wasm', dtype: 'q4' },
   ]);
+  assert.deepEqual(createInferencePlan({ hasWebGpu: true, forceBackend: 'wasm' }), [
+    { backend: 'wasm', device: 'wasm', dtype: 'q4' },
+  ]);
+});
+
+test('WebGPU availability requires a usable adapter and treats probe errors as unavailable', async () => {
+  const probe = modelConfig.hasUsableWebGpu;
+  assert.equal(await probe?.({ gpu: { requestAdapter: async () => ({}) } }), true);
+  assert.equal(await probe?.({ gpu: { requestAdapter: async () => null } }), false);
+  assert.equal(await probe?.({ gpu: { requestAdapter: async () => { throw new Error('blocked'); } } }), false);
+  assert.equal(await probe?.({}), false);
 });
 
 test('Transformers environment uses browser cache and same-origin single-threaded WASM', () => {
