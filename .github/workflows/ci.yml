@@ -9,6 +9,18 @@ permissions:
   contents: read
 
 jobs:
+  feature-extraction:
+    name: Feature extraction numerical regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - name: Run feature extraction tests
+        working-directory: feature-extraction
+        run: npm run test:numeric
+
   python:
     name: Python ${{ matrix.python-version }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}

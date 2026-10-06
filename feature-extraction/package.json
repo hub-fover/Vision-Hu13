@@ -1,0 +1,14 @@
+{
+  "name": "feature-extraction-teaching-lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node scripts/serve.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:numeric": "node --test tests/numerics.test.mjs tests/edges.test.mjs tests/geometry.test.mjs tests/localization.test.mjs tests/corners.test.mjs tests/canvas-coordinates.test.mjs tests/contour.test.mjs tests/hough-cell.test.mjs tests/hough-selection.test.mjs tests/localization-boundary.test.mjs tests/localization-failure.test.mjs tests/localization-upload.test.mjs tests/matching-scene.test.mjs tests/matching-truth.test.mjs tests/matching.test.mjs tests/pair-input.test.mjs tests/sift-invariance.test.mjs tests/sift-scene.test.mjs tests/sift.test.mjs tests/snake.test.mjs tests/source-mapping.test.mjs tests/transfer.test.mjs",
+    "test:browser": "node --test tests/browser.test.mjs tests/mobile-matrix.test.mjs tests/worker-budget.test.mjs tests/worker-input.test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.0"
+  }
+}

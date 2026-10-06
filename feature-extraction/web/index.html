@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>特征提取 LAB · Vision Hub</title><link rel="stylesheet" href="style.css"></head>
+<body data-state="loading">
+<header class="topbar"><a class="brand" href="./">VISION HUB <span>特征提取 LAB</span></a><label>实验 <select id="scene"><option value="01">01 边缘从哪里来</option><option value="02">02 一步步运行 Canny</option></select></label><button id="teacher" aria-pressed="false">教师演示</button></header>
+<main>
+  <section class="heading"><div><p class="eyebrow" id="chapter">边缘检测</p><h1 id="title">边缘从哪里来</h1><p id="question">求导为什么会放大噪声？平滑又会损失什么？</p></div><label>预设案例<select id="preset"></select></label></section>
+  <div class="workspace">
+    <section class="visuals" aria-label="实验画布">
+      <div class="canvas-tools"><label>同步缩放 <input id="zoom" type="range" min="1" max="4" step=".1" value="1"></label><button id="home-view">适应画布</button><span>拖动画布平移；01 点击或拖动采样线</span></div>
+      <div class="panes">
+        <figure><figcaption>原始输入 <span id="source-kind">合成教学数据</span></figcaption><canvas id="input" width="480" height="300" aria-label="原始输入画布"></canvas></figure>
+        <figure><figcaption>中间过程 <span id="stage-name"></span></figcaption><canvas id="process" width="480" height="300" aria-label="中间过程画布"></canvas></figure>
+        <figure><figcaption>最终结果 <span id="result-name"></span></figcaption><canvas id="result" width="480" height="300" aria-label="最终结果画布"></canvas></figure>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="playback"><button id="step">单步</button><button id="play">播放阶段</button><label>阶段 <select id="stage"></select></label><label><input type="checkbox" id="original">查看原图</label><label>前后对比<input id="compare" type="range" min="0" max="100" value="0"></label></div>
+      <section id="profile-panel"><h2>采样线的真实响应</h2><div class="plots"><figure><figcaption>灰度 I（0–255）</figcaption><canvas id="gray-plot" width="480" height="180"></canvas></figure><figure><figcaption>一阶导数（灰度 / px）</figcaption><canvas id="first-plot" width="480" height="180"></canvas></figure><figure><figcaption>二阶导数（灰度 / px²）</figcaption><canvas id="second-plot" width="480" height="180"></canvas></figure></div></section>
+      <p id="status" role="status" aria-live="polite">正在计算…</p><p id="metrics"></p><p id="source-note"></p>
+    </section>
+    <aside aria-label="参数">
+      <h2>关键参数</h2><div id="custom-controls" hidden></div>
+      <label>平滑尺度 σ <output id="sigma-value"></output><input id="sigma" type="range" min="0" max="4" step=".1" value="1.2"><small>像素单位；越大，抑制噪声越强。</small></label>
+      <label>噪声标准差 <output id="noise-value"></output><input id="noise" type="range" min="0" max="50" step="1" value="0"><small>固定种子高斯噪声，复位可重现。</small></label>
+      <div id="edge-controls"><label>结果算子<select id="method"><option value="sobel">Sobel</option><option value="scharr">Scharr</option><option value="log">LoG</option></select></label><label>采样线 y <output id="row-value"></output><input id="row" type="range" min="0" max="299" step="1" value="150"></label></div>
+      <div id="canny-controls" hidden><label>低阈值 <output id="low-value"></output><input id="low" type="range" min="0" max="120" step="1" value="10"></label><label>高阈值 <output id="high-value"></output><input id="high" type="range" min="1" max="180" step="1" value="25"><small>幅值以归一化 Sobel 的灰度 / px 表示，低阈值 ≤ 高阈值。</small></label></div>
+      <div class="secondary"><label>计算质量<select id="quality"><option value="640">预览 · 最长边 640px</option><option value="1280">高质量 · 最长边 1280px</option></select></label><label>上传自己的图像<input id="upload" type="file" accept="image/*"><small>图片只在本机处理。</small></label></div>
+      <button id="draw-contour" hidden>绘制初始轮廓</button>
+      <label id="second-upload-label" hidden>匹配第二张图像<input id="upload-second" type="file" accept="image/*"><small>保留比例放入第一张图的分析坐标；不上传。</small></label>
+      <button id="reset" class="primary">复位全部</button><button id="cancel">取消计算</button><div class="secondary"><button id="export-png">导出 PNG</button><button id="export-json">导出参数</button><button id="link">复制场景链接</button></div>
+    </aside>
+  </div>
+  <details><summary>原理 · 离散化、公式与课程对应</summary><div id="theory"></div><p>课程依据：用户提供的本章知识点清单；尚未提供本章 PPT，未标注页码。</p><p>素材：<a href="https://www.pexels.com/video/camera-panning-over-mountains-9943097/" target="_blank" rel="noopener">cottonbro studio · 山景原视频</a>，<a href="https://www.pexels.com/legal-pages/license/" target="_blank" rel="noopener">Pexels License</a>；<a href="assets/manifest.json" target="_blank">完整来源台账</a>。</p></details>
+  <footer>计算机视觉课程 · 浏览器本地计算 · 01–10 均已接入，完整验收仍在进行；不含图像拼接及人脸模块</footer>
+</main><script type="module" src="app.mjs"></script>
+</body></html>

@@ -108,6 +108,13 @@ jobs:
       - name: Validate LAB 007 staged static resources
         run: npm run validate:lab007:pages
 
+      - name: Stage feature extraction teaching LAB
+        run: |
+          mkdir -p web/feature-extraction
+          cp -a feature-extraction/web/. web/feature-extraction/
+          test -f web/feature-extraction/compute.worker.mjs
+          test -f web/feature-extraction/assets/mountains-02.jpg
+
       - name: Upload static site
         uses: actions/upload-pages-artifact@v4
         with:

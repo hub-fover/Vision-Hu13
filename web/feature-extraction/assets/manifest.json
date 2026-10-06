@@ -1,0 +1,30 @@
+{
+  "assets": [{
+    "file": "mountains-02.jpg",
+    "sha256": "df26d23285d42851314d2a9291b52b6c9533ce8d2fc1e3b387a0a6fd0202a924",
+    "title": "Camera Panning Over Mountains — frame 212",
+    "creator": "cottonbro studio",
+    "sourceUrl": "https://www.pexels.com/video/camera-panning-over-mountains-9943097/",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/legal-pages/license/",
+    "downloadedAt": "2026-07-29",
+    "videoFrameSeconds": 8.48,
+    "isGenerated": false,
+    "isThirdParty": true,
+    "modifications": "Reused verified LAB 002 independent video frame 212: centered 16:9 crop, bounded gray-world correction, Lanczos 1600x900, JPEG quality 90. No artificial image transformation to create this second frame."
+  },{
+    "file": "mountains.jpg",
+    "sha256": "bc798aaa9eec3c6169f946ad3a481ee86ebbe1cddd3b4aa90e8cdf384c1b736d",
+    "title": "Camera Panning Over Mountains",
+    "creator": "cottonbro studio",
+    "sourceUrl": "https://www.pexels.com/video/camera-panning-over-mountains-9943097/",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/legal-pages/license/",
+    "downloadedAt": "2026-07-29",
+    "videoFrameSeconds": 5.64,
+    "isGenerated": false,
+    "isThirdParty": true,
+    "modifications": "Reused verified LAB 002 frame: center crop 16:9, bounded gray-world correction, Lanczos 1600x900, JPEG quality 90. Classroom display resizes and converts to grayscale locally."
+  }],
+  "synthetic": "Explicit mathematical teaching data, never photographs: 01/02 step, bright line, roof and weak edges; 03 flat/edge/corner patterns; 04 line/circle/ellipse point sets with seeded noise and outliers; 05 Gaussian spot/erf edge/no-signal profiles and repeated seeded trials; 06 clear/weak/concave targets and initial contours; 07 geometric edge points, known radial gradients and seeded noise points; 08 Gaussian blobs/flat field; 09 repeated blobs/random texture; 10 checkerboard/grid and correspondences. Photo rotation, scale, blur and projective comparison are local artificial transformations of attributed real inputs, not independently captured frames. Only mountains.jpg and mountains-02.jpg are independent real-video frames."
+}
