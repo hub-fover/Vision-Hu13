@@ -1,0 +1,289 @@
+{
+  "source": "https://raw.githubusercontent.com/opencv/opencv/4.10.0/samples/data/vtest.avi",
+  "repository": "https://github.com/opencv/opencv/tree/4.10.0/samples/data",
+  "license": "Apache-2.0 (OpenCV repository distribution; no separate sample notice)",
+  "originalSha256": "45cddc9490be69345cbdab64ca583be65987e864ca408038e648db99e10516cf",
+  "originalFps": 10.0,
+  "description": "First 6 seconds of genuine OpenCV vtest pedestrian footage. Resized and encoded; no generated or interpolated frames. JPEG sequence samples every 2 original frames.",
+  "width": 384,
+  "height": 288,
+  "frames": [
+    {
+      "file": "frame-000.jpg",
+      "time": 0.0,
+      "sourceFrame": 0
+    },
+    {
+      "file": "frame-001.jpg",
+      "time": 0.2,
+      "sourceFrame": 2
+    },
+    {
+      "file": "frame-002.jpg",
+      "time": 0.4,
+      "sourceFrame": 4
+    },
+    {
+      "file": "frame-003.jpg",
+      "time": 0.6,
+      "sourceFrame": 6
+    },
+    {
+      "file": "frame-004.jpg",
+      "time": 0.8,
+      "sourceFrame": 8
+    },
+    {
+      "file": "frame-005.jpg",
+      "time": 1.0,
+      "sourceFrame": 10
+    },
+    {
+      "file": "frame-006.jpg",
+      "time": 1.2,
+      "sourceFrame": 12
+    },
+    {
+      "file": "frame-007.jpg",
+      "time": 1.4,
+      "sourceFrame": 14
+    },
+    {
+      "file": "frame-008.jpg",
+      "time": 1.6,
+      "sourceFrame": 16
+    },
+    {
+      "file": "frame-009.jpg",
+      "time": 1.8,
+      "sourceFrame": 18
+    },
+    {
+      "file": "frame-010.jpg",
+      "time": 2.0,
+      "sourceFrame": 20
+    },
+    {
+      "file": "frame-011.jpg",
+      "time": 2.2,
+      "sourceFrame": 22
+    },
+    {
+      "file": "frame-012.jpg",
+      "time": 2.4,
+      "sourceFrame": 24
+    },
+    {
+      "file": "frame-013.jpg",
+      "time": 2.6,
+      "sourceFrame": 26
+    },
+    {
+      "file": "frame-014.jpg",
+      "time": 2.8,
+      "sourceFrame": 28
+    },
+    {
+      "file": "frame-015.jpg",
+      "time": 3.0,
+      "sourceFrame": 30
+    },
+    {
+      "file": "frame-016.jpg",
+      "time": 3.2,
+      "sourceFrame": 32
+    },
+    {
+      "file": "frame-017.jpg",
+      "time": 3.4,
+      "sourceFrame": 34
+    },
+    {
+      "file": "frame-018.jpg",
+      "time": 3.6,
+      "sourceFrame": 36
+    },
+    {
+      "file": "frame-019.jpg",
+      "time": 3.8,
+      "sourceFrame": 38
+    },
+    {
+      "file": "frame-020.jpg",
+      "time": 4.0,
+      "sourceFrame": 40
+    },
+    {
+      "file": "frame-021.jpg",
+      "time": 4.2,
+      "sourceFrame": 42
+    },
+    {
+      "file": "frame-022.jpg",
+      "time": 4.4,
+      "sourceFrame": 44
+    },
+    {
+      "file": "frame-023.jpg",
+      "time": 4.6,
+      "sourceFrame": 46
+    },
+    {
+      "file": "frame-024.jpg",
+      "time": 4.8,
+      "sourceFrame": 48
+    },
+    {
+      "file": "frame-025.jpg",
+      "time": 5.0,
+      "sourceFrame": 50
+    },
+    {
+      "file": "frame-026.jpg",
+      "time": 5.2,
+      "sourceFrame": 52
+    },
+    {
+      "file": "frame-027.jpg",
+      "time": 5.4,
+      "sourceFrame": 54
+    },
+    {
+      "file": "frame-028.jpg",
+      "time": 5.6,
+      "sourceFrame": 56
+    },
+    {
+      "file": "frame-029.jpg",
+      "time": 5.8,
+      "sourceFrame": 58
+    }
+  ],
+  "video": "pedestrians.mp4",
+  "assets": [
+    {
+      "file": "frame-000.jpg",
+      "sha256": "cf9fa93e2eef5c054ea644bdf7bc1ac8c7aa642f6d8f83ec2e2f2b04c0dbaf8a"
+    },
+    {
+      "file": "frame-001.jpg",
+      "sha256": "b5c83f49da53d386391d5563eb9c64d88cc9d655db3f8f24f50c042e3ae22588"
+    },
+    {
+      "file": "frame-002.jpg",
+      "sha256": "64e3a0ffeb004c92b24aeb99ecffc04a897a64233f9880a10fb3a5d60487aa16"
+    },
+    {
+      "file": "frame-003.jpg",
+      "sha256": "1479d77c09dd757b4eece115c50fe5acb76ddeda5a59c697d0b9919342aaef79"
+    },
+    {
+      "file": "frame-004.jpg",
+      "sha256": "f0bdc50d706fb1437445372499902d36b9ea3d4e77a4484e8eff2bd1172666fe"
+    },
+    {
+      "file": "frame-005.jpg",
+      "sha256": "f13b5aca0b3816565ad7572777e073490ced65be21264fb7c4d1c844ad5e8713"
+    },
+    {
+      "file": "frame-006.jpg",
+      "sha256": "78a9dda768fea2bb3736b61fc239f7cbc769d6a5315b6e5e053c0b809dc0c382"
+    },
+    {
+      "file": "frame-007.jpg",
+      "sha256": "fc6332c824f965ab457275bb190a00e4fd2cd16f17c35149ef56c0e5a69b7c06"
+    },
+    {
+      "file": "frame-008.jpg",
+      "sha256": "13968954273841bed195d4be30369191afb87c1228e0de81c8b3ee5fe6ca56cc"
+    },
+    {
+      "file": "frame-009.jpg",
+      "sha256": "14543b5777952f236eeb2aae6a8845faa85a63b6af922278d3227a8ea7e24ce7"
+    },
+    {
+      "file": "frame-010.jpg",
+      "sha256": "29178ad4ec6512430ce15ed72920b99be89d89b15eb7b448fa9475596069d51e"
+    },
+    {
+      "file": "frame-011.jpg",
+      "sha256": "a507055fa6e99b0ea42f7c173a2b997f9bf435ab5ae2bb14a89fdb09c9c6b700"
+    },
+    {
+      "file": "frame-012.jpg",
+      "sha256": "d8048a8af9d6635e383295e5ff772742678b9ea15766b823fd9a2603b36dd7bd"
+    },
+    {
+      "file": "frame-013.jpg",
+      "sha256": "272ea6132e1f8932f0aba17598bca9d51040275dcaafa4fa0464d9fd110a4ce7"
+    },
+    {
+      "file": "frame-014.jpg",
+      "sha256": "127bca6506fa404142fe2746f626a811e9205ff6321677a8754a86050fe84f32"
+    },
+    {
+      "file": "frame-015.jpg",
+      "sha256": "0532c0995646a05665f6015fe4531bd3bd0148ed2f2282fd378cd26adb828338"
+    },
+    {
+      "file": "frame-016.jpg",
+      "sha256": "9091d19368a65ab2756a667157521c3e988d45b8c731ea4e2f08676c1a2e2087"
+    },
+    {
+      "file": "frame-017.jpg",
+      "sha256": "69840ac69a5dee0c5c14fee2f00d8cf11c45757ceea3c58a23123e69adb3781b"
+    },
+    {
+      "file": "frame-018.jpg",
+      "sha256": "a25d672cf8b22f91651ccf13aebfb355c4ec58fabd7991ecfec36049b6ff24b3"
+    },
+    {
+      "file": "frame-019.jpg",
+      "sha256": "ebd7580a7260002407979ee457d5660fb305210781cfd047afb0714b3b7c280b"
+    },
+    {
+      "file": "frame-020.jpg",
+      "sha256": "8316754762a7c6e504a14fbbde49e312e483f5b6023ccf812bf6dcdc0ffc129a"
+    },
+    {
+      "file": "frame-021.jpg",
+      "sha256": "0097378aebdbeb642be694771f3e072d3ad6c479135c97b097e24506341a4214"
+    },
+    {
+      "file": "frame-022.jpg",
+      "sha256": "da6c887cec2cf99d0644801df0537733815b52a5025e291ecfe31da92f6fdc6c"
+    },
+    {
+      "file": "frame-023.jpg",
+      "sha256": "724a0bba2a3561b664fcc88ec9e0085217555e1bb28be1413316e7c643c6f292"
+    },
+    {
+      "file": "frame-024.jpg",
+      "sha256": "00e72713244417831438ebb7409e488c56c1b3628ae28b9c8f8c46f186612923"
+    },
+    {
+      "file": "frame-025.jpg",
+      "sha256": "2a1388340b0ef5182b6b310c5af1bb712705d6948e998749ad5480e22ed826f7"
+    },
+    {
+      "file": "frame-026.jpg",
+      "sha256": "014d62bd2227181101afd1d8731bb838e20eec24c7d852e1ea9458ae8cc3d848"
+    },
+    {
+      "file": "frame-027.jpg",
+      "sha256": "887d4e27de8e7034cc19e53627b5c6248d10fea662bf2995c6d98a0138f22257"
+    },
+    {
+      "file": "frame-028.jpg",
+      "sha256": "b512d12d87db46ab037bde88b12cfffededbafc353a846a34294330492cb9a80"
+    },
+    {
+      "file": "frame-029.jpg",
+      "sha256": "b98683da993736e48adcfc8575390c28b9b20d0105a90eb7ea7df0a6e337062f"
+    },
+    {
+      "file": "pedestrians.mp4",
+      "sha256": "3cee5381e6baa3107347c2f56f2a3549188b26a19ec4939b8298514a356d944d"
+    }
+  ]
+}
