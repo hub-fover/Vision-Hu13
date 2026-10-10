@@ -68,7 +68,9 @@
     "serve": "node scripts/serve_web.mjs",
     "test:course:real": "node --test course-labs/tests/real-*.test.mjs",
     "test:course:real-browser": "node course-labs/tests/real-browser.mjs",
-    "test:course:temporal-browser": "node course-labs/tests/temporal-browser.mjs"
+    "test:course:temporal-browser": "node course-labs/tests/temporal-browser.mjs",
+    "build:course:independent": "node course-labs/scripts/build-independent.mjs",
+    "test:course:independent": "npm run build:course:independent && node --test course-labs/tests/independent-release.test.mjs && node course-labs/tests/independent-browser.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.0"

@@ -4,7 +4,7 @@ const source=resolve(import.meta.dirname,'..'),dest=resolve(source,'../web/cours
 if(relative(resolve(source,'../web'),dest)!=='course-labs')throw Error('发布目录超出目标范围');
 try{if((await lstat(dest)).isSymbolicLink())throw Error('发布目录不能是符号链接');await rm(dest,{recursive:true,force:true});}catch(e){if(e.code!=='ENOENT')throw e;}
 await mkdir(dest,{recursive:true});
-for(const file of ['index.html','app.mjs','style.css','README.md','TEACHER.md','LICENSES.md'])await cp(resolve(source,file),resolve(dest,file));
+for(const file of ['index.html','app.mjs','independent-sites.mjs','style.css','README.md','TEACHER.md','LICENSES.md'])await cp(resolve(source,file),resolve(dest,file));
 for(const folder of ['real','assets'])await cp(resolve(source,folder),resolve(dest,folder),{recursive:true});
 const shell=await readFile(resolve(source,'lab.html'),'utf8');
 for(const id of ['004','005','006','007','008']){

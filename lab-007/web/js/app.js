@@ -31,6 +31,16 @@ let sourceUrl = null;
 let sourceImage = null;
 let abortController = null;
 let taskSequence = 0;
+let selectionSequence = 0;
+let sampleController = null;
+
+function beginSelection() {
+  selectionSequence += 1;
+  sampleController?.abort();
+  abortController?.abort();
+  taskSequence += 1;
+  return selectionSequence;
+}
 
 function abortError() {
   return new DOMException('处理已取消', 'AbortError');
@@ -125,6 +135,7 @@ async function runCurrentImage() {
     if (taskId !== taskSequence) return;
     processedBlob = prepared.blob;
     sourceImage = await loadImage(replaceSourceUrl(processedBlob));
+    if (taskId !== taskSequence) return;
     setProgress(25, 1, '加载模型');
     const result = await engine.infer(processedBlob, { signal: abortController.signal, onProgress: onInferenceProgress });
     if (taskId !== taskSequence) return;
@@ -204,13 +215,23 @@ async function requestConfirmedMetric() {
 
 document.querySelectorAll('input[type=file]').forEach(input => input.addEventListener('change', () => {
   const [file] = input.files || [];
-  if (file) selectBlob(file);
+  if (file) { beginSelection(); selectBlob(file); }
   input.value = '';
 }));
 document.querySelectorAll('[data-sample]').forEach(button => button.addEventListener('click', async () => {
-  const response = await fetch(button.dataset.sample);
-  if (!response.ok) return showError(new Error('示例图片加载失败'));
-  await selectBlob(await response.blob());
+  const selectionId = beginSelection();
+  sampleController = new AbortController();
+  try {
+    const response = await fetch(button.dataset.sample, { signal: sampleController.signal });
+    if (!response.ok) throw new Error('示例图片加载失败');
+    const blob = await response.blob();
+    if (selectionId !== selectionSequence) return;
+    await selectBlob(blob);
+  } catch (error) {
+    if (selectionId !== selectionSequence || error.name === 'AbortError') return;
+    showScreen('processing');
+    showError(error);
+  }
 }));
 document.querySelector('#cancel-button').addEventListener('click', () => abortController?.abort());
 document.querySelector('#retry-button').addEventListener('click', runCurrentImage);
