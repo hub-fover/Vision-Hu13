@@ -29,6 +29,7 @@ jobs:
           path: |
             .superpowers/sdd/course-labs-plan/qa/
             .superpowers/sdd/real-image-labs/qa/
+            .superpowers/sdd/real-only-course/qa/
           include-hidden-files: true
           if-no-files-found: ignore
 

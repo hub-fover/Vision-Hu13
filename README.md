@@ -2,15 +2,15 @@
 
 ## 课程实验室：004–008章
 
-[课程总入口](https://hub-fover.github.io/Vision-Hu13/course-labs/)：五个章节网站、24个浏览器本地计算实验，包含原理、真实阶段、参数对照、失败分析、PNG/JSON导出及教师说明。
+[课程总入口](https://hub-fover.github.io/Vision-Hu13/course-labs/)：五个章节网站、9个真实数据实验，使用实拍照片与视频帧；支持实际计算、参数调整、失败分析与教师说明。
 
 |章节|在线学习|
 |---|---|
-|004 三维重建1|[光照、焦点与主动测量](https://hub-fover.github.io/Vision-Hu13/course-labs/chapter-004/)|
-|005 三维重建2|[几何、运动与多视图](https://hub-fover.github.io/Vision-Hu13/course-labs/chapter-005/)|
-|006 视觉感知|[跟踪、分割与外观](https://hub-fover.github.io/Vision-Hu13/course-labs/chapter-006/)|
-|007 机器学习|[从数据到可训练网络](https://hub-fover.github.io/Vision-Hu13/course-labs/chapter-007/)|
-|008 深度学习|[轻量真实计算与机制](https://hub-fover.github.io/Vision-Hu13/course-labs/chapter-008/)|
+|004 三维重建1|[真实照片单目深度](https://hub-fover.github.io/Vision-Hu13/course-labs/chapter-004/)|
+|005 三维重建2|[实拍双目与光流](https://hub-fover.github.io/Vision-Hu13/course-labs/chapter-005/)|
+|006 视觉感知|[实拍帧差、跟踪与颜色分割](https://hub-fover.github.io/Vision-Hu13/course-labs/chapter-006/)|
+|007 机器学习|[真实照片特征分类训练](https://hub-fover.github.io/Vision-Hu13/course-labs/chapter-007/)|
+|008 深度学习|[真实迁移学习与目标检测](https://hub-fover.github.io/Vision-Hu13/course-labs/chapter-008/)|
 
 运行 `npm run test:course` 验证，`npm run build:course` 构建，`npm run serve:course` 本地启动。范围与教学指南见 [course-labs/README.md](course-labs/README.md)。
 
