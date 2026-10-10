@@ -10,4 +10,5 @@ test('all five chapter routes are independently staged with shared resources',as
   await access(resolve(root,`chapters/ch${id}.mjs`));
  }
  for(const name of ['index.html','style.css','app.mjs','render.mjs','compute.worker.mjs','runtime.mjs','README.md','TEACHER.md'])await access(resolve(root,name));
+ for(const name of ['real/entry.mjs','real/geometry.mjs','real/perception.mjs','real/models.mjs','real/depth.mjs','real/style.css','assets/integrity.json','real/assets/models/mobilenet/model.json','real/assets/models/coco/model.json'])await access(resolve(root,name));
 });

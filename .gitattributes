@@ -1,1 +1,3 @@
 lab-003/output/pdf/*.pdf binary
+course-labs/assets/** -text
+course-labs/real/assets/** -text

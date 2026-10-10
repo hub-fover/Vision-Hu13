@@ -1,0 +1,404 @@
+[
+  {
+    "file": "tf.min.js",
+    "source": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js",
+    "bytes": 1469843,
+    "sha256": "300dfae273d20b4046f46a06d735688f03675a807561e9bcb5f664eb2f3d2831"
+  },
+  {
+    "file": "coco-ssd.min.js",
+    "source": "https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js",
+    "bytes": 9299,
+    "sha256": "8875b8c1bb57723990c9d6506226e0e51cd21b8b6943eb53201086096de52df5"
+  },
+  {
+    "file": "LICENSE-TFJS.txt",
+    "source": "https://raw.githubusercontent.com/tensorflow/tfjs/master/LICENSE",
+    "bytes": 11358,
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "LICENSE-MODELS.txt",
+    "source": "https://raw.githubusercontent.com/tensorflow/tfjs-models/master/LICENSE",
+    "bytes": 11357,
+    "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+  },
+  {
+    "file": "imagenet_classes.ts",
+    "source": "https://raw.githubusercontent.com/tensorflow/tfjs-models/master/mobilenet/src/imagenet_classes.ts",
+    "bytes": 32577,
+    "sha256": "9a8682836352885d11eb80a3e73cd0445a94161b922b1f986aeb9fa846596e28"
+  },
+  {
+    "file": "mobilenet/model.json",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/model.json",
+    "bytes": 54214,
+    "sha256": "a4704cbfa5ca688eaf1fd24bf34bebebb9f4d1c20fac91236b208750c5006714"
+  },
+  {
+    "file": "mobilenet/group1-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group1-shard1of1",
+    "bytes": 3456,
+    "sha256": "ac47f5e879eee80e5a3dd34e0c4b603c008c22697bd385a807b552196469cf8d"
+  },
+  {
+    "file": "mobilenet/group2-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group2-shard1of1",
+    "bytes": 512,
+    "sha256": "926336e665f89179ae48d22b321ef040d3d8e3c4934c7c34723dbd1de3586392"
+  },
+  {
+    "file": "mobilenet/group3-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group3-shard1of1",
+    "bytes": 1152,
+    "sha256": "e8f32b3d128117cc17ff7e6577806a1af8db83045a036fb6c6bf5ee5f28a9235"
+  },
+  {
+    "file": "mobilenet/group4-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group4-shard1of1",
+    "bytes": 18432,
+    "sha256": "825588712ad3472b2c3b38cc44902e527b7a2f445cb597ae40a2cbc51977167c"
+  },
+  {
+    "file": "mobilenet/group5-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group5-shard1of1",
+    "bytes": 8192,
+    "sha256": "974e18c0dc5b9a6019858d30a5565577f0d8ea312026ac085a408f79d536cf20"
+  },
+  {
+    "file": "mobilenet/group6-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group6-shard1of1",
+    "bytes": 18432,
+    "sha256": "9b4d71617f631e117d1b79254977e6dced7388bd611db803cbf6d792054f1294"
+  },
+  {
+    "file": "mobilenet/group7-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group7-shard1of1",
+    "bytes": 8192,
+    "sha256": "9433ee1ea01855ce72da0a1025b708ac55dec728e309c9089c1c7dffa18a86b0"
+  },
+  {
+    "file": "mobilenet/group8-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group8-shard1of1",
+    "bytes": 18432,
+    "sha256": "cc8b9923e8c1715bc1d49123a62d66972b4189a5683121ee59780ed15f1265c8"
+  },
+  {
+    "file": "mobilenet/group9-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group9-shard1of1",
+    "bytes": 8192,
+    "sha256": "d5a6eb3aca535d2e29d6abe60e487f2a56fab1397af6b65bcfe23b8e248b456f"
+  },
+  {
+    "file": "mobilenet/group10-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group10-shard1of1",
+    "bytes": 36864,
+    "sha256": "d1e1d589dd26aa17b8e7a7de103b941a43001f61cb3d59d5c237aacf9a9cef29"
+  },
+  {
+    "file": "mobilenet/group11-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group11-shard1of1",
+    "bytes": 16384,
+    "sha256": "32e4d7d093e54f8bfbf1d114695b3e3ad62cd8677903010c65bed89aac19c302"
+  },
+  {
+    "file": "mobilenet/group12-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group12-shard1of1",
+    "bytes": 512,
+    "sha256": "2460ac8019d24487c3d4ac62ecd6070c457d5cba907de5c6574adfad899987de"
+  },
+  {
+    "file": "mobilenet/group13-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group13-shard1of1",
+    "bytes": 2304,
+    "sha256": "050245f715febbb7cb23ef89c2785441f5ff1a40189e290e81b7f90f13561ffe"
+  },
+  {
+    "file": "mobilenet/group14-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group14-shard1of1",
+    "bytes": 1024,
+    "sha256": "0f547921c1176411876a109a32f3753fdbd0ed14b4a98b179b31cd3c53752c7e"
+  },
+  {
+    "file": "mobilenet/group15-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group15-shard1of1",
+    "bytes": 4608,
+    "sha256": "47337dadf5b8c0e796cc8b379df6267fc19001436636c068026acdf287d7e9f9"
+  },
+  {
+    "file": "mobilenet/group16-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group16-shard1of1",
+    "bytes": 2048,
+    "sha256": "a850a0cbcf85ec192302a012c153eae688e4256bae59205fa4b4509855b37d20"
+  },
+  {
+    "file": "mobilenet/group17-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group17-shard1of1",
+    "bytes": 4608,
+    "sha256": "49f5a8ba9bebfbf9b336bd040abc6d4842497a3d47a396e8876cf0c704cf5325"
+  },
+  {
+    "file": "mobilenet/group18-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group18-shard1of1",
+    "bytes": 2048,
+    "sha256": "8cec047146c18f723aaa728aa38ca2f2b04bacd9992eeb2aba3f07aa44ce00fc"
+  },
+  {
+    "file": "mobilenet/group19-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group19-shard1of1",
+    "bytes": 9216,
+    "sha256": "1427f5a54802f9a058909705bb533ac4ecb94b617987e691c74cc3f2beea3f63"
+  },
+  {
+    "file": "mobilenet/group20-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group20-shard1of1",
+    "bytes": 4096,
+    "sha256": "d24cf40560fc4ad7a7842c9c17c3230c2a30633ac0ed397022bbbbe3f83f053c"
+  },
+  {
+    "file": "mobilenet/group21-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group21-shard1of1",
+    "bytes": 9216,
+    "sha256": "5b8541d7f40659d311f46cf83bc0c1c4429b0b8efeeb98d91a98d56492ecbe36"
+  },
+  {
+    "file": "mobilenet/group22-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group22-shard1of1",
+    "bytes": 4096,
+    "sha256": "8bc3f01dc12e506d8cad386abeef95fda46a79ca0d83798595664fee72283c20"
+  },
+  {
+    "file": "mobilenet/group23-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group23-shard1of1",
+    "bytes": 18432,
+    "sha256": "0468e6901ec155cf9f2d8e4dc7f4b7dbbd8eec6ea857d0a2b7a7eb1b737089d9"
+  },
+  {
+    "file": "mobilenet/group24-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group24-shard1of1",
+    "bytes": 8192,
+    "sha256": "3fef53547ee5e03d641edecdba198262e51e2fa659b43fee258a119bd12cf69e"
+  },
+  {
+    "file": "mobilenet/group25-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group25-shard1of1",
+    "bytes": 18432,
+    "sha256": "c966a3f767bf9ca947c8a8606d77eb7ab42a294ea273b238dbcdde6a46d6b8d8"
+  },
+  {
+    "file": "mobilenet/group26-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group26-shard1of1",
+    "bytes": 8192,
+    "sha256": "0ca49a466f72a989190a937f8743b251c23a7f5030b777d24c97ae8e259415ab"
+  },
+  {
+    "file": "mobilenet/group27-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group27-shard1of1",
+    "bytes": 18432,
+    "sha256": "96e41ae0bb8880e0c0fdc4c9126fef1c642bfbbd04c2170b05dffd2111493026"
+  },
+  {
+    "file": "mobilenet/group28-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group28-shard1of1",
+    "bytes": 8192,
+    "sha256": "ef5ad407e32120b20370ba6a54cdf03f339f6ace8fb7415348ac568285e5ec8f"
+  },
+  {
+    "file": "mobilenet/group29-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group29-shard1of1",
+    "bytes": 4100000,
+    "sha256": "bfd7420872d4bceb70b686cb0c80fffb6530a6b43f5a86238504c2837707a211"
+  },
+  {
+    "file": "mobilenet/group30-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group30-shard1of1",
+    "bytes": 8192,
+    "sha256": "2399805be0d87c6787065c05bb40dfef2d3f5085d9313091c79c653454212aa2"
+  },
+  {
+    "file": "mobilenet/group31-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group31-shard1of1",
+    "bytes": 1048576,
+    "sha256": "9df450b5a6c9272224ba9114878f2513c3d7a4662a5d7e68562b44d1a21bcebd"
+  },
+  {
+    "file": "mobilenet/group32-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group32-shard1of1",
+    "bytes": 8192,
+    "sha256": "b6530681265b4869dad58babd4070d59539dd17bd5e1b007a376bf4f8aa8975c"
+  },
+  {
+    "file": "mobilenet/group33-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group33-shard1of1",
+    "bytes": 1048576,
+    "sha256": "df0f5e2fa512880a1f75002fcd0f953ba2b96222aa869772435701296ade8674"
+  },
+  {
+    "file": "mobilenet/group34-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group34-shard1of1",
+    "bytes": 8192,
+    "sha256": "885bb00463357c8ff83e8405c71e18663b3661886d80fcbfb8c135bafd4a99d9"
+  },
+  {
+    "file": "mobilenet/group35-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group35-shard1of1",
+    "bytes": 2097152,
+    "sha256": "c1ae02f6cd5759a0550639e91918f2186a8331b9b711a97d73c97ea44cd28f17"
+  },
+  {
+    "file": "mobilenet/group36-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group36-shard1of1",
+    "bytes": 16384,
+    "sha256": "f6997576dcb181aaed44a6c1eaf221f2a1cc4257fd29816a328c0e5a7230e81e"
+  },
+  {
+    "file": "mobilenet/group37-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group37-shard1of1",
+    "bytes": 4194304,
+    "sha256": "1612f176208636c5e83bb31652cefd0fa8d2a3af8369ded349231552fe54c737"
+  },
+  {
+    "file": "mobilenet/group38-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group38-shard1of1",
+    "bytes": 16384,
+    "sha256": "61020647623bcf0359f743e4244ff93a1bf81d3002e29ef33117897b3e57cd29"
+  },
+  {
+    "file": "mobilenet/group39-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group39-shard1of1",
+    "bytes": 1024,
+    "sha256": "b2fca54b325e305fb0e024910e11d80474d013262d85bac7f1eb64c5f58fe266"
+  },
+  {
+    "file": "mobilenet/group40-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group40-shard1of1",
+    "bytes": 32768,
+    "sha256": "c3f84328d85fb80b0ce341b2481fb1b9c71ab521f9f98fdd27451c727e00e302"
+  },
+  {
+    "file": "mobilenet/group41-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group41-shard1of1",
+    "bytes": 2048,
+    "sha256": "1ca13d51a3434ff2dcb156c1cc6d44975d0e915d5c178e0b7b37fdc71846f939"
+  },
+  {
+    "file": "mobilenet/group42-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group42-shard1of1",
+    "bytes": 65536,
+    "sha256": "e74d4ab14b8137393eaf3e1eab8ac4a6ad5508148802a91631b2da23b987ecea"
+  },
+  {
+    "file": "mobilenet/group43-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group43-shard1of1",
+    "bytes": 2048,
+    "sha256": "9adab0633661a9417f8abe693b5e1aa53f33868aa542d0bba9eb06afc1e49ae1"
+  },
+  {
+    "file": "mobilenet/group44-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group44-shard1of1",
+    "bytes": 131072,
+    "sha256": "31a0da2cee66a6fa5b85d087b98f967a1566a05a6871abadb198cfc7094e3dc7"
+  },
+  {
+    "file": "mobilenet/group45-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group45-shard1of1",
+    "bytes": 4096,
+    "sha256": "b4e9c284d376ab48186ed8629d396c4a02cb76bc3c89837f6c936a1f26234834"
+  },
+  {
+    "file": "mobilenet/group46-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group46-shard1of1",
+    "bytes": 262144,
+    "sha256": "752f6b8009dfc953e2e0e4d66d2c0d81f52efa4a9280c4013e9d928c03e90c24"
+  },
+  {
+    "file": "mobilenet/group47-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group47-shard1of1",
+    "bytes": 4096,
+    "sha256": "e32ad47dd3800ac264dbb7687ed73e453b09368fe35c7e7ce27c63dd8262e88e"
+  },
+  {
+    "file": "mobilenet/group48-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group48-shard1of1",
+    "bytes": 524288,
+    "sha256": "b2b63567b6fa40c5231451a3a4a1ec94ee45aa80bb802c166ba93f470c53a3f9"
+  },
+  {
+    "file": "mobilenet/group49-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group49-shard1of1",
+    "bytes": 8192,
+    "sha256": "19212241aa418c35ca5e9d83c4bac8b9be9abd4a48ac5f01e912c14bc6a23b7b"
+  },
+  {
+    "file": "mobilenet/group50-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group50-shard1of1",
+    "bytes": 1048576,
+    "sha256": "1fb6d436f6334c585615d69786a7d5530f0302e23dbdedff27b73097a82a7cf0"
+  },
+  {
+    "file": "mobilenet/group51-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group51-shard1of1",
+    "bytes": 8192,
+    "sha256": "95950eba41daa55425261a1a544bb22f0fa7a52a08d1780b096a4c0d3c749cb4"
+  },
+  {
+    "file": "mobilenet/group52-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group52-shard1of1",
+    "bytes": 1048576,
+    "sha256": "a072338a6d7b5df47e673e454a6b35d34c6c055a7fbd355a84db78811fdaa1c5"
+  },
+  {
+    "file": "mobilenet/group53-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group53-shard1of1",
+    "bytes": 8192,
+    "sha256": "9fdde22824b7e5cb812fb8479eeba2a2da2fe1abee8bb532ec202909339e03b6"
+  },
+  {
+    "file": "mobilenet/group54-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group54-shard1of1",
+    "bytes": 1048576,
+    "sha256": "887b0cac140eb3004f6f0ec265580c4681ad9277d8d2c88773373c0159e07188"
+  },
+  {
+    "file": "mobilenet/group55-shard1of1",
+    "source": "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/group55-shard1of1",
+    "bytes": 8192,
+    "sha256": "e1a37a68fe9411f21df16e0c2c4ddd0099a590f3728c1dfc1f95eb43025659eb"
+  },
+  {
+    "file": "coco/model.json",
+    "source": "https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/model.json",
+    "bytes": 527315,
+    "sha256": "3770b2528339b1e3340cb74360e1e40401816b009779aeb8d0cce3a4353ea3a9"
+  },
+  {
+    "file": "coco/group1-shard1of5",
+    "source": "https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/group1-shard1of5",
+    "bytes": 4194304,
+    "sha256": "0e7af0f713e98521252321f7f84892c31cefccccec3ac64c84e5065b75ed5646"
+  },
+  {
+    "file": "coco/group1-shard2of5",
+    "source": "https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/group1-shard2of5",
+    "bytes": 4194304,
+    "sha256": "74cc6cfc2c4510c9cd81b8ad4cebf6f6a8f305119bb365ce0eb96276da38519a"
+  },
+  {
+    "file": "coco/group1-shard3of5",
+    "source": "https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/group1-shard3of5",
+    "bytes": 4194304,
+    "sha256": "50383033f893eae136392a403e8f70ade5efd90867df5695c4ca5ac640e14f38"
+  },
+  {
+    "file": "coco/group1-shard4of5",
+    "source": "https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/group1-shard4of5",
+    "bytes": 4194304,
+    "sha256": "d856dc534c780068bbf6c666ce1516df2c8433d87578aa31fcdf197de7058cc2"
+  },
+  {
+    "file": "coco/group1-shard5of5",
+    "source": "https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/group1-shard5of5",
+    "bytes": 1257312,
+    "sha256": "3d356f1fb6dfca6af78c56db34d9326706d0196e303f9de6b04f236ca79ed309"
+  }
+]

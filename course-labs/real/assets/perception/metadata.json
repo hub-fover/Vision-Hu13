@@ -1,0 +1,54 @@
+{
+  "jsfeat": {
+    "called": [
+      "imgproc.grayscale",
+      "pyramid_t.build",
+      "fast_corners.detect",
+      "optical_flow_lk.track"
+    ],
+    "commit": "4c7b336bbeeb26e6cd4cdf3c7d414abe273846f3",
+    "license": "MIT",
+    "repository": "https://github.com/inspirit/jsfeat"
+  },
+  "assets": [
+    {
+      "file": "astronaut.png",
+      "sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5"
+    },
+    {
+      "file": "basketball1.png",
+      "sha256": "ba06f6701f7260998b430c39b6557f775497e6ce7b1a74f0b7ea6af371bf54a6"
+    },
+    {
+      "file": "basketball2.png",
+      "sha256": "b3047772e0dc6c9d83c26f64894ca1a897f799f855c5574ac24b2ef934c2978e"
+    },
+    {
+      "file": "jsfeat-LICENSE.txt",
+      "sha256": "20c20cb25e05181e3b6c7d68814a3484858422d6fb3745a3a75787256d30cc72"
+    },
+    {
+      "file": "jsfeat.js",
+      "sha256": "974327515d68c91258efd3befa03622c41bbed8e3172771994604325799977a1"
+    },
+    {
+      "file": "opencv-LICENSE.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    }
+  ],
+  "astronaut": {
+    "source": "https://raw.githubusercontent.com/scikit-image/scikit-image/v0.19.3/skimage/data/astronaut.png",
+    "documentation": "https://scikit-image.org/docs/0.19.x/api/skimage.data.html#skimage.data.astronaut",
+    "license": "Public domain NASA",
+    "attribution": "NASA photograph of Eileen Collins"
+  },
+  "basketball": {
+    "commit": "71d3237a093b60a27601c20e9ee6c3e52154e8b1",
+    "license": "Apache-2.0 repository distribution",
+    "path": "samples/data/basketball1.png and basketball2.png",
+    "description": "Real basketball image pair used by official OpenCV optical flow examples. Not generated or shifted by this project.",
+    "repository": "https://github.com/opencv/opencv",
+    "tag": "4.10.0"
+  },
+  "processing": "Original sources retained; browser working copy resampled to fit 384 by 288."
+}
