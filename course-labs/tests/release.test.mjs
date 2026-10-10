@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile,access} from 'node:fs/promises';
+import {resolve} from 'node:path';
+const root=resolve(import.meta.dirname,'../../web/course-labs');
+test('all five chapter routes are independently staged with shared resources',async()=>{
+ for(const id of ['004','005','006','007','008']){
+  const html=await readFile(resolve(root,`chapter-${id}/index.html`),'utf8');
+  assert.match(html,/src="\.\.\/app.mjs"/);
+  await access(resolve(root,`chapters/ch${id}.mjs`));
+ }
+ for(const name of ['index.html','style.css','app.mjs','render.mjs','compute.worker.mjs','runtime.mjs','README.md','TEACHER.md'])await access(resolve(root,name));
+});
