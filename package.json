@@ -9,7 +9,7 @@
     "test:course:numeric": "node --test course-labs/tests/real-*.test.mjs",
     "test:course:browser": "node course-labs/tests/browser.mjs",
     "validate:course": "node --test course-labs/tests/release.test.mjs",
-    "test:course": "npm run build:course && npm run test:course:numeric && npm run validate:course && npm run test:course:browser && npm run test:course:real-browser",
+    "test:course": "npm run build:course && npm run test:course:numeric && npm run validate:course && npm run test:course:browser && npm run test:course:real-browser && npm run test:course:temporal-browser",
     "test": "npm run test:web",
     "test:web": "node --test tests/web/*.test.js",
     "test:lab002": "npm run test:lab002:web && npm run test:lab002:python",
@@ -67,7 +67,8 @@
     "record:demo": "node scripts/record_demo.mjs",
     "serve": "node scripts/serve_web.mjs",
     "test:course:real": "node --test course-labs/tests/real-*.test.mjs",
-    "test:course:real-browser": "node course-labs/tests/real-browser.mjs"
+    "test:course:real-browser": "node course-labs/tests/real-browser.mjs",
+    "test:course:temporal-browser": "node course-labs/tests/temporal-browser.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.0"

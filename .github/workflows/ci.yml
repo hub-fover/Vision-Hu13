@@ -30,6 +30,7 @@ jobs:
             .superpowers/sdd/course-labs-plan/qa/
             .superpowers/sdd/real-image-labs/qa/
             .superpowers/sdd/real-only-course/qa/
+            .superpowers/sdd/temporal-course/qa/
           include-hidden-files: true
           if-no-files-found: ignore
 
