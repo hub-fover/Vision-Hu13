@@ -1,10 +1,12 @@
 import {openRealLab} from './real/entry.mjs';
 import {chapters,resolveScene} from './real/catalog.mjs';
+import {siteFor} from './independent-sites.mjs';
 const $=id=>document.getElementById(id),chapterId=location.pathname.match(/chapter-(00[4-8])/ )?.[1];
 let selection=0,teacher=new URLSearchParams(location.search).get('teacher')==='1';
 function updateTeacher(){ $('teacher').setAttribute('aria-pressed',String(teacher));$('teacher-panel').hidden=!teacher;const url=new URL(location.href);if(teacher)url.searchParams.set('teacher','1');else url.searchParams.delete('teacher');history.replaceState({},'',url);}
 async function selectScene(requested){
 const ticket=++selection,chapter=chapters[chapterId],scene=resolveScene(chapterId,requested);
+if(new URLSearchParams(location.search).get('legacy')!=='1'){const site=siteFor(chapterId,scene.id);if(site){location.replace(site.url);return;}}
 const url=new URL(location.href);url.searchParams.set('scene',scene.id);history.replaceState({},'',url);
 document.title=`${scene.title} · ${chapter.title} · Vision Hub`;
 $('chapter-name').textContent=`${chapterId} · ${chapter.title}`;$('title').textContent=scene.title;$('goal').textContent=scene.goal;$('source').textContent=`课程关联：第 ${scene.pages} 页`;$('observation').textContent=scene.task;
