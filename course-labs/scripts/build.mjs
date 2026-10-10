@@ -4,6 +4,7 @@ const source=resolve(import.meta.dirname,'..'),dest=resolve(source,'../web/cours
 await mkdir(dest,{recursive:true});
 for(const file of ['index.html','app.mjs','style.css','render.mjs','runtime.mjs','compute.worker.mjs','README.md','TEACHER.md','LICENSES.md'])await cp(resolve(source,file),resolve(dest,file));
 await cp(resolve(source,'chapters'),resolve(dest,'chapters'),{recursive:true});
+for(const folder of ['real','assets'])await cp(resolve(source,folder),resolve(dest,folder),{recursive:true});
 const shell=await readFile(resolve(source,'lab.html'),'utf8');
 for(const id of ['004','005','006','007','008']){
  const path=resolve(dest,`chapter-${id}`);await mkdir(path,{recursive:true});await writeFile(resolve(path,'index.html'),shell);

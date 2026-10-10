@@ -1,3 +1,4 @@
+import {openRealLab} from './real/entry.mjs';
 import {draw} from './render.mjs';
 import {normalizeParams,toPortable} from './runtime.mjs';
 const $=id=>document.getElementById(id),chapterId=location.pathname.match(/chapter-(00[4-8])/ )?.[1];
@@ -16,6 +17,7 @@ function selectScene(id){
  $('scene-nav').replaceChildren(...scenes.map(s=>{const a=document.createElement('a');a.href=`?scene=${s.id}${teacher?'&teacher=1':''}`;a.textContent=`${s.id} ${s.title}`;if(s.id===scene.id)a.setAttribute('aria-current','page');a.onclick=e=>{e.preventDefault();selectScene(s.id);};return a;}));
  $('controls').replaceChildren(...scene.controls.map(c=>{const label=document.createElement('label');label.textContent=c.label;const output=document.createElement('output');output.id=`value-${c.key}`;output.textContent=params[c.key];const slider=document.createElement('input');slider.type='range';slider.id=`param-${c.key}`;slider.min=c.min;slider.max=c.max;slider.step=c.step;slider.value=params[c.key];slider.setAttribute('aria-label',c.label);slider.oninput=()=>{params[c.key]=Number(slider.value);output.textContent=slider.value;clearTimeout(debounce);debounce=setTimeout(compute,100);};label.append(output,slider);if(c.help){const small=document.createElement('small');small.textContent=c.help;label.append(small);}return label;}));
  $('upload-wrap').hidden=!scene.supportsInput;
+ openRealLab(chapterId,scene.id);
  compute();
 }
 function compute(){

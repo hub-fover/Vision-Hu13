@@ -1,0 +1,45 @@
+{
+  "fetched": "2026-10-10",
+  "dataset": "OpenCV Aloe rectified real stereo photographs",
+  "files": [
+    {
+      "file": "aloeL.jpg",
+      "source": "https://raw.githubusercontent.com/opencv/opencv/4.12.0/samples/data/aloeL.jpg",
+      "sha256": "cce5736808efe80d9f04b118dbb978c344d4345672b332718c3e039a3eeb8eee",
+      "bytes": 315069,
+      "license": "Apache-2.0 (OpenCV repository)"
+    },
+    {
+      "file": "aloeR.jpg",
+      "source": "https://raw.githubusercontent.com/opencv/opencv/4.12.0/samples/data/aloeR.jpg",
+      "sha256": "9b23100df31a846bc6e6a6545563b2b4120b948c9835c7d36cde00af77f4503e",
+      "bytes": 315113,
+      "license": "Apache-2.0 (OpenCV repository)"
+    },
+    {
+      "file": "JSFEAT-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/inspirit/jsfeat/4c7b336bbeeb26e6cd4cdf3c7d414abe273846f3/LICENSE",
+      "sha256": "20c20cb25e05181e3b6c7d68814a3484858422d6fb3745a3a75787256d30cc72",
+      "bytes": 1077,
+      "license": "MIT"
+    },
+    {
+      "file": "jsfeat-min.js",
+      "source": "https://raw.githubusercontent.com/inspirit/jsfeat/4c7b336bbeeb26e6cd4cdf3c7d414abe273846f3/build/jsfeat-min.js",
+      "sha256": "974327515d68c91258efd3befa03622c41bbed8e3172771994604325799977a1",
+      "bytes": 67190,
+      "license": "MIT"
+    },
+    {
+      "file": "OPENCV-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/opencv/opencv/4.12.0/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "bytes": 11358,
+      "license": "Apache-2.0 (OpenCV repository)"
+    }
+  ],
+  "processing": "Original JPEGs stored unchanged. Browser scales both to width 384 then invokes JSFeat grayscale and FAST, followed by our original teaching SAD block matcher. No camera metric depth calibration or ground truth is claimed.",
+  "licenseEvidence": "OpenCV 4.12.0 root LICENSE is Apache-2.0; samples/data images have no separate adjacent license notice. Aloe is also known as a Middlebury stereo example; dataset authorship is not inferred to belong to OpenCV. Redistribution relies on inclusion in the licensed OpenCV repository.",
+  "rejectedDataset": "scikit-image stereo_motorcycle copies downloaded only into work/: Middlebury 2014 dataset page contains no explicit permissive image redistribution terms. They are not included in published course assets.",
+  "algorithm": "SAD box costs evaluated via per-disparity integral images; uniqueness gap uses minimum and second minimum. No left-right consistency, subpixel optimization, SGM or occlusion inference."
+}
