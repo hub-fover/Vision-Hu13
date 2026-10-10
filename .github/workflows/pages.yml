@@ -115,7 +115,10 @@ jobs:
           test -f web/feature-extraction/compute.worker.mjs
           test -f web/feature-extraction/assets/mountains-02.jpg
 
-      - name: Upload static site
+      - name: Stage and validate course chapters
+        run: npm run build:course && npm run validate:course
+
+      - name: Upload static site with course chapters
         uses: actions/upload-pages-artifact@v4
         with:
           path: ./web
@@ -131,7 +134,7 @@ jobs:
         run: |
           set -euo pipefail
           base="${PAGE_URL%/}"
-          for path in "" "lab-002/" "lab-003/" "lab-004/" "lab-005/" "lab-005/assets/samples/manifest.json" "lab-005/LICENSES.md" "lab-005/vendor/opencv.js" "lab-006/" "lab-006/calibration.html" "lab-006/measurement.html" "lab-006/assets/samples/manifest.json" "lab-006/assets/samples/sample-corners.json" "lab-006/vendor/opencv.js" "lab-006/vendor/opencv.wasm" "lab-007/" "lab-007/assets/samples/manifest.json" "lab-007/vendor/manifest.json" "lab-007/vendor/transformers.web.min.js" "lab-007/vendor/ort-wasm-simd-threaded.asyncify.mjs" "lab-007/vendor/ort-wasm-simd-threaded.asyncify.wasm"; do
+          for path in "" "lab-002/" "lab-003/" "lab-004/" "lab-005/" "lab-005/assets/samples/manifest.json" "lab-005/LICENSES.md" "lab-005/vendor/opencv.js" "lab-006/" "lab-006/calibration.html" "lab-006/measurement.html" "lab-006/assets/samples/manifest.json" "lab-006/assets/samples/sample-corners.json" "lab-006/vendor/opencv.js" "lab-006/vendor/opencv.wasm" "lab-007/" "lab-007/assets/samples/manifest.json" "lab-007/vendor/manifest.json" "lab-007/vendor/transformers.web.min.js" "lab-007/vendor/ort-wasm-simd-threaded.asyncify.mjs" "lab-007/vendor/ort-wasm-simd-threaded.asyncify.wasm" "course-labs/" "course-labs/chapter-004/" "course-labs/chapter-005/" "course-labs/chapter-006/" "course-labs/chapter-007/" "course-labs/chapter-008/" "course-labs/compute.worker.mjs"; do
             url="$base/$path"
             for attempt in 1 2 3 4 5 6; do
               if curl --fail --silent --show-error --location --max-time 30 "$url" --output /dev/null; then

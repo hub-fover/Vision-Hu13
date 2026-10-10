@@ -4,6 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:course": "node course-labs/scripts/build.mjs",
+    "serve:course": "node course-labs/scripts/serve.mjs",
+    "test:course:numeric": "node --test course-labs/tests/runtime.test.mjs course-labs/tests/catalog.test.mjs course-labs/tests/geometry.test.mjs course-labs/tests/perception.test.mjs course-labs/tests/learning.test.mjs",
+    "test:course:browser": "node course-labs/tests/browser.mjs",
+    "validate:course": "node --test course-labs/tests/release.test.mjs",
+    "test:course": "npm run build:course && npm run test:course:numeric && npm run validate:course && npm run test:course:browser",
     "test": "npm run test:web",
     "test:web": "node --test tests/web/*.test.js",
     "test:lab002": "npm run test:lab002:web && npm run test:lab002:python",

@@ -9,6 +9,27 @@ permissions:
   contents: read
 
 jobs:
+  course-labs:
+    name: Course Labs numerical and browser acceptance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:course
+      - name: Upload course screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: course-labs-acceptance
+          path: .superpowers/sdd/course-labs-plan/qa/
+          include-hidden-files: true
+          if-no-files-found: ignore
+
   feature-extraction:
     name: Feature extraction numerical regression
     runs-on: ubuntu-latest
